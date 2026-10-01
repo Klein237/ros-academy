@@ -4,9 +4,10 @@ import time
 import uuid
 
 import pytest
+import requests
 import websocket
 
-from conftest import ADMIN_TOKEN, WS_BASE, mint
+from conftest import ADMIN_TOKEN, BASE, WS_BASE, mint
 
 GiB = 1024 ** 3
 
@@ -143,3 +144,63 @@ def test_idle_server_is_culled(student, hub):
             return
         time.sleep(10)
     pytest.fail("le serveur inactif n'a pas été arrêté en 240 s")
+
+
+def browser_login(name, plan="free"):
+    """Session navigateur : cookie du Hub obtenu par /hub/jwt_login."""
+    s = requests.Session()
+    s.verify = False
+    r = s.get(f"{BASE}/hub/jwt_login", params={"token": mint(name, plan)}, allow_redirects=False)
+    assert r.status_code == 302
+    return s, r
+
+
+def test_login_redirects_to_lab_without_jwt():
+    name = f"it{uuid.uuid4().hex[:8]}"
+    _, r = browser_login(name)
+    assert r.headers["Location"] == "/lab/"
+    s, _ = browser_login(name)
+    r = s.get(f"{BASE}/hub/jwt_login",
+              params={"token": mint(name), "next": "/lab/?open=ws/a.py"}, allow_redirects=False)
+    assert r.headers["Location"] == "/lab/?open=ws/a.py"
+
+
+def test_lab_token_requires_same_site_cookie(hub):
+    name = f"it{uuid.uuid4().hex[:8]}"
+    assert requests.get(f"{BASE}/hub/lab_token", verify=False).status_code == 403
+    s, _ = browser_login(name)
+    r = s.get(f"{BASE}/hub/lab_token", headers={"Sec-Fetch-Site": "cross-site"})
+    assert r.status_code == 403
+    r = s.get(f"{BASE}/hub/lab_token", headers={"Sec-Fetch-Site": "same-origin"})
+    assert r.status_code == 200
+    assert r.headers["Cache-Control"] == "no-store"
+    body = r.json()
+    assert body["user"] == name and body["server_url"] == f"/user/{name}/"
+    # un jeton du Lab UI ne permet pas d'en fabriquer d'autres
+    r = requests.get(f"{BASE}/hub/lab_token", verify=False,
+                     headers={"Authorization": f"token {body['token']}"})
+    assert r.status_code == 403
+    hub.api("DELETE", f"/users/{name}")
+
+
+def test_lab_token_is_scoped_to_its_owner(student, hub):
+    alice, bob = student(), student()
+    s, _ = browser_login(alice)
+    token = s.get(f"{BASE}/hub/lab_token").json()["token"]
+    auth = {"Authorization": f"token {token}"}
+
+    def get(path):
+        return requests.get(f"{BASE}{path}", headers=auth, verify=False, allow_redirects=False)
+
+    assert get(f"/user/{alice}/api/contents").status_code == 200
+    assert get(f"/hub/api/users/{alice}").json()["servers"][""]["ready"] is True
+    assert get(f"/user/{bob}/api/contents").status_code in (302, 403)
+    assert get(f"/hub/api/users/{bob}").status_code == 404
+    assert get("/hub/api/users").status_code == 403
+    r = requests.post(f"{BASE}/hub/api/users/{bob}/tokens", headers=auth, verify=False)
+    assert r.status_code in (403, 404)
+    ws = websocket.create_connection(
+        f"{WS_BASE}/user/{alice}/rosbridge/?token={token}",
+        sslopt={"cert_reqs": ssl.CERT_NONE}, timeout=30,
+    )
+    ws.close()

@@ -10,6 +10,9 @@ from tornado import web
 from traitlets import Integer, Unicode
 
 USERNAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
+LAB_URL = "/lab/"
+LAB_TOKEN_TTL = 3600
+SAME_SITE_FETCH = {"same-origin", "none"}
 
 
 class TokenError(Exception):
@@ -40,12 +43,46 @@ def verify_token(token, secret, audience="ros-lab", max_lifetime=3600, leeway=30
     return {"name": sub, "auth_state": {"plan": claims.get("plan")}}
 
 
+def lab_token_scopes(name):
+    """Droits du jeton du Lab UI : le serveur de l'étudiant, rien d'autre."""
+    return [f"access:servers!user={name}", f"servers!user={name}", f"read:users:name!user={name}"]
+
+
+def is_cross_site(headers):
+    """Vrai si le navigateur signale une requête venue d'un autre site."""
+    site = headers.get("Sec-Fetch-Site")
+    return site is not None and site not in SAME_SITE_FETCH
+
+
 class JWTLoginHandler(BaseHandler):
     async def get(self):
         user = await self.login_user({"token": self.get_argument("token", "")})
         if user is None:
             raise web.HTTPError(403, "Lien de connexion invalide ou expiré. Rouvrez le lab depuis le site.")
-        self.redirect(self.get_next_url(user))
+        # Sans `next`, get_next_url recopierait le JWT dans l'URL de redirection.
+        next_url = self.get_next_url(user) if self.get_argument("next", "") else ""
+        self.redirect(next_url or LAB_URL)
+
+
+class LabTokenHandler(BaseHandler):
+    """Donne au Lab UI (même origine) un jeton court limité au serveur de l'étudiant."""
+
+    async def get(self):
+        self.set_header("Cache-Control", "no-store")
+        if is_cross_site(self.request.headers):
+            raise web.HTTPError(403, "Requête d'un autre site refusée")
+        user = self.current_user
+        if user is None or getattr(user, "kind", None) != "user":
+            raise web.HTTPError(403, "Non connecté. Rouvrez le lab depuis le site.")
+        token = user.new_api_token(
+            note="lab-ui", expires_in=LAB_TOKEN_TTL, scopes=lab_token_scopes(user.name)
+        )
+        self.write({
+            "user": user.name,
+            "token": token,
+            "expires_in": LAB_TOKEN_TTL,
+            "server_url": url_path_join(user.url, ""),
+        })
 
 
 class ComptesJWTAuthenticator(Authenticator):
@@ -54,7 +91,7 @@ class ComptesJWTAuthenticator(Authenticator):
     max_lifetime = Integer(3600).tag(config=True)
 
     def get_handlers(self, app):
-        return [(r"/jwt_login", JWTLoginHandler)]
+        return [(r"/jwt_login", JWTLoginHandler), (r"/lab_token", LabTokenHandler)]
 
     def login_url(self, base_url):
         return url_path_join(base_url, "jwt_login")
