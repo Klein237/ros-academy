@@ -9,7 +9,11 @@ def make_spawner():
     return SimpleNamespace(
         cpu_limit=None,
         mem_limit=None,
-        extra_host_config={"cap_drop": ["ALL"], "security_opt": ["no-new-privileges"]},
+        extra_host_config={
+            "cap_drop": ["ALL"],
+            "security_opt": ["no-new-privileges"],
+            "init": True,
+        },
     )
 
 
@@ -41,6 +45,7 @@ def test_apply_limits_keeps_hardening_options():
     apply_limits(spawner, {"plan": "free"})
     assert spawner.extra_host_config["cap_drop"] == ["ALL"]
     assert spawner.extra_host_config["security_opt"] == ["no-new-privileges"]
+    assert spawner.extra_host_config["init"] is True
 
 
 def test_apply_limits_does_not_mutate_shared_config():

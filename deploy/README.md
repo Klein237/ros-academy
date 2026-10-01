@@ -7,11 +7,12 @@
 ## Installation
 1. `docker build -t ros-lab:0.1.0 images/ros-lab`
 2. `cp deploy/.env.example deploy/.env` puis remplacer chaque secret par `openssl rand -hex 32` et `DOMAIN` par le domaine.
-3. `cd deploy && docker compose up -d --build`, puis `scripts/wait_for_hub.sh`
+3. `cd deploy && docker compose up -d --build`, puis, toujours depuis `deploy/` : `set -a; . ./.env; set +a; BASE_URL=https://$DOMAIN ../scripts/wait_for_hub.sh`
 
 ## Tester un accès étudiant
 ```bash
 set -a; . deploy/.env; set +a
+pip install PyJWT==2.9.0
 TOKEN=$(python scripts/mint_token.py --sub essai --plan free)
 echo "https://$DOMAIN/hub/jwt_login?token=$TOKEN"
 ```
@@ -36,3 +37,6 @@ Construire `ros-lab:<nouvelle version>`, changer `ROS_LAB_IMAGE` dans `.env`, `d
 ## Limites connues
 - Tous les conteneurs étudiants partagent le réseau `ros-lab-net` : ils peuvent atteindre les ports des autres, protégés par l'authentification par jeton Jupyter mais non isolés au niveau réseau.
 - La limite de 1 Go par volume n'est pas encore appliquée (nécessite des quotas de projet XFS sur l'hôte).
+- Sur certaines versions de Docker, un réseau `internal` laisse quand même les conteneurs joindre l'hôte via l'adresse de la passerelle du bridge : les services de l'hôte écoutant sur 0.0.0.0 (sshd, bases de données, supervision) peuvent alors être atteints depuis le code des étudiants. L'opérateur doit lier ces services à des interfaces précises, ou ajouter une règle de pare-feu rejetant le trafic venant du sous-réseau `ros-lab-net` vers l'hôte. Exemple : trouver le bridge avec `docker network inspect ros-lab-net -f '{{.Id}}'` (le bridge s'appelle `br-` suivi des 12 premiers caractères de l'identifiant), puis `iptables -I INPUT -i <bridge> -j DROP`.
+- Le Hub s'exécute en root avec accès à la socket Docker (inhérent à DockerSpawner) : sa compromission équivaut à un accès root à l'hôte.
+- La couche inscriptible du conteneur et le swap ne sont pas limités en taille : un étudiant peut remplir le disque de l'hôte.

@@ -10,11 +10,11 @@ fail() { echo "FAIL: $1"; exit 1; }
 if run 'command -v sudo' >/dev/null; then fail "sudo est présent"; fi
 [ "$(run 'echo $ROS_LOCALHOST_ONLY')" = "1" ] || fail "ROS_LOCALHOST_ONLY absent"
 [ "$(run 'echo $ROS_DISTRO')" = "humble" ] || fail "ROS non sourcé"
-run 'ros2 pkg list' | grep -qx rclpy || fail "rclpy manquant"
-run 'ros2 pkg list' | grep -qx rclcpp || fail "rclcpp manquant"
-run 'ros2 pkg list' | grep -qx rosbridge_server || fail "rosbridge_server manquant"
+grep -qx rclpy <<<"$(run 'ros2 pkg list')" || fail "rclpy manquant"
+grep -qx rclcpp <<<"$(run 'ros2 pkg list')" || fail "rclcpp manquant"
+grep -qx rosbridge_server <<<"$(run 'ros2 pkg list')" || fail "rosbridge_server manquant"
 run 'command -v colcon' >/dev/null || fail "colcon manquant"
-run 'jupyterhub-singleuser --version' | grep -q '^5\.2\.1' || fail "jupyterhub-singleuser 5.2.1 manquant"
+grep -q '^5\.2\.1' <<<"$(run 'jupyterhub-singleuser --version')" || fail "jupyterhub-singleuser 5.2.1 manquant"
 run 'python3 -c "import jupyter_server_proxy"' || fail "jupyter-server-proxy manquant"
 run 'cd /tmp && mkdir -p ws/src && cd ws/src \
      && ros2 pkg create --build-type ament_python py_pkg >/dev/null \

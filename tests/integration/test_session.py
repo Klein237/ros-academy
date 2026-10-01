@@ -22,7 +22,7 @@ def test_student_gets_a_ros_terminal(student, hub):
 
 
 def test_invalid_token_is_refused(hub):
-    name = f"it-{uuid.uuid4().hex[:8]}"
+    name = f"it{uuid.uuid4().hex[:8]}"
     assert hub.login(name, token="not-a-jwt").status_code == 403
     expired = mint(name, ttl=-120)
     assert hub.login(name, token=expired).status_code == 403
@@ -36,7 +36,9 @@ def test_container_is_hardened_free_plan(student, hub, docker_client):
     assert "no-new-privileges" in cfg["SecurityOpt"]
     assert cfg["PidsLimit"] == 256
     assert cfg["Memory"] == 2 * GiB
-    assert cfg["NanoCpus"] == 1_000_000_000
+    assert cfg["CpuPeriod"] == 100_000
+    assert cfg["CpuQuota"] == 100_000
+    assert cfg["Init"] is True
     assert "USER=etudiant" in hub.run(name, "echo USER=$(whoami)")
     assert "command not found" in hub.run(name, "sudo -n true 2>&1")
 
@@ -45,7 +47,8 @@ def test_pro_plan_gets_bigger_limits(student, docker_client):
     name = student("pro")
     cfg = docker_client.containers.get(f"jupyter-{name}").attrs["HostConfig"]
     assert cfg["Memory"] == 4 * GiB
-    assert cfg["NanoCpus"] == 2_000_000_000
+    assert cfg["CpuPeriod"] == 100_000
+    assert cfg["CpuQuota"] == 200_000
     assert cfg["PidsLimit"] == 512
 
 
@@ -88,12 +91,29 @@ def test_rosbridge_is_reachable_through_proxy(student):
         f"{WS_BASE}/user/{name}/rosbridge/",
         header=[f"Authorization: token {ADMIN_TOKEN}"],
         sslopt={"cert_reqs": ssl.CERT_NONE},
-        timeout=60,
+        timeout=10,
     )
-    ws.send(json.dumps({"op": "call_service", "service": "/rosapi/topics", "id": "t1"}))
-    reply = json.loads(ws.recv())
-    ws.close()
-    assert reply["op"] == "service_response" and reply["result"] is True
+    reply = None
+    try:
+        # rosapi peut ne pas être encore découvert : on réessaie jusqu'à 20 s.
+        deadline = time.time() + 20
+        attempt = 0
+        while time.time() < deadline:
+            attempt += 1
+            ws.send(json.dumps(
+                {"op": "call_service", "service": "/rosapi/topics", "id": f"t{attempt}"}
+            ))
+            try:
+                reply = json.loads(ws.recv())
+            except websocket.WebSocketTimeoutException:
+                continue
+            if reply.get("op") == "service_response" and reply.get("result") is True:
+                break
+            time.sleep(2)
+    finally:
+        ws.close()
+    assert reply is not None, "aucune réponse de rosbridge"
+    assert reply["op"] == "service_response" and reply["result"] is True, reply
 
 
 def test_workspace_persists_across_restart(student, hub):
@@ -107,7 +127,7 @@ def test_workspace_persists_across_restart(student, hub):
 @pytest.mark.limit
 def test_server_limit_returns_429(student, hub):
     student(), student()  # ACTIVE_SERVER_LIMIT=2 : le Hub est plein
-    third = f"it-{uuid.uuid4().hex[:8]}"
+    third = f"it{uuid.uuid4().hex[:8]}"
     assert hub.login(third).status_code == 302
     r = hub.api("POST", f"/users/{third}/server")
     assert r.status_code == 429

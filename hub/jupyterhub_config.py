@@ -44,6 +44,7 @@ c.DockerSpawner.volumes = {"ros-lab-home-{username}": "/home/etudiant"}
 c.DockerSpawner.extra_host_config = {
     "cap_drop": ["ALL"],
     "security_opt": ["no-new-privileges"],
+    "init": True,  # tini en PID 1 : récolte les processus zombies
 }
 c.Spawner.auth_state_hook = apply_limits
 c.Spawner.start_timeout = 120
@@ -53,6 +54,7 @@ c.Spawner.http_timeout = 90
 c.JupyterHub.hub_ip = "0.0.0.0"
 c.JupyterHub.hub_connect_ip = "hub"
 c.JupyterHub.active_server_limit = int(env("ACTIVE_SERVER_LIMIT", "35"))
+c.JupyterHub.cookie_max_age_days = 1
 c.JupyterHub.cookie_secret_file = "/srv/hub/data/jupyterhub_cookie_secret"
 c.JupyterHub.db_url = "sqlite:////srv/hub/data/jupyterhub.sqlite"
 

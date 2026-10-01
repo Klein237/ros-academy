@@ -45,7 +45,9 @@ class Hub:
     def start(self, name, timeout=180):
         r = self.api("POST", f"/users/{name}/server")
         if r.status_code not in (201, 202, 400):  # 400 = déjà démarré
-            return r
+            raise RuntimeError(
+                f"démarrage de {name} refusé : {r.status_code} {r.text}"
+            )
         deadline = time.time() + timeout
         while time.time() < deadline:
             server = self.api("GET", f"/users/{name}").json().get("servers", {}).get("")
@@ -108,13 +110,19 @@ def student(hub):
     created = []
 
     def _make(plan="free"):
-        name = f"it-{uuid.uuid4().hex[:8]}"
+        name = f"it{uuid.uuid4().hex[:8]}"
+        created.append(name)
         assert hub.login(name, plan).status_code == 302
         hub.start(name)
-        created.append(name)
         return name
 
     yield _make
+    errors = []
     for name in created:
-        hub.stop(name)
-        hub.api("DELETE", f"/users/{name}")
+        try:
+            hub.stop(name)
+            hub.api("DELETE", f"/users/{name}")
+        except Exception as e:  # noqa: BLE001 - on nettoie les autres étudiants quand même
+            errors.append(f"{name}: {e!r}")
+    if errors:
+        raise RuntimeError("nettoyage incomplet : " + "; ".join(errors))
