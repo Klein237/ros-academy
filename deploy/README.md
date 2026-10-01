@@ -7,7 +7,7 @@
 ## Installation
 1. `docker build -t ros-lab:0.1.0 images/ros-lab`
 2. `cp deploy/.env.example deploy/.env` puis remplacer chaque secret par `openssl rand -hex 32` et `DOMAIN` par le domaine.
-3. `cd deploy && docker compose up -d --build`
+3. `cd deploy && docker compose up -d --build`, puis `scripts/wait_for_hub.sh`
 
 ## Tester un accès étudiant
 ```bash

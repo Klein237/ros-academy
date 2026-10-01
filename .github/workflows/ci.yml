@@ -40,6 +40,7 @@ jobs:
             echo "HUB_ADMIN_TOKEN=$(openssl rand -hex 32)"
           } > deploy/.env
       - run: cd deploy && docker compose up -d --build
+      - run: scripts/wait_for_hub.sh
       - name: Suite principale
         run: |
           set -a; . deploy/.env; set +a
@@ -48,11 +49,17 @@ jobs:
         run: |
           set -a; . deploy/.env; set +a
           (cd deploy && ACTIVE_SERVER_LIMIT=2 docker compose up -d hub)
+          scripts/wait_for_hub.sh
           cd tests/integration && python -m pytest -v -m limit
       - name: Inactivité
         run: |
           set -a; . deploy/.env; set +a
           (cd deploy && IDLE_TIMEOUT_SECONDS=90 docker compose up -d hub)
+          scripts/wait_for_hub.sh
           cd tests/integration && python -m pytest -v -m cull
       - if: failure()
-        run: docker logs hub; docker ps -a
+        run: |
+          docker ps -a
+          docker logs hub
+          docker logs deploy-caddy-1 || true
+          for c in $(docker ps -aq --filter name=jupyter-); do docker logs "$c"; done

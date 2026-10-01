@@ -53,20 +53,33 @@ def test_no_internet_from_student_container(student, hub):
     name = student()
     out = hub.run(
         name,
+        "python3 -c \"import socket; socket.create_connection(('hub', 8081), 5)\" "
+        "&& echo LAN-\"\"OK || echo LAN-\"\"KO; "
         "python3 -c \"import urllib.request; urllib.request.urlopen('https://example.com', timeout=5)\" "
         "2>/dev/null && echo NET-\"\"ON || echo NET-\"\"OFF",
         timeout=30,
     )
+    assert "LAN-OK" in out  # témoin positif : la pile réseau fonctionne
     assert "NET-OFF" in out
     assert "NET-ON" not in out
 
 
 def test_dds_is_isolated_between_students(student, hub):
     a, b = student(), student()
-    hub.run(a, "nohup ros2 topic pub /secret_a std_msgs/msg/String '{data: x}' -r 2 >/dev/null 2>&1 &")
-    time.sleep(5)
-    assert "/secret_a" in hub.run(a, "ros2 topic list", timeout=30)  # témoin positif
-    assert "/secret_a" not in hub.run(b, "ros2 topic list", timeout=30)
+    hub.run(
+        a,
+        "setsid nohup ros2 topic pub /secret_a std_msgs/msg/String '{data: x}' -r 2 "
+        ">/dev/null 2>&1 < /dev/null &",
+    )
+    seen = False
+    for _ in range(5):  # témoin positif : le sujet est visible chez a
+        if "/secret_a" in hub.run(a, "ros2 topic list --spin-time 3", timeout=30):
+            seen = True
+            break
+        time.sleep(3)
+    assert seen, "/secret_a jamais visible chez l'étudiant a : test non concluant"
+    out_b = hub.run(b, "ros2 topic list --spin-time 10", timeout=40)
+    assert "/secret_a" not in out_b
 
 
 def test_rosbridge_is_reachable_through_proxy(student):
