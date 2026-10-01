@@ -47,6 +47,10 @@ c.DockerSpawner.extra_host_config = {
     "init": True,  # tini en PID 1 : récolte les processus zombies
 }
 c.Spawner.auth_state_hook = apply_limits
+# Le Lab UI passe son jeton dans l'URL des WebSockets (un navigateur ne sait pas y
+# mettre d'en-tête, et Chromium n'envoie pas Sec-Fetch-Mode: websocket). Les pages
+# servies sous /user/ sont isolées par la CSP « sandbox » posée par Caddy.
+c.Spawner.environment = {"JUPYTERHUB_ALLOW_TOKEN_IN_URL": "1"}
 c.Spawner.start_timeout = 120
 c.Spawner.http_timeout = 90
 

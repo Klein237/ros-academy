@@ -199,8 +199,28 @@ def test_lab_token_is_scoped_to_its_owner(student, hub):
     assert get("/hub/api/users").status_code == 403
     r = requests.post(f"{BASE}/hub/api/users/{bob}/tokens", headers=auth, verify=False)
     assert r.status_code in (403, 404)
+    # comme un navigateur : le jeton passe dans l'URL, accepté seulement pour un WebSocket
     ws = websocket.create_connection(
         f"{WS_BASE}/user/{alice}/rosbridge/?token={token}",
+        header=["Sec-Fetch-Mode: websocket"],
         sslopt={"cert_reqs": ssl.CERT_NONE}, timeout=30,
     )
     ws.close()
+    with pytest.raises(websocket.WebSocketBadStatusException):
+        websocket.create_connection(
+            f"{WS_BASE}/user/{bob}/rosbridge/?token={token}",
+            header=["Sec-Fetch-Mode: websocket"],
+            sslopt={"cert_reqs": ssl.CERT_NONE}, timeout=30,
+        )
+
+
+def test_student_served_pages_are_sandboxed(student, hub):
+    """Une page HTML servie par un conteneur étudiant ne doit pas partager l'origine du Lab UI."""
+    name = student()
+    r = hub.s.put(f"{BASE}/user/{name}/api/contents/piege.html",
+                  json={"type": "file", "format": "text", "content": "<script>fetch('/hub/lab_token')</script>"})
+    assert r.status_code in (200, 201)
+    r = hub.s.get(f"{BASE}/user/{name}/files/piege.html")
+    assert r.status_code == 200
+    csp = r.headers["Content-Security-Policy"]
+    assert csp.startswith("sandbox") and "allow-same-origin" not in csp

@@ -13,6 +13,9 @@ USERNAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
 LAB_URL = "/lab/"
 LAB_TOKEN_TTL = 3600
 SAME_SITE_FETCH = {"same-origin", "none"}
+# chemin local uniquement : pas de « // », d'antislash ni d'espace (les navigateurs
+# retirent tabulations et retours à la ligne, « /\t/site » deviendrait « //site »)
+SAFE_NEXT_RE = re.compile(r"^/(?![/\\])[^\s\\]*$")
 
 
 class TokenError(Exception):
@@ -48,6 +51,11 @@ def lab_token_scopes(name):
     return [f"access:servers!user={name}", f"servers!user={name}", f"read:users:name!user={name}"]
 
 
+def safe_next_url(next_url):
+    """Redirection après connexion : chemin local, sinon le Lab UI."""
+    return next_url if SAFE_NEXT_RE.fullmatch(next_url or "") else LAB_URL
+
+
 def is_cross_site(headers):
     """Vrai si le navigateur signale une requête venue d'un autre site."""
     site = headers.get("Sec-Fetch-Site")
@@ -59,9 +67,8 @@ class JWTLoginHandler(BaseHandler):
         user = await self.login_user({"token": self.get_argument("token", "")})
         if user is None:
             raise web.HTTPError(403, "Lien de connexion invalide ou expiré. Rouvrez le lab depuis le site.")
-        # Sans `next`, get_next_url recopierait le JWT dans l'URL de redirection.
-        next_url = self.get_next_url(user) if self.get_argument("next", "") else ""
-        self.redirect(next_url or LAB_URL)
+        # Pas de get_next_url : sans `next` valide, il recopie le JWT dans la redirection.
+        self.redirect(safe_next_url(self.get_argument("next", "")))
 
 
 class LabTokenHandler(BaseHandler):
@@ -81,7 +88,7 @@ class LabTokenHandler(BaseHandler):
             "user": user.name,
             "token": token,
             "expires_in": LAB_TOKEN_TTL,
-            "server_url": url_path_join(user.url, ""),
+            "server_url": user.url,
         })
 
 

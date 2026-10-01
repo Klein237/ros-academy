@@ -3,7 +3,7 @@ import time
 import jwt
 import pytest
 
-from rosacademy_hub.auth import TokenError, is_cross_site, lab_token_scopes, verify_token
+from rosacademy_hub.auth import TokenError, is_cross_site, lab_token_scopes, safe_next_url, verify_token
 
 SECRET = "s" * 40
 
@@ -103,3 +103,16 @@ def test_same_site_requests_are_accepted(headers):
 @pytest.mark.parametrize("site", ["cross-site", "same-site", ""])
 def test_cross_site_requests_are_refused(site):
     assert is_cross_site({"Sec-Fetch-Site": site})
+
+
+@pytest.mark.parametrize("next_url", ["/lab/", "/lab/?open=ws/a.py&dossier=ws", "/hub/home"])
+def test_local_next_url_is_kept(next_url):
+    assert safe_next_url(next_url) == next_url
+
+
+@pytest.mark.parametrize("next_url", [
+    "", None, "lab/", "//evil.example/", "/\\evil.example", "/\t/evil.example",
+    "https://evil.example/", "/lab/\n", "javascript:alert(1)",
+])
+def test_unsafe_next_url_goes_to_the_lab(next_url):
+    assert safe_next_url(next_url) == "/lab/"
