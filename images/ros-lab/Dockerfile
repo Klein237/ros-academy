@@ -10,7 +10,7 @@ RUN apt-get update \
       python3-pip python3-colcon-common-extensions build-essential \
       ros-humble-rosbridge-suite ros-humble-demo-nodes-py ros-humble-demo-nodes-cpp \
       nano vim-tiny less \
- && apt-get purge -y --auto-remove sudo \
+ && SUDO_FORCE_REMOVE=yes apt-get purge -y --auto-remove sudo \
  && rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install --no-cache-dir \
