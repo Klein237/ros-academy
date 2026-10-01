@@ -16,7 +16,7 @@ services:
     networks: [public, ros-lab-net]
 
   caddy:
-    image: caddy:2.8
+    build: ../lab-ui   # Caddy + Lab UI construit (servi sous /lab/)
     restart: unless-stopped
     ports: ["80:80", "443:443"]
     environment:
