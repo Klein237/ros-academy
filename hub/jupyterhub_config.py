@@ -14,11 +14,16 @@ def env(name, default=None, required=False):
     return value
 
 
-jwt_secret = env("JWT_SECRET", required=True)
-if len(jwt_secret) < 32:
-    sys.exit("JWT_SECRET doit faire au moins 32 caractères")
-env("JUPYTERHUB_CRYPT_KEY", required=True)  # chiffre auth_state (formule)
-admin_token = env("HUB_ADMIN_TOKEN", required=True)
+def secret_env(name):
+    value = env(name, required=True)
+    if len(value) < 32 or value.startswith("remplacer"):
+        sys.exit(f"{name} doit faire au moins 32 caractères et ne pas être la valeur d'exemple")
+    return value
+
+
+jwt_secret = secret_env("JWT_SECRET")
+secret_env("JUPYTERHUB_CRYPT_KEY")  # chiffre auth_state (formule)
+admin_token = secret_env("HUB_ADMIN_TOKEN")
 
 # --- Authentification : jeton émis par le service Comptes
 c.JupyterHub.authenticator_class = ComptesJWTAuthenticator

@@ -15,7 +15,16 @@ set -a; . deploy/.env; set +a
 TOKEN=$(python scripts/mint_token.py --sub essai --plan free)
 echo "https://$DOMAIN/hub/jwt_login?token=$TOKEN"
 ```
-Ouvrir le lien, puis `https://$DOMAIN/user/essai/terminals/1`.
+Ouvrir le lien (connexion puis redirection), puis vérifier la session par l'API :
+```bash
+# démarrer le serveur de l'étudiant
+curl -sk -X POST -H "Authorization: token $HUB_ADMIN_TOKEN" https://$DOMAIN/hub/api/users/essai/server
+# vérifier qu'il est prêt (servers."".ready == true)
+curl -sk -H "Authorization: token $HUB_ADMIN_TOKEN" https://$DOMAIN/hub/api/users/essai
+# créer un terminal dans le conteneur
+curl -sk -X POST -H "Authorization: token $HUB_ADMIN_TOKEN" https://$DOMAIN/user/essai/api/terminals
+```
+L'interface complète du terminal arrivera avec l'interface Lab (sous-projet 2).
 
 ## Mettre à jour l'image étudiant
 Construire `ros-lab:<nouvelle version>`, changer `ROS_LAB_IMAGE` dans `.env`, `docker compose up -d`. Les conteneurs déjà lancés gardent l'ancienne image jusqu'à leur arrêt ; les volumes ne sont pas touchés.
@@ -23,3 +32,7 @@ Construire `ros-lab:<nouvelle version>`, changer `ROS_LAB_IMAGE` dans `.env`, `d
 ## Diagnostic
 - `docker logs hub` : connexions refusées (`Connexion par jeton refusée`), démarrages, arrêts pour inactivité.
 - `docker ps --filter name=jupyter-` : sessions actives.
+
+## Limites connues
+- Tous les conteneurs étudiants partagent le réseau `ros-lab-net` : ils peuvent atteindre les ports des autres, protégés par l'authentification par jeton Jupyter mais non isolés au niveau réseau.
+- La limite de 1 Go par volume n'est pas encore appliquée (nécessite des quotas de projet XFS sur l'hôte).
