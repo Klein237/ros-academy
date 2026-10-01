@@ -1,0 +1,58 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r hub/requirements-dev.txt
+      - run: cd hub && python -m pytest -v
+
+  image:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t ros-lab:0.1.0 images/ros-lab
+      - run: tests/image/test_image.sh
+
+  integration:
+    needs: [unit, image]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r hub/requirements-dev.txt
+      - run: docker build -t ros-lab:0.1.0 images/ros-lab
+      - name: Secrets de test
+        run: |
+          {
+            echo "DOMAIN=localhost"
+            echo "JWT_SECRET=$(openssl rand -hex 32)"
+            echo "JUPYTERHUB_CRYPT_KEY=$(openssl rand -hex 32)"
+            echo "HUB_ADMIN_TOKEN=$(openssl rand -hex 32)"
+          } > deploy/.env
+      - run: cd deploy && docker compose up -d --build
+      - name: Suite principale
+        run: |
+          set -a; . deploy/.env; set +a
+          cd tests/integration && python -m pytest -v -m "not limit and not cull"
+      - name: Capacité
+        run: |
+          set -a; . deploy/.env; set +a
+          (cd deploy && ACTIVE_SERVER_LIMIT=2 docker compose up -d hub)
+          cd tests/integration && python -m pytest -v -m limit
+      - name: Inactivité
+        run: |
+          set -a; . deploy/.env; set +a
+          (cd deploy && IDLE_TIMEOUT_SECONDS=90 docker compose up -d hub)
+          cd tests/integration && python -m pytest -v -m cull
+      - if: failure()
+        run: docker logs hub; docker ps -a
