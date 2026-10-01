@@ -19,6 +19,8 @@ class TokenError(Exception):
 def verify_token(token, secret, audience="ros-lab", max_lifetime=3600, leeway=30):
     if not token:
         raise TokenError("jeton manquant")
+    if not secret or len(secret) < 32:
+        raise TokenError("secret non configuré")
     try:
         claims = jwt.decode(
             token,
@@ -33,7 +35,7 @@ def verify_token(token, secret, audience="ros-lab", max_lifetime=3600, leeway=30
     if claims["exp"] - claims["iat"] > max_lifetime:
         raise TokenError("durée de vie du jeton trop longue")
     sub = claims["sub"]
-    if not isinstance(sub, str) or not USERNAME_RE.match(sub):
+    if not isinstance(sub, str) or not USERNAME_RE.fullmatch(sub):
         raise TokenError("identifiant invalide")
     return {"name": sub, "auth_state": {"plan": claims.get("plan")}}
 

@@ -62,7 +62,7 @@ def test_alg_none_is_refused():
         verify_token(token, SECRET)
 
 
-@pytest.mark.parametrize("sub", ["../root", "Admin", "a" * 33, "-start", "user name", "élève"])
+@pytest.mark.parametrize("sub", ["../root", "Admin", "a" * 33, "-start", "user name", "élève", "u-1\n"])
 def test_unsafe_subject_is_refused(sub):
     with pytest.raises(TokenError):
         verify_token(make(sub=sub), SECRET)
@@ -72,3 +72,16 @@ def test_missing_exp_is_refused():
     token = jwt.encode({"sub": "u-1", "aud": "ros-lab", "iat": int(time.time())}, SECRET, algorithm="HS256")
     with pytest.raises(TokenError):
         verify_token(token, SECRET)
+
+
+def test_empty_secret_is_refused():
+    token = make(secret="")
+    with pytest.raises(TokenError):
+        verify_token(token, "")
+
+
+def test_short_secret_is_refused():
+    short_secret = "short"
+    token = make(secret=short_secret)
+    with pytest.raises(TokenError):
+        verify_token(token, short_secret)
