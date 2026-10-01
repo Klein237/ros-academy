@@ -77,7 +77,9 @@ class Hub:
         )
         tag = uuid.uuid4().hex
         # Les guillemets vides empêchent l'écho de la commande de contenir le marqueur.
-        ws.send(json.dumps(["stdin", f"{command}; echo __END_\"\"{tag}__\r"]))
+        # Le marqueur est tapé sur une ligne séparée (et non après « ; ») pour que
+        # les commandes qui se terminent par « & » restent valides en bash.
+        ws.send(json.dumps(["stdin", f"{command}\recho __END_\"\"{tag}__\r"]))
         out, deadline = "", time.time() + timeout
         ws.settimeout(5)
         while f"__END_{tag}__" not in out and time.time() < deadline:
