@@ -20,6 +20,19 @@ test.beforeAll(async () => {
   api = await admin();
 });
 
+// En cas d'échec, la sortie du test montre ce que le navigateur a vu (jetons masqués).
+const masked = (text: string) => text.replace(/token=[^&\s']+/g, "token=…");
+test.beforeEach(async ({ page }) => {
+  page.on("console", (m) => console.log(masked(`[navigateur ${m.type()}] ${m.text()}`)));
+  page.on("pageerror", (e) => console.log(masked(`[navigateur pageerror] ${e.message}`)));
+  page.on("requestfailed", (r) =>
+    console.log(masked(`[navigateur requête échouée] ${r.method()} ${r.url()} ${r.failure()?.errorText}`)),
+  );
+  page.on("response", (r) => {
+    if (r.status() >= 400) console.log(masked(`[navigateur HTTP ${r.status()}] ${r.request().method()} ${r.url()}`));
+  });
+});
+
 test.afterEach(async () => {
   while (students.length) await cleanup(api, students.pop()!);
 });

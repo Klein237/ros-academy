@@ -65,23 +65,30 @@ export class Session {
     this.timers.clearTimeout(this.retryTimer);
     this.set({ kind: "starting", progress: 0, message: "Demande d'un environnement ROS…" });
     try {
-      const result = await this.hub.start();
+      // une coupure pendant la demande ne dit rien du démarrage, qui continue côté Hub :
+      // l'état réel est lu ensuite par waitReady (qui redemande le démarrage si besoin)
+      const result = await transientAs(this.hub.start(), "pending" as const);
       if (result === "full") return this.waitForRoom();
       if (result !== "running") {
-        const last = await this.hub.progress((e) =>
-          this.set({
-            kind: "starting",
-            progress: e.progress ?? 0,
-            message: e.message ? frenchProgress(e.message) : "Démarrage du conteneur…",
-          }),
+        const last = await transientAs(
+          this.hub.progress((e) =>
+            this.set({
+              kind: "starting",
+              progress: e.progress ?? 0,
+              message: e.message ? frenchProgress(e.message) : "Démarrage du conteneur…",
+            }),
+          ),
+          null,
         );
         if (last?.failed) {
+          console.warn("Démarrage du lab refusé par le Hub", last);
           return this.set({ kind: "failed", message: "Le conteneur n'a pas pu démarrer." });
         }
       }
       await this.waitReady();
     } catch (e) {
       if (e instanceof NotLoggedIn) return this.set({ kind: "noauth" });
+      console.warn("Démarrage du lab en échec", e);
       this.set({ kind: "failed", message: "Le conteneur n'a pas pu démarrer." });
     }
   }
@@ -140,6 +147,17 @@ export class Session {
 /** Erreur passagère : réseau coupé (status 0) ou proxy/Hub momentanément indisponible. */
 function isTransient(e: unknown): boolean {
   return e instanceof TypeError || (e instanceof HttpError && (e.status === 0 || e.status >= 500));
+}
+
+/** Résultat d'une requête, ou `fallback` si elle échoue pour une raison passagère. */
+async function transientAs<T, F>(promise: Promise<T>, fallback: F): Promise<T | F> {
+  try {
+    return await promise;
+  } catch (e) {
+    if (!isTransient(e)) throw e;
+    console.warn("Requête au Hub interrompue, vérification de l'état du serveur", e);
+    return fallback;
+  }
 }
 
 /** Messages de progression de JupyterHub/DockerSpawner, traduits pour l'étudiant. */

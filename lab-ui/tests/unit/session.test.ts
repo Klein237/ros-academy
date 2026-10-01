@@ -128,3 +128,26 @@ it("erreur non passagère du statut → failed", async () => {
   await s.open();
   expect(s.state.kind).toBe("failed");
 });
+
+it("connexion coupée pendant la demande de démarrage → on vérifie l'état réel", async () => {
+  const hub = fakeHub({ server: [{ ready: false, pending: "spawn" }, { ready: true, pending: null }] });
+  hub.start.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+  hub.progress.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+  const s = new Session(hub as never, { pollMs: 10 });
+  const done = s.open();
+  await vi.advanceTimersByTimeAsync(100);
+  await done;
+  expect(s.state.kind).toBe("ready");
+});
+
+it("demande de démarrage perdue (aucun serveur) → redemandée", async () => {
+  const hub = fakeHub({ start: ["started"], server: [null, { ready: true, pending: null }] });
+  hub.start.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+  hub.progress.mockResolvedValueOnce(null);
+  const s = new Session(hub as never, { pollMs: 10 });
+  const done = s.open();
+  await vi.advanceTimersByTimeAsync(100);
+  await done;
+  expect(hub.start).toHaveBeenCalledTimes(2);
+  expect(s.state.kind).toBe("ready");
+});
