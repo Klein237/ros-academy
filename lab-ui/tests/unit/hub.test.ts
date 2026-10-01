@@ -64,6 +64,7 @@ describe("HubClient", () => {
     [202, "pending"],
     [400, "running"],
     [429, "full"],
+    [503, "pending"], // proxy coupé pendant le démarrage : vérifié ensuite
   ])("POST /server → %i = %s", async (status, result) => {
     const { hub } = hubWith(json(200, TOKEN), json(status));
     expect(await hub.start()).toBe(result);

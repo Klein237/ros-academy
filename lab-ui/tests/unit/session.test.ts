@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { NotLoggedIn, type ProgressEvent, type ServerStatus, type StartResult } from "../../src/api/hub";
+import { HttpError, NotLoggedIn, type ProgressEvent, type ServerStatus, type StartResult } from "../../src/api/hub";
 import { Session, type SessionState } from "../../src/session";
 import { flush } from "./fakes";
 
@@ -109,4 +109,22 @@ it("arrêt pour inactivité : DELETE du serveur", async () => {
   await s.stop("idle");
   expect(hub.stop).toHaveBeenCalled();
   expect(s.state).toEqual({ kind: "stopped", reason: "idle" });
+});
+
+it("statut momentanément illisible (503) pendant le démarrage → on continue d'attendre", async () => {
+  const hub = fakeHub({ start: ["pending"], progress: [] });
+  hub.server.mockRejectedValueOnce(new HttpError(503, "proxy")).mockRejectedValueOnce(new TypeError("offline"));
+  const s = new Session(hub as never, { pollMs: 10 });
+  const done = s.open();
+  await vi.advanceTimersByTimeAsync(100);
+  await done;
+  expect(s.state.kind).toBe("ready");
+});
+
+it("erreur non passagère du statut → failed", async () => {
+  const hub = fakeHub({ start: ["pending"], progress: [] });
+  hub.server.mockRejectedValueOnce(new HttpError(400, "bad"));
+  const s = new Session(hub as never, { pollMs: 10 });
+  await s.open();
+  expect(s.state.kind).toBe("failed");
 });

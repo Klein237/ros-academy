@@ -135,6 +135,12 @@ export class HubClient {
         return "running"; // déjà démarré (ou en cours d'arrêt : vérifié ensuite par server())
       case 429:
         return "full";
+      case 502:
+      case 503:
+      case 504:
+        // le proxy peut couper la requête pendant que le Hub démarre le conteneur :
+        // l'état réel est vérifié ensuite (progression puis statut du serveur)
+        return "pending";
       default:
         throw new HttpError(r.status, `démarrage refusé (${r.status}) : ${await r.text()}`);
     }

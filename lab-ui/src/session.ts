@@ -1,5 +1,5 @@
 import { FULL_RETRY_MS, START_TIMEOUT_MS } from "./config";
-import { NotLoggedIn, type HubClient } from "./api/hub";
+import { HttpError, NotLoggedIn, type HubClient, type ServerStatus } from "./api/hub";
 import { realTimers, sleep, type Timers } from "./backoff";
 
 export type SessionState =
@@ -95,7 +95,14 @@ export class Session {
   private async waitReady(): Promise<void> {
     const deadline = this.timers.now() + this.startTimeoutMs;
     while (this.timers.now() < deadline) {
-      const server = await this.hub.server();
+      let server: ServerStatus | null;
+      try {
+        server = await this.hub.server();
+      } catch (e) {
+        if (!isTransient(e)) throw e;
+        await sleep(this.pollMs, this.timers); // proxy ou réseau momentanément indisponible
+        continue;
+      }
       if (server?.ready) return this.set({ kind: "ready" });
       if (!server) {
         // un ancien conteneur finissait de s'arrêter : on redemande le démarrage
@@ -128,6 +135,11 @@ export class Session {
       // le culler du Hub arrêtera le conteneur de toute façon
     }
   }
+}
+
+/** Erreur passagère : réseau coupé (status 0) ou proxy/Hub momentanément indisponible. */
+function isTransient(e: unknown): boolean {
+  return e instanceof TypeError || (e instanceof HttpError && (e.status === 0 || e.status >= 500));
 }
 
 /** Messages de progression de JupyterHub/DockerSpawner, traduits pour l'étudiant. */
