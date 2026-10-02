@@ -1,12 +1,21 @@
 <?xml version="1.0"?>
 <!-- Une salle de 4 m × 4 m, fermée, avec une caisse devant le robot. Tout est décrit ici :
      aucun modèle à télécharger (le lab n'a pas d'accès à Internet). -->
-<sdf version="1.6">
+<sdf version="1.9">
   <world name="salle">
-    <physics type="ode">
+    <physics name="1ms" type="ignored">
       <max_step_size>0.001</max_step_size>
-      <real_time_update_rate>1000</real_time_update_rate>
+      <real_time_factor>1.0</real_time_factor>
     </physics>
+
+    <!-- Les « systèmes » du simulateur : physique, commandes (apparition du robot),
+         diffusion de la scène (interface, ROS) et capteurs (rendu du laser) -->
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
 
     <light name="soleil" type="directional">
       <cast_shadows>false</cast_shadows>

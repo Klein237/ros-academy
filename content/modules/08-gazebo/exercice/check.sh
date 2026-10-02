@@ -8,7 +8,7 @@ fi
 source install/setup.bash
 # Domaine ROS et simulateur dédiés : la vérification ne voit pas ce que vous avez lancé.
 export ROS_DOMAIN_ID=$((RANDOM % 50 + 50))
-export GAZEBO_MASTER_URI=http://127.0.0.1:$((12000 + RANDOM % 2000))
+export GZ_PARTITION=verification$RANDOM
 setsid ros2 launch my_robot_description gazebo.launch.py > "$EXERCICE/check-gazebo.log" 2>&1 &
 NODE=$!
 trap 'kill -TERM -- -$NODE 2>/dev/null; sleep 2; kill -KILL -- -$NODE 2>/dev/null; wait $NODE 2>/dev/null' EXIT
@@ -24,8 +24,9 @@ from nav_msgs.msg import Odometry
 
 rclpy.init()
 node = rclpy.create_node('verification_rotation')
+# Position réelle donnée par le simulateur : l'odométrie des roues (/odom) se trompe avec elles
 poses = []
-node.create_subscription(Odometry, 'odom', lambda m: poses.append(m.pose.pose), 10)
+node.create_subscription(Odometry, 'verite_terrain', lambda m: poses.append(m.pose.pose), 10)
 cmd = node.create_publisher(Twist, 'cmd_vel', 10)
 
 
@@ -42,11 +43,11 @@ def yaw(p):
     return math.atan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y ** 2 + q.z ** 2))
 
 
-deadline = time.time() + 120  # démarrage de Gazebo et apparition du robot
+deadline = time.time() + 150  # démarrage de Gazebo et apparition du robot
 while not poses and time.time() < deadline:
     rclpy.spin_once(node, timeout_sec=0.5)
 if not poses:
-    print("Pas d'odométrie sur /odom : le robot n'est pas apparu dans Gazebo (journal : check-gazebo.log).")
+    print("Rien sur /verite_terrain : le robot n'est pas apparu dans Gazebo (journal : check-gazebo.log).")
     sys.exit(1)
 spin_for(2.0)  # le robot se pose
 depart = yaw(poses[-1])
@@ -64,4 +65,4 @@ if rotation < 0.3:
     sys.exit(1)
 print("Il tourne vers la gauche, comme demandé.")
 PY
-timeout 200 python3 "$EXERCICE/verif_rotation.py" 2>"$EXERCICE/verif_rotation.log"
+timeout 230 python3 "$EXERCICE/verif_rotation.py" 2>"$EXERCICE/verif_rotation.log"

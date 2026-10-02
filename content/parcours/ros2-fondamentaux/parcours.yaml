@@ -1,6 +1,6 @@
 titre: ROS 2 Fondamentaux
 description: >-
-  Les bases de ROS 2 Humble, en pratique, autour d'un fil rouge : un robot à
+  Les bases de ROS 2 Jazzy, en pratique, autour d'un fil rouge : un robot à
   conduite différentielle que vous enrichissez module après module — nœud,
   service, action, description URDF, paramètres et fichiers launch, repères
   TF2, puis simulation dans Gazebo. Chaque module se termine par une vraie

@@ -8,6 +8,7 @@ NODE=$!
 trap 'kill -TERM -- -$NODE 2>/dev/null; wait $NODE 2>/dev/null || true' EXIT
 timeout 30 ros2 run tf2_ros tf2_echo odom laser > /tmp/tf.log 2>&1 || true
 grep -q "Translation: \[0.150, 0.000, 0.120\]" /tmp/tf.log || { cat /tmp/tf.log /tmp/launch.log | tail -20; exit 1; }
-timeout 20 ros2 topic echo --once /obstacle > /tmp/obstacle.log
+# avec le type, echo attend que le topic apparaisse (sans lui, il abandonne si le nœud démarre encore)
+timeout 30 ros2 topic echo --once /obstacle geometry_msgs/msg/PointStamped > /tmp/obstacle.log
 grep -q "x: 1.15" /tmp/obstacle.log || { cat /tmp/obstacle.log; exit 1; }
 echo "arbre odom → base_link → laser et obstacle à (1.15, 0) : OK"

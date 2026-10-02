@@ -1,6 +1,6 @@
 ---
 titre: Simuler le robot dans Gazebo
-resume: Faire rouler le robot de la description URDF dans un monde simulé — physique, roues motrices et laser — et le visualiser dans RViz2.
+resume: Faire rouler le robot de la description URDF dans un monde simulé avec Gazebo Harmonic (gz sim) — physique, roues motrices et laser — et le visualiser dans RViz2.
 duree: 1 h 45
 ---
 # Simuler le robot dans Gazebo
@@ -9,22 +9,24 @@ duree: 1 h 45
 
 **Constat :** jusqu'ici, notre robot était soit un calcul (`diff_drive_node` intègre les vitesses), soit une description immobile (URDF dans RViz). Rien ne vérifie qu'il tient debout, que ses roues adhèrent au sol ou que son laser voit les murs.
 
-**Gazebo** est un simulateur : il calcule la **physique** (gravité, contacts, frottements, moteurs) et les **capteurs** (laser, caméra, IMU) dans un monde 3D. Ses **plugins ROS** relient la simulation à ROS 2 : le robot simulé reçoit `/cmd_vel` et publie `/odom`, `/scan`, `/tf`… comme le ferait le vrai.
+**Gazebo** est un simulateur : il calcule la **physique** (gravité, contacts, frottements, moteurs) et les **capteurs** (laser, caméra, IMU) dans un monde 3D. Nous utilisons **Gazebo Harmonic** (commande `gz sim`), la version associée à ROS 2 Jazzy ; l'ancien « Gazebo Classic » (`gazebo`, `gzserver`) n'est plus maintenu depuis 2025.
 
-**RViz2**, lui, ne simule rien : il **affiche** ce que ROS sait (TF, modèle, nuage de points du laser). On utilise les deux ensemble.
+Gazebo a ses **propres topics** (bibliothèque gz-transport, commande `gz topic`), distincts de ceux de ROS 2. Un **pont**, `ros_gz_bridge`, les relie : le robot simulé reçoit `/cmd_vel` et publie `/odom`, `/scan`, `/tf`… comme le ferait le vrai.
 
-Dans le lab, Gazebo tourne **sans interface** (`gzserver`, sans carte graphique) ; on regarde le résultat dans RViz2, sur le **Bureau (RViz, Gazebo)**, et avec la **vue 2D** du lab, qui lit `/odom`.
+**RViz2**, lui, ne simule rien : il **affiche** ce que ROS sait (TF, modèle, points du laser). On utilise les deux ensemble.
 
-Tutoriels : [Gazebo et ROS 2 (gazebo_ros_pkgs)](https://classic.gazebosim.org/tutorials?tut=ros2_overview), [URDF dans Gazebo](https://classic.gazebosim.org/tutorials?tut=ros_urdf).
+Dans le lab, le simulateur tourne **sans fenêtre** (`gz sim -s`), avec un rendu logiciel pour le laser. On regarde le résultat dans RViz2 ou dans la fenêtre de Gazebo, sur le **Bureau (RViz, Gazebo)**, et avec la **vue 2D** du lab, qui lit `/odom`.
+
+Documentation : [ROS 2 et Gazebo](https://docs.ros.org/en/jazzy/Tutorials/Advanced/Simulators/Gazebo/Gazebo.html), [Gazebo Harmonic](https://gazebosim.org/docs/harmonic/getstarted/), [ros_gz_bridge](https://gazebosim.org/docs/harmonic/ros2_integration/).
 
 ## 2. Ce que Gazebo demande à un URDF
 
-Votre workspace `~/ws/08-gazebo` reprend `my_robot_description` du module URDF. Pour Gazebo, chaque link qui a une masse doit avoir :
+Votre workspace `~/ws/08-gazebo` reprend `my_robot_description` du module URDF. Gazebo convertit l'URDF en **SDF**, son propre format. Pour lui, chaque link qui a une masse doit avoir :
 
 - une **collision** (la forme utilisée par la physique ; souvent la même que le visuel, parfois plus simple) ;
 - une **inertie** (`<inertial>` : masse et matrice d'inertie). Sans elle, Gazebo ignore le link ; avec des valeurs absurdes, le robot tremble ou s'envole. Nos macros `inertial_box`, `inertial_cylinder` et `inertial_sphere` les calculent.
 
-Le reste, propre à Gazebo, va dans des balises `<gazebo>` que ROS ignore : couleurs, frottements, plugins, capteurs. On les met dans un fichier à part, `my_robot.gazebo.xacro`, inclus par la description.
+Le reste, propre à Gazebo, va dans des balises `<gazebo>` que ROS ignore : frottements, plugins, capteurs. On les met dans un fichier à part, `my_robot.gazebo.xacro`, inclus par la description.
 
 On ajoute d'abord le **laser** à la description, au même endroit qu'au module TF2 :
 
@@ -162,67 +164,73 @@ L'`include` est à la fin : xacro lit le fichier dans l'ordre, et `my_robot.gaze
 
 ## 3. Les extensions Gazebo
 
+Dans Gazebo Harmonic, tout ce qui agit sur la simulation est un **système** (plugin), désigné par sa bibliothèque (`filename`) et son nom (`name`). Ceux d'un robot vont dans des balises `<gazebo>` de sa description :
+
 ```xml fichier=src/my_robot_description/urdf/my_robot.gazebo.xacro
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <!-- Couleurs dans Gazebo (il ignore les <material> de l'URDF) et frottements -->
-  <gazebo reference="chassis">
-    <material>Gazebo/Orange</material>
-  </gazebo>
+  <!-- Frottements : les roues adhèrent, la roulette glisse (elle ne fait que porter le robot) -->
   <gazebo reference="left_wheel">
-    <material>Gazebo/Black</material>
     <mu1>1.0</mu1>
     <mu2>1.0</mu2>
   </gazebo>
   <gazebo reference="right_wheel">
-    <material>Gazebo/Black</material>
     <mu1>1.0</mu1>
     <mu2>1.0</mu2>
   </gazebo>
-  <!-- La roulette glisse sans frotter : elle ne fait que porter le robot -->
   <gazebo reference="caster_wheel">
-    <material>Gazebo/Grey</material>
     <mu1>0.0</mu1>
     <mu2>0.0</mu2>
   </gazebo>
 
   <!-- Conduite différentielle : /cmd_vel → vitesses des deux roues ; publie /odom et la TF odom → base_link -->
   <gazebo>
-    <plugin name="diff_drive" filename="libgazebo_ros_diff_drive.so">
-      <update_rate>30</update_rate>
+    <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
       <left_joint>left_wheel_joint</left_joint>
       <right_joint>right_wheel_joint</right_joint>
-      <!-- distance entre les centres des roues et diamètre, comme dans l'URDF -->
+      <!-- distance entre les centres des roues et rayon, comme dans l'URDF -->
       <wheel_separation>${chassis_width + wheel_width}</wheel_separation>
-      <wheel_diameter>${2 * wheel_radius}</wheel_diameter>
-      <max_wheel_torque>5</max_wheel_torque>
-      <max_wheel_acceleration>2.0</max_wheel_acceleration>
-      <publish_odom>true</publish_odom>
-      <publish_odom_tf>true</publish_odom_tf>
-      <publish_wheel_tf>false</publish_wheel_tf>
-      <odometry_frame>odom</odometry_frame>
-      <robot_base_frame>base_link</robot_base_frame>
+      <wheel_radius>${wheel_radius}</wheel_radius>
+      <max_linear_acceleration>2.0</max_linear_acceleration>
+      <topic>/cmd_vel</topic>
+      <odom_topic>/odom</odom_topic>
+      <tf_topic>/tf</tf_topic>
+      <frame_id>odom</frame_id>
+      <child_frame_id>base_link</child_frame_id>
+      <odom_publish_frequency>30</odom_publish_frequency>
     </plugin>
   </gazebo>
 
   <!-- Angle des roues sur /joint_states : robot_state_publisher en tire leurs TF -->
   <gazebo>
-    <plugin name="joint_states" filename="libgazebo_ros_joint_state_publisher.so">
-      <update_rate>20</update_rate>
+    <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher">
+      <topic>/joint_states</topic>
       <joint_name>left_wheel_joint</joint_name>
       <joint_name>right_wheel_joint</joint_name>
     </plugin>
   </gazebo>
 
+  <!-- Position réelle du robot dans le monde (que seul le simulateur connaît), sur /verite_terrain -->
+  <gazebo>
+    <plugin filename="gz-sim-odometry-publisher-system" name="gz::sim::systems::OdometryPublisher">
+      <odom_topic>/verite_terrain</odom_topic>
+      <odom_frame>monde</odom_frame>
+      <robot_base_frame>base_link</robot_base_frame>
+      <odom_publish_frequency>10</odom_publish_frequency>
+      <dimensions>2</dimensions>
+    </plugin>
+  </gazebo>
+
   <!-- Laser 2D : 360 rayons sur un tour, de 0,12 à 8 m, 5 balayages par seconde, publiés sur /scan -->
   <gazebo reference="laser">
-    <material>Gazebo/Black</material>
-    <sensor name="lidar" type="ray">
+    <sensor name="lidar" type="gpu_lidar">
+      <topic>/scan</topic>
+      <gz_frame_id>laser</gz_frame_id>
       <always_on>true</always_on>
       <visualize>false</visualize>
       <update_rate>5</update_rate>
-      <ray>
+      <lidar>
         <scan>
           <horizontal>
             <samples>360</samples>
@@ -230,45 +238,55 @@ L'`include` est à la fin : xacro lit le fichier dans l'ordre, et `my_robot.gaze
             <min_angle>-3.14159</min_angle>
             <max_angle>3.14159</max_angle>
           </horizontal>
+          <vertical>
+            <samples>1</samples>
+            <min_angle>0</min_angle>
+            <max_angle>0</max_angle>
+          </vertical>
         </scan>
         <range>
           <min>0.12</min>
           <max>8.0</max>
           <resolution>0.01</resolution>
         </range>
-      </ray>
-      <plugin name="lidar" filename="libgazebo_ros_ray_sensor.so">
-        <ros>
-          <remapping>~/out:=scan</remapping>
-        </ros>
-        <output_type>sensor_msgs/LaserScan</output_type>
-        <frame_name>laser</frame_name>
-      </plugin>
+      </lidar>
     </sensor>
   </gazebo>
 
 </robot>
 ```
 
-- **Frottements** (`mu1`, `mu2`) : les roues adhèrent (1.0), la roulette glisse (0.0). Une roulette qui frotte freinerait le robot dans les virages.
-- **`gazebo_ros_diff_drive`** : le contrôleur des roues. Il lit `/cmd_vel`, fait tourner `left_wheel_joint` et `right_wheel_joint`, et publie `/odom` et la TF `odom → base_link`. `wheel_separation` et `wheel_diameter` doivent être ceux du robot : sinon les vitesses et l'odométrie sont fausses.
-- **`gazebo_ros_joint_state_publisher`** : publie l'angle des roues sur `/joint_states` ; `robot_state_publisher` en déduit leurs TF.
-- **Capteur `ray`** : le laser, calculé par la physique (sans rendu graphique). `gazebo_ros_ray_sensor` le publie en `sensor_msgs/LaserScan` sur `/scan`, dans le repère `laser`.
+- **Frottements** (`mu1`, `mu2`) : les roues adhèrent (1.0), la roulette glisse (0.0). Une roulette qui frotte freinerait le robot dans les virages. Les couleurs viennent des `<material>` de l'URDF.
+- **`DiffDrive`** : le contrôleur des roues. Il lit `/cmd_vel`, fait tourner `left_wheel_joint` et `right_wheel_joint`, et publie `/odom` et la TF `odom → base_link`. `wheel_separation` et `wheel_radius` doivent être ceux du robot : sinon les vitesses et l'odométrie sont fausses. Son odométrie est calculée **à partir des roues**, comme sur un vrai robot.
+- **`JointStatePublisher`** : publie l'angle des roues sur `/joint_states` ; `robot_state_publisher` en déduit leurs TF.
+- **`OdometryPublisher`** : la **vérité terrain**, la position exacte du robot dans le monde, que seul un simulateur connaît. On la compare à `/odom` pour juger l'odométrie.
+- **Capteur `gpu_lidar`** : le laser, calculé par le moteur de rendu (d'où le rendu logiciel dans le lab), publié sur `/scan` dans le repère `laser` (`gz_frame_id`).
+
+Les topics commencent par `/` : sans lui, Gazebo les rangerait sous le nom du modèle (`/model/my_robot/…`).
 
 ## 4. Le monde
 
-Un monde Gazebo est un fichier **SDF** : la physique, la lumière et les modèles. Le nôtre est une salle de 4 m × 4 m, avec une caisse droit devant le robot. Créez le dossier `worlds` :
+Un monde Gazebo est un fichier **SDF** : les systèmes du simulateur, la physique, la lumière et les modèles. Le nôtre est une salle de 4 m × 4 m, avec une caisse droit devant le robot. Créez le dossier `worlds` :
 
-```xml fichier=src/my_robot_description/worlds/salle.world
+```xml fichier=src/my_robot_description/worlds/salle.sdf
 <?xml version="1.0"?>
 <!-- Une salle de 4 m × 4 m, fermée, avec une caisse devant le robot. Tout est décrit ici :
      aucun modèle à télécharger (le lab n'a pas d'accès à Internet). -->
-<sdf version="1.6">
+<sdf version="1.9">
   <world name="salle">
-    <physics type="ode">
+    <physics name="1ms" type="ignored">
       <max_step_size>0.001</max_step_size>
-      <real_time_update_rate>1000</real_time_update_rate>
+      <real_time_factor>1.0</real_time_factor>
     </physics>
+
+    <!-- Les « systèmes » du simulateur : physique, commandes (apparition du robot),
+         diffusion de la scène (interface, ROS) et capteurs (rendu du laser) -->
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
 
     <light name="soleil" type="directional">
       <cast_shadows>false</cast_shadows>
@@ -351,9 +369,54 @@ Un monde Gazebo est un fichier **SDF** : la physique, la lumière et les modèle
 </sdf>
 ```
 
-Tout est décrit dans le fichier, y compris le sol : les mondes d'exemple de Gazebo utilisent `model://ground_plane`, téléchargé depuis Internet quand il manque.
+Sans le système `Sensors`, le laser ne publie rien ; sans `UserCommands`, impossible de faire apparaître le robot. Tout est décrit dans le fichier, y compris le sol : les mondes d'exemple utilisent des modèles téléchargés depuis Internet (Gazebo Fuel), que le lab n'a pas.
 
-## 5. Le fichier launch
+## 5. Le pont ROS 2 ↔ Gazebo
+
+`ros_gz_bridge` relie un topic Gazebo à un topic ROS 2 et convertit les messages (`gz.msgs.Twist` ↔ `geometry_msgs/msg/Twist`…). La liste va dans un fichier de configuration :
+
+```yaml fichier=src/my_robot_description/config/pont.yaml
+# Chaque ligne : un topic, son type côté ROS 2 et côté Gazebo, et le sens du passage
+- ros_topic_name: /clock
+  gz_topic_name: /clock
+  ros_type_name: rosgraph_msgs/msg/Clock
+  gz_type_name: gz.msgs.Clock
+  direction: GZ_TO_ROS
+- ros_topic_name: /cmd_vel
+  gz_topic_name: /cmd_vel
+  ros_type_name: geometry_msgs/msg/Twist
+  gz_type_name: gz.msgs.Twist
+  direction: ROS_TO_GZ
+- ros_topic_name: /odom
+  gz_topic_name: /odom
+  ros_type_name: nav_msgs/msg/Odometry
+  gz_type_name: gz.msgs.Odometry
+  direction: GZ_TO_ROS
+- ros_topic_name: /tf
+  gz_topic_name: /tf
+  ros_type_name: tf2_msgs/msg/TFMessage
+  gz_type_name: gz.msgs.Pose_V
+  direction: GZ_TO_ROS
+- ros_topic_name: /joint_states
+  gz_topic_name: /joint_states
+  ros_type_name: sensor_msgs/msg/JointState
+  gz_type_name: gz.msgs.Model
+  direction: GZ_TO_ROS
+- ros_topic_name: /scan
+  gz_topic_name: /scan
+  ros_type_name: sensor_msgs/msg/LaserScan
+  gz_type_name: gz.msgs.LaserScan
+  direction: GZ_TO_ROS
+- ros_topic_name: /verite_terrain
+  gz_topic_name: /verite_terrain
+  ros_type_name: nav_msgs/msg/Odometry
+  gz_type_name: gz.msgs.Odometry
+  direction: GZ_TO_ROS
+```
+
+Un topic absent du pont existe dans Gazebo (`gz topic -l`) mais pas dans ROS 2 (`ros2 topic list`) : c'est la première chose à vérifier quand « rien n'arrive ».
+
+## 6. Le fichier launch
 
 ```python fichier=src/my_robot_description/launch/gazebo.launch.py
 import os
@@ -361,7 +424,7 @@ import os
 import xacro
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
@@ -370,24 +433,21 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     pkg = get_package_share_directory('my_robot_description')
-    gazebo_ros = get_package_share_directory('gazebo_ros')
+    gz_launch = os.path.join(get_package_share_directory('ros_gz_sim'), 'launch', 'gz_sim.launch.py')
     robot_desc = xacro.process_file(os.path.join(pkg, 'urdf', 'my_robot.urdf.xacro')).toxml()
-    world = os.path.join(pkg, 'worlds', 'salle.world')
+    world = os.path.join(pkg, 'worlds', 'salle.sdf')
 
     return LaunchDescription([
         DeclareLaunchArgument('gui', default_value='false',
-                              description="Interface de Gazebo (gzclient) : lente sans carte graphique"),
-        # Pas de base de modèles en ligne : le monde décrit tout lui-même
-        SetEnvironmentVariable('GAZEBO_MODEL_DATABASE_URI', ''),
-        # Le simulateur : physique, capteurs et plugins, sans interface
+                              description="Fenêtre de Gazebo, sur le Bureau du lab"),
+        # Le simulateur, sans fenêtre : physique, capteurs (rendu sans écran) et plugins ; -r : démarre tout de suite
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(os.path.join(gazebo_ros, 'launch', 'gzserver.launch.py')),
-            launch_arguments={'world': world, 'verbose': 'true'}.items(),
+            PythonLaunchDescriptionSource(gz_launch),
+            launch_arguments={'gz_args': f'-r -s --headless-rendering -v 2 {world}',
+                              'on_exit_shutdown': 'true'}.items(),
         ),
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(os.path.join(gazebo_ros, 'launch', 'gzclient.launch.py')),
-            condition=IfCondition(LaunchConfiguration('gui')),
-        ),
+        # La fenêtre de Gazebo, qui se connecte au simulateur
+        ExecuteProcess(cmd=['gz', 'sim', '-g', '-v', '2'], condition=IfCondition(LaunchConfiguration('gui'))),
         # Publie /robot_description et les TF des links, à l'heure de la simulation (/clock)
         Node(
             package='robot_state_publisher',
@@ -397,19 +457,26 @@ def generate_launch_description():
         ),
         # Fait apparaître le robot dans le monde, à partir de /robot_description
         Node(
-            package='gazebo_ros',
-            executable='spawn_entity.py',
-            arguments=['-topic', 'robot_description', '-entity', 'my_robot', '-z', '0.06'],
+            package='ros_gz_sim',
+            executable='create',
+            arguments=['-topic', 'robot_description', '-name', 'my_robot', '-z', '0.06'],
+            output='screen',
+        ),
+        # Le pont entre les topics de Gazebo et ceux de ROS 2 (liste dans config/pont.yaml)
+        Node(
+            package='ros_gz_bridge',
+            executable='parameter_bridge',
+            parameters=[{'config_file': os.path.join(pkg, 'config', 'pont.yaml'), 'use_sim_time': True}],
             output='screen',
         ),
     ])
 ```
 
-Trois étapes : démarrer le simulateur avec le monde, publier la description (`robot_state_publisher`), puis **faire apparaître** le robot (`spawn_entity.py` lit `/robot_description` et l'ajoute au monde).
+Quatre étapes : démarrer le simulateur avec le monde (`ros_gz_sim`, `-s` sans fenêtre, `--headless-rendering` pour le laser), publier la description (`robot_state_publisher`), **faire apparaître** le robot (`create` lit `/robot_description` et l'ajoute au monde), puis ouvrir le pont.
 
-`use_sim_time` : Gazebo publie sa propre horloge sur `/clock`. Les nœuds qui travaillent avec la simulation doivent l'utiliser, sinon leurs horodatages ne correspondent pas à ceux des capteurs, et TF refuse les transformations.
+`use_sim_time` : Gazebo publie sa propre horloge sur `/clock` (par le pont). Les nœuds qui travaillent avec la simulation doivent l'utiliser, sinon leurs horodatages ne correspondent pas à ceux des capteurs, et TF refuse les transformations.
 
-Installez le dossier `worlds` et déclarez la dépendance à `gazebo_ros` :
+Installez les dossiers `worlds` et `config` et déclarez les dépendances à `ros_gz_sim` et `ros_gz_bridge` :
 
 ```cmake fichier=src/my_robot_description/CMakeLists.txt
 cmake_minimum_required(VERSION 3.8)
@@ -417,8 +484,8 @@ project(my_robot_description)
 
 find_package(ament_cmake REQUIRED)
 
-# Installe la description, les fichiers de lancement et les mondes dans share/my_robot_description
-install(DIRECTORY urdf launch worlds DESTINATION share/${PROJECT_NAME})
+# Installe la description, les fichiers de lancement, les mondes et le pont dans share/my_robot_description
+install(DIRECTORY urdf launch worlds config DESTINATION share/${PROJECT_NAME})
 
 ament_package()
 ```
@@ -437,7 +504,8 @@ ament_package()
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>joint_state_publisher</exec_depend>
   <exec_depend>xacro</exec_depend>
-  <exec_depend>gazebo_ros</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
@@ -445,7 +513,7 @@ ament_package()
 </package>
 ```
 
-## 6. Pratique
+## 7. Pratique
 
 ```bash
 cd ~/ws/08-gazebo
@@ -454,9 +522,10 @@ source install/setup.bash
 ros2 launch my_robot_description gazebo.launch.py
 ```
 
-Attendez le message `Spawn status: SpawnEntity: Successfully spawned entity [my_robot]`, puis, dans un second terminal :
+Attendez le message `Entity creation successful`, puis, dans un second terminal :
 
 ```bash
+gz topic -l                                       # les topics côté Gazebo
 ros2 topic list                                   # /cmd_vel, /odom, /scan, /joint_states, /tf, /clock…
 ros2 topic echo --once /scan --field ranges | head -c 300
 ros2 topic pub --once /cmd_vel geometry_msgs/msg/Twist "{angular: {z: 0.5}}"
@@ -473,11 +542,12 @@ Pour **voir** ce que perçoit le robot, ouvrez le **Bureau (RViz, Gazebo)** et l
 
 Faites tourner le robot : les points du laser restent sur les murs, le robot tourne au milieu. Si les points tournent avec le robot, la TF `odom → base_link` est fausse.
 
-L'interface de Gazebo existe aussi (`gui:=true`) ; sans carte graphique, elle est très lente : réservez-la à votre machine.
+La fenêtre de Gazebo s'ouvre aussi sur le Bureau : `ros2 launch my_robot_description gazebo.launch.py gui:=true`. Sans carte graphique, elle est lente : fermez-la quand vous n'en avez pas besoin.
 
-## 7. Rappel
+## 8. Rappel
 
 - Gazebo **simule** (physique, capteurs), RViz **affiche** ce que ROS sait.
 - Chaque link avec une masse : `<collision>` et `<inertial>` réalistes.
-- Les balises `<gazebo>` portent frottements, plugins et capteurs ; les plugins `gazebo_ros_*` font le lien avec ROS 2 (`/cmd_vel`, `/odom`, `/scan`, `/joint_states`).
-- Un monde SDF autonome ; un launch qui démarre `gzserver`, `robot_state_publisher` puis `spawn_entity.py` ; `use_sim_time` pour les nœuds de la simulation.
+- Les balises `<gazebo>` portent frottements, systèmes (`DiffDrive`, `JointStatePublisher`…) et capteurs.
+- Gazebo a ses propres topics : `ros_gz_bridge` les relie à ROS 2, topic par topic.
+- Un monde SDF autonome, avec ses systèmes ; un launch qui démarre `gz sim`, `robot_state_publisher`, `create` et le pont ; `use_sim_time` pour les nœuds de la simulation.

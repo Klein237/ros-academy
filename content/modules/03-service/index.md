@@ -13,7 +13,7 @@ Dans un nœud serveur, on déclare le type du service, son nom et une fonction d
 
 **Utilité :** récupérer un état, exécuter une action ponctuelle ou retourner un résultat qui n'a pas de sens en continu. Une position publiée en continu sur `/odom` convient à un affichage ; un programme qui a besoin de la position *à un instant précis* l'obtient plus simplement par un service.
 
-Dans ce module, on écrit un service `get_pose` qui renvoie la pose actuelle `(x, y, θ)` du robot. Tutoriel officiel : [Writing a simple service and client (Python)](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Py-Service-And-Client.html).
+Dans ce module, on écrit un service `get_pose` qui renvoie la pose actuelle `(x, y, θ)` du robot. Tutoriel officiel : [Writing a simple service and client (Python)](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Py-Service-And-Client.html).
 
 ## 2. Préparation
 

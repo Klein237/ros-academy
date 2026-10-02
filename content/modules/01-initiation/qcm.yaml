@@ -6,7 +6,7 @@ questions:
         correct: true
       - texte: Le nœud n'est pas déclaré dans setup.py.
       - texte: ROS 2 n'est pas installé.
-    explication: Sans source install/setup.bash, ROS ne connaît que les packages de /opt/ros/humble. Un nœud non déclaré donne une autre erreur, « No executable found ».
+    explication: Sans source install/setup.bash, ROS ne connaît que les packages de /opt/ros/jazzy. Un nœud non déclaré donne une autre erreur, « No executable found ».
   - id: workspace
     question: Quels dossiers colcon build crée-t-il à la racine du workspace ?
     choix:

@@ -4,6 +4,24 @@
 - Un serveur Linux avec Docker et le plugin Compose (≈16 vCPU / 64 Go pour 30 à 40 sessions).
 - Un nom de domaine pointant vers le serveur (ports 80 et 443 ouverts).
 
+## Essayer sur son ordinateur
+
+Linux, macOS, ou Windows avec WSL2. Il faut Docker (Docker Desktop sur macOS et Windows) avec au moins 8 Go de mémoire, et les ports 80 et 443 libres.
+
+```bash
+git clone https://github.com/Klein237/ros-academy.git && cd ros-academy
+scripts/demarrer-local.sh            # demande votre adresse (administrateur), puis démarre tout
+```
+
+La première fois, le script construit l'image ROS (15 à 40 minutes) et génère `deploy/.env` : localhost, secrets aléatoires, nombre de labs d'après la mémoire de Docker, lien de connexion affiché à l'écran. Il attend ensuite que le site réponde. Ouvrez alors https://localhost et acceptez le certificat local.
+
+Autres commandes :
+- `scripts/demarrer-local.sh arreter` : arrête, en gardant les données ;
+- `scripts/demarrer-local.sh lien` : affiche le dernier lien de connexion ;
+- `scripts/demarrer-local.sh effacer` : efface toutes les données locales.
+
+La CI rejoue ce démarrage à chaque PR.
+
 ## Installation en une commande (recommandé)
 
 Sur un serveur Ubuntu 22.04 ou 24.04 dont le nom de domaine (enregistrement DNS de type A) pointe vers lui :
@@ -90,7 +108,7 @@ curl -sk -X POST -H "Authorization: token $HUB_ADMIN_TOKEN" https://$DOMAIN/user
 - Développement : `cd lab-ui && npm ci && npm test` (tests unitaires), `npm run dev` (serveur Vite), `npm run build`.
 - Tests de bout en bout, contre un déploiement lancé : `set -a; . deploy/.env; set +a; cd lab-ui && npx playwright test --grep-invert @limit`.
 - Robot simulé pour la vue 2D : `academy-diffbot` dans un terminal (`/cmd_vel` → `/odom`).
-- **Bureau graphique** (bouton « Bureau (RViz, Gazebo) ») : écran X virtuel du conteneur (Xvnc + openbox, `academy-bureau`), rendu OpenGL logiciel (llvmpipe), affiché par noVNC à la place de l'éditeur. Il démarre au premier accès, par jupyter-server-proxy (`/user/<nom>/bureau/`, authentifié comme le reste du serveur) ; les programmes lancés dans les terminaux (`DISPLAY=:1`) s'y affichent : `rviz2`, `gazebo`, `joint_state_publisher_gui`. Le flux VNC n'est joignable qu'en local dans le conteneur, à travers ce proxy. Sans carte graphique, RViz consomme une bonne part du vCPU de la formule gratuite ; Gazebo avec son interface (`gzclient`) est lent : préférer `gzserver` (simulation sans interface) et RViz pour visualiser.
+- **Bureau graphique** (bouton « Bureau (RViz, Gazebo) ») : écran X virtuel du conteneur (Xvnc + openbox, `academy-bureau`), rendu OpenGL logiciel (llvmpipe), affiché par noVNC à la place de l'éditeur. Il démarre au premier accès, par jupyter-server-proxy (`/user/<nom>/bureau/`, authentifié comme le reste du serveur) ; les programmes lancés dans les terminaux (`DISPLAY=:1`) s'y affichent : `rviz2`, `gz sim -g` (fenêtre de Gazebo Harmonic), `joint_state_publisher_gui`. Le flux VNC n'est joignable qu'en local dans le conteneur, à travers ce proxy. Sans carte graphique, RViz consomme une bonne part du vCPU de la formule gratuite ; la fenêtre de Gazebo est lente : préférer le simulateur sans fenêtre (`gz sim -s --headless-rendering`, rendu EGL logiciel pour le laser) et RViz pour visualiser.
 
 ## Mettre à jour l'image étudiant
 Construire `ros-lab:<nouvelle version>`, changer `ROS_LAB_IMAGE` dans `.env`, `docker compose up -d`. Les conteneurs déjà lancés gardent l'ancienne image jusqu'à leur arrêt ; les volumes ne sont pas touchés.

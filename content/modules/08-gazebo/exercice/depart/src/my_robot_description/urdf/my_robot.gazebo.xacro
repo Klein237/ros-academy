@@ -1,63 +1,67 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <!-- Couleurs dans Gazebo (il ignore les <material> de l'URDF) et frottements -->
-  <gazebo reference="chassis">
-    <material>Gazebo/Orange</material>
-  </gazebo>
+  <!-- Frottements : les roues adhèrent, la roulette glisse (elle ne fait que porter le robot) -->
   <gazebo reference="left_wheel">
-    <material>Gazebo/Black</material>
     <mu1>1.0</mu1>
     <mu2>1.0</mu2>
   </gazebo>
   <gazebo reference="right_wheel">
-    <material>Gazebo/Black</material>
     <mu1>1.0</mu1>
     <mu2>1.0</mu2>
   </gazebo>
-  <!-- La roulette glisse sans frotter : elle ne fait que porter le robot -->
   <gazebo reference="caster_wheel">
-    <material>Gazebo/Grey</material>
     <mu1>0.0</mu1>
     <mu2>0.0</mu2>
   </gazebo>
 
   <!-- Conduite différentielle : /cmd_vel → vitesses des deux roues ; publie /odom et la TF odom → base_link -->
   <gazebo>
-    <plugin name="diff_drive" filename="libgazebo_ros_diff_drive.so">
-      <update_rate>30</update_rate>
+    <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
       <left_joint>right_wheel_joint</left_joint>
       <right_joint>left_wheel_joint</right_joint>
-      <!-- distance entre les centres des roues et diamètre, comme dans l'URDF -->
+      <!-- distance entre les centres des roues et rayon, comme dans l'URDF -->
       <wheel_separation>${chassis_width + wheel_width}</wheel_separation>
-      <wheel_diameter>${2 * wheel_radius}</wheel_diameter>
-      <max_wheel_torque>5</max_wheel_torque>
-      <max_wheel_acceleration>2.0</max_wheel_acceleration>
-      <publish_odom>true</publish_odom>
-      <publish_odom_tf>true</publish_odom_tf>
-      <publish_wheel_tf>false</publish_wheel_tf>
-      <odometry_frame>odom</odometry_frame>
-      <robot_base_frame>base_link</robot_base_frame>
+      <wheel_radius>${wheel_radius}</wheel_radius>
+      <max_linear_acceleration>2.0</max_linear_acceleration>
+      <topic>/cmd_vel</topic>
+      <odom_topic>/odom</odom_topic>
+      <tf_topic>/tf</tf_topic>
+      <frame_id>odom</frame_id>
+      <child_frame_id>base_link</child_frame_id>
+      <odom_publish_frequency>30</odom_publish_frequency>
     </plugin>
   </gazebo>
 
   <!-- Angle des roues sur /joint_states : robot_state_publisher en tire leurs TF -->
   <gazebo>
-    <plugin name="joint_states" filename="libgazebo_ros_joint_state_publisher.so">
-      <update_rate>20</update_rate>
+    <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher">
+      <topic>/joint_states</topic>
       <joint_name>left_wheel_joint</joint_name>
       <joint_name>right_wheel_joint</joint_name>
     </plugin>
   </gazebo>
 
+  <!-- Position réelle du robot dans le monde (que seul le simulateur connaît), sur /verite_terrain -->
+  <gazebo>
+    <plugin filename="gz-sim-odometry-publisher-system" name="gz::sim::systems::OdometryPublisher">
+      <odom_topic>/verite_terrain</odom_topic>
+      <odom_frame>monde</odom_frame>
+      <robot_base_frame>base_link</robot_base_frame>
+      <odom_publish_frequency>10</odom_publish_frequency>
+      <dimensions>2</dimensions>
+    </plugin>
+  </gazebo>
+
   <!-- Laser 2D : 360 rayons sur un tour, de 0,12 à 8 m, 5 balayages par seconde, publiés sur /scan -->
   <gazebo reference="laser">
-    <material>Gazebo/Black</material>
-    <sensor name="lidar" type="ray">
+    <sensor name="lidar" type="gpu_lidar">
+      <topic>/scan</topic>
+      <gz_frame_id>laser</gz_frame_id>
       <always_on>true</always_on>
       <visualize>false</visualize>
       <update_rate>5</update_rate>
-      <ray>
+      <lidar>
         <scan>
           <horizontal>
             <samples>360</samples>
@@ -65,20 +69,18 @@
             <min_angle>-3.14159</min_angle>
             <max_angle>3.14159</max_angle>
           </horizontal>
+          <vertical>
+            <samples>1</samples>
+            <min_angle>0</min_angle>
+            <max_angle>0</max_angle>
+          </vertical>
         </scan>
         <range>
           <min>0.12</min>
           <max>8.0</max>
           <resolution>0.01</resolution>
         </range>
-      </ray>
-      <plugin name="lidar" filename="libgazebo_ros_ray_sensor.so">
-        <ros>
-          <remapping>~/out:=scan</remapping>
-        </ros>
-        <output_type>sensor_msgs/LaserScan</output_type>
-        <frame_name>laser</frame_name>
-      </plugin>
+      </lidar>
     </sensor>
   </gazebo>
 

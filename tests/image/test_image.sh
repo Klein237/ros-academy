@@ -8,14 +8,15 @@ fail() { echo "FAIL: $1"; exit 1; }
 [ "$(run 'whoami')" = "etudiant" ] || fail "l'utilisateur n'est pas etudiant"
 [ "$(run 'id -u')" = "1000" ] || fail "uid différent de 1000"
 if run 'command -v sudo' >/dev/null; then fail "sudo est présent"; fi
-[ "$(run 'echo $ROS_LOCALHOST_ONLY')" = "1" ] || fail "ROS_LOCALHOST_ONLY absent"
-[ "$(run 'echo $ROS_DISTRO')" = "humble" ] || fail "ROS non sourcé"
+[ "$(run 'echo $ROS_AUTOMATIC_DISCOVERY_RANGE')" = "LOCALHOST" ] || fail "ROS_AUTOMATIC_DISCOVERY_RANGE absent"
+[ "$(run 'echo $ROS_DISTRO')" = "jazzy" ] || fail "ROS Jazzy non sourcé"
 grep -qx rclpy <<<"$(run 'ros2 pkg list')" || fail "rclpy manquant"
 grep -qx rclcpp <<<"$(run 'ros2 pkg list')" || fail "rclcpp manquant"
 grep -qx rosbridge_server <<<"$(run 'ros2 pkg list')" || fail "rosbridge_server manquant"
 run 'command -v colcon' >/dev/null || fail "colcon manquant"
 grep -q '^5\.2\.1' <<<"$(run 'jupyterhub-singleuser --version')" || fail "jupyterhub-singleuser 5.2.1 manquant"
-run 'python3 -c "import jupyter_server_proxy"' || fail "jupyter-server-proxy manquant"
+run '/opt/jupyter/bin/python -c "import jupyter_server_proxy"' || fail "jupyter-server-proxy manquant"
+if run 'python3 -c "import jupyter_server"' 2>/dev/null; then fail "Jupyter mélangé au Python de ROS"; fi
 run 'cd /tmp && mkdir -p ws/src && cd ws/src \
      && ros2 pkg create --build-type ament_python py_pkg >/dev/null \
      && ros2 pkg create --build-type ament_cmake cpp_pkg >/dev/null \
@@ -30,13 +31,13 @@ odom_x=$(run 'academy-diffbot >/dev/null 2>&1 & sleep 3
   ros2 topic pub -r 10 -t 20 /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.5}}" >/dev/null &
   sleep 1.5; ros2 topic echo --once /odom | awk "/position:/ {p=1} p && /x:/ {print \$2; exit}"')
 awk -v x="$odom_x" 'BEGIN { exit !(x > 0.1) }' || fail "academy-diffbot n'avance pas (x=$odom_x)"
-# bureau graphique : RViz2 et Gazebo installés, écran virtuel démarré comme dans un lab
+# bureau graphique : RViz2 et Gazebo (Harmonic, gz sim) installés, écran virtuel démarré comme dans un lab
 # (racine en lecture seule, /tmp en tmpfs, dossier personnel inscriptible comme le volume
 # de l'étudiant), fenêtre RViz créée avec le rendu logiciel
-for pkg in rviz2 gazebo_ros joint_state_publisher_gui; do
+for pkg in rviz2 ros_gz_sim ros_gz_bridge joint_state_publisher_gui; do
   grep -qx "$pkg" <<<"$(run 'ros2 pkg list')" || fail "$pkg manquant"
 done
-for cmd in academy-bureau Xvnc websockify openbox gzserver; do
+for cmd in academy-bureau Xvnc websockify openbox gz; do
   run "command -v $cmd" >/dev/null || fail "$cmd manquant"
 done
 bureau=$(docker run --rm --read-only --tmpfs /tmp:size=512m --tmpfs /home/etudiant:uid=1000,gid=1000 "$IMG" bash -lc '
@@ -48,10 +49,17 @@ bureau=$(docker run --rm --read-only --tmpfs /tmp:size=512m --tmpfs /home/etudia
   for _ in $(seq 1 60); do xwininfo -root -tree | grep -qi rviz && break; sleep 1; done
   sleep 5
   xwininfo -root -tree | grep -qi rviz && kill -0 $RVIZ 2>/dev/null && echo RVIZ-OK || tail -20 /tmp/rviz.log
-  timeout 25 gzserver --verbose >/tmp/gz.log 2>&1 & GZ=$!
-  sleep 15; kill -0 $GZ 2>/dev/null && echo GZSERVER-OK || tail -20 /tmp/gz.log
-  kill $GZ $RVIZ 2>/dev/null || true')
+  kill $RVIZ 2>/dev/null || true
+  # serveur Gazebo sans écran (rendu EGL logiciel, pour les capteurs), puis la fenêtre de Gazebo
+  timeout 60 gz sim -s -r --headless-rendering -v 3 empty.sdf >/tmp/gz.log 2>&1 & GZ=$!
+  for _ in $(seq 1 30); do gz topic -l 2>/dev/null | grep -q /clock && break; sleep 1; done
+  gz topic -l 2>/dev/null | grep -q /clock && kill -0 $GZ 2>/dev/null && echo GZSERVER-OK || tail -20 /tmp/gz.log
+  timeout 50 gz sim -g -v 3 >/tmp/gzgui.log 2>&1 & GUI=$!
+  for _ in $(seq 1 40); do xwininfo -root -tree | grep -qi gazebo && break; sleep 1; done
+  xwininfo -root -tree | grep -qi gazebo && echo GZGUI-OK || tail -20 /tmp/gzgui.log
+  kill $GUI $GZ 2>/dev/null || true')
 grep -q ECRAN-OK <<<"$bureau" || fail "écran virtuel non démarré : $bureau"
 grep -q RVIZ-OK <<<"$bureau" || fail "RViz2 ne s'ouvre pas sur le bureau : $bureau"
-grep -q GZSERVER-OK <<<"$bureau" || fail "gzserver ne démarre pas : $bureau"
+grep -q GZSERVER-OK <<<"$bureau" || fail "gz sim (serveur) ne démarre pas : $bureau"
+grep -q GZGUI-OK <<<"$bureau" || fail "la fenêtre de Gazebo ne s'ouvre pas sur le bureau : $bureau"
 echo "ALL IMAGE TESTS PASSED"

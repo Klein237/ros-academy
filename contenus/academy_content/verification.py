@@ -129,7 +129,7 @@ def verify_exercise(module_dir, module_id, student, image, client=None, slots=No
             pids_limit=256,
             cap_drop=["ALL"],
             security_opt=["no-new-privileges"],
-            environment={"ROS_LOCALHOST_ONLY": "1"},
+            environment={"ROS_AUTOMATIC_DISCOVERY_RANGE": "LOCALHOST"},
             volumes={volume: {"bind": "/eleve", "mode": "ro"}},
             labels={"ros-academy.role": "verification", "ros-academy.etudiant": student},
         )
