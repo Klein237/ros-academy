@@ -19,6 +19,16 @@
 - Changer la formule d'un étudiant : `docker compose exec postgres psql -U comptes -d comptes -c "UPDATE users SET formule='pro' WHERE email='…'"`.
 - Sauvegarde : `docker compose exec postgres pg_dump -U comptes comptes > comptes.sql`.
 
+## Abonnement pro (Stripe)
+Formule `pro` : lab sans limite de minutes, conteneur 2 vCPU / 4 Go. Proposée sur `/compte/abonnement` seulement quand les trois variables `STRIPE_*` sont renseignées.
+1. Dans Stripe (mode test d'abord) : créer un produit « ROS Academy pro » et un **prix récurrent mensuel** (9 €) ; copier son identifiant `price_…` dans `STRIPE_PRICE_ID`.
+2. Activer et configurer le **portail client** (Paramètres → Facturation → Portail client) : résiliation, mise à jour de la carte, factures.
+3. Déclarer le **webhook** `https://<domaine>/api/comptes/stripe/webhook` avec les événements `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted` ; copier son secret `whsec_…` dans `STRIPE_WEBHOOK_SECRET`, et la clé secrète dans `STRIPE_SECRET_KEY`.
+4. `docker compose up -d comptes`. Tester avec la carte `4242 4242 4242 4242` ; en local, `stripe listen --forward-to https://localhost/api/comptes/stripe/webhook` remplace l'étape 3.
+- Stripe fait foi : chaque événement est vérifié (signature), puis l'abonnement est relu auprès de Stripe. `active`, `trialing` et `past_due` (paiement en cours de relance) donnent la formule pro ; une résiliation prend effet à la fin de la période payée.
+- La nouvelle formule s'applique au conteneur à la prochaine ouverture du lab.
+- Avant d'ouvrir les paiements au public : TVA (Stripe Tax) et conditions générales de vente.
+
 ## Tester un accès étudiant sans compte (diagnostic)
 Le parcours normal passe par `/connexion`. Pour tester le Hub seul, un jeton peut être émis à la main :
 ```bash

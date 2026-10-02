@@ -2,6 +2,7 @@
 
 import asyncio
 import hmac
+import json
 import logging
 import re
 import time
@@ -19,6 +20,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 
 from . import grading
+from .billing import PAYING, BadSignature, StripeClient, StripeError, apply_subscription, format_price, verify_signature
 from .auth import (
     OAUTH_COOKIE,
     SESSION_COOKIE,
@@ -33,7 +35,7 @@ from .auth import (
     user_for_email,
 )
 from .clients import INTERNAL_HEADER, ContenusClient, HubClient, UpstreamError, comptes_token
-from .db import Base, Exercise, QcmAttempt, QueueTicket, User, make_engine, make_sessionmaker, utcnow
+from .db import Base, Exercise, QcmAttempt, QueueTicket, StripeEvent, User, make_engine, make_sessionmaker, utcnow
 from .mail import send_login_link
 from .quotas import HUB_NAME_RE, join_queue, leave_queue, minutes_left, minutes_used, queue_position, record_minute
 from .settings import Settings
@@ -67,7 +69,7 @@ def safe_lab_next(path):
     return path if path == "/lab/" or path.startswith("/lab/?") else "/lab/"
 
 
-def create_app(settings: Settings, hub=None, contenus=None, http=None, background=True):
+def create_app(settings: Settings, hub=None, contenus=None, http=None, background=True, stripe=None):
     engine = make_engine(settings.database_url)
     if settings.database_url.startswith("sqlite"):
         Base.metadata.create_all(engine)  # Postgres : migrations Alembic
@@ -77,7 +79,10 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
     contenus = contenus or ContenusClient(settings.contenus_url, settings.jwt_secret)
     http = http or httpx.Client(timeout=15)
     templates = Jinja2Templates(directory=str(HERE / "templates"))
-    state = {"actifs": 0, "releve": 0.0}
+    templates.env.globals["billing"] = settings.billing_enabled
+    if settings.billing_enabled:
+        stripe = stripe or StripeClient(settings.stripe_secret_key)
+    state = {"actifs": 0, "releve": 0.0, "prix": None, "prix_lu": 0.0}
 
     def tick():
         with SessionLocal() as db:
@@ -250,7 +255,9 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
             return page(request, "message.html", 403, titre="Quota de lab épuisé",
                         message="Vous avez utilisé toutes vos minutes de lab ce mois-ci. Les cours, les QCM et vos "
                                 "notes restent accessibles ; le lab sera de nouveau disponible le mois prochain.",
-                        lien="/compte/resultats", lien_texte="Voir mes résultats")
+                        **({"lien": "/compte/abonnement", "lien_texte": "Passer en pro : lab sans limite"}
+                           if settings.billing_enabled else
+                           {"lien": "/compte/resultats", "lien_texte": "Voir mes résultats"}))
         token = mint_lab_token(settings.jwt_secret, user)
         return RedirectResponse(f"/hub/jwt_login?token={token}&next={quote(suite, safe='')}", status_code=303)
 
@@ -261,6 +268,97 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         if user.email not in settings.admin_emails:
             raise HTTPException(403, "Ce compte n'a pas accès à l'administration")
         return RedirectResponse(f"/admin/login?token={mint_admin_token(settings.jwt_secret, user)}", status_code=303)
+
+    # --- Abonnement (formule pro, Stripe)
+
+    def require_billing():
+        if not settings.billing_enabled:
+            raise HTTPException(404, "Page introuvable")
+
+    def price_text():
+        if time.time() - state["prix_lu"] > 3600:
+            try:
+                state["prix"], state["prix_lu"] = format_price(stripe.price(settings.stripe_price_id)), time.time()
+            except StripeError as exc:
+                log.warning("Prix Stripe illisible : %s", exc)
+        return state["prix"]
+
+    @app.get("/compte/abonnement", response_class=HTMLResponse, dependencies=[Depends(require_billing)])
+    def abonnement(request: Request, retour: str = "", user=Depends(current_user)):
+        if not user:
+            return login_redirect("/compte/abonnement")
+        return page(request, "abonnement.html", user=user, prix=price_text(), actif=user.abonnement_statut in PAYING,
+                    en_attente=retour == "paye" and user.formule != "pro")
+
+    @app.post("/compte/abonnement/souscrire", dependencies=[Depends(require_billing)])
+    def souscrire(user=Depends(require_user), _=Depends(same_origin)):
+        if user.abonnement_statut in PAYING:
+            raise HTTPException(409, "Vous êtes déjà abonné : gérez votre abonnement depuis votre compte")
+        try:
+            url = stripe.create_checkout(user, settings.stripe_price_id,
+                                         f"{settings.public_url}/compte/abonnement?retour=paye",
+                                         f"{settings.public_url}/compte/abonnement")
+        except StripeError as exc:
+            log.warning("Session de paiement impossible : %s", exc)
+            raise HTTPException(502, "Le paiement est momentanément indisponible, réessayez plus tard") from None
+        return RedirectResponse(url, status_code=303)
+
+    @app.post("/compte/abonnement/gerer", dependencies=[Depends(require_billing)])
+    def gerer(user=Depends(require_user), _=Depends(same_origin)):
+        if not user.stripe_customer_id:
+            raise HTTPException(404, "Aucun abonnement à gérer")
+        try:
+            url = stripe.create_portal(user.stripe_customer_id, f"{settings.public_url}/compte/abonnement")
+        except StripeError as exc:
+            log.warning("Portail client impossible : %s", exc)
+            raise HTTPException(502, "La gestion de l'abonnement est momentanément indisponible") from None
+        return RedirectResponse(url, status_code=303)
+
+    def handle_event(event):
+        """Applique un événement Stripe vérifié ; renvoie False s'il était déjà traité."""
+        with SessionLocal() as db:
+            if db.get(StripeEvent, event["id"]):
+                return False
+            obj = (event.get("data") or {}).get("object") or {}
+            user, subscription_id = None, None
+            if event.get("type") == "checkout.session.completed" and obj.get("mode") == "subscription":
+                ref = str(obj.get("client_reference_id") or "")
+                user = db.get(User, int(ref)) if ref.isdigit() else None
+                if user and obj.get("customer"):
+                    other = db.scalar(select(User).where(User.stripe_customer_id == obj["customer"]))
+                    if other and other.id != user.id:
+                        log.warning("Client Stripe %s déjà rattaché à un autre compte", obj["customer"])
+                        user = None
+                    else:
+                        user.stripe_customer_id = obj["customer"]
+                subscription_id = obj.get("subscription")
+            elif event.get("type", "").startswith("customer.subscription."):
+                user = db.scalar(select(User).where(User.stripe_customer_id == obj.get("customer")))
+                subscription_id = obj.get("id")
+            if user and subscription_id:
+                # relu chez Stripe : l'ordre d'arrivée des événements ne compte pas
+                sub = stripe.subscription(subscription_id)
+                if sub.get("customer") == user.stripe_customer_id and apply_subscription(user, sub):
+                    log.info("Abonnement de u%s : %s → formule %s", user.id, sub.get("status"), user.formule)
+            db.add(StripeEvent(id=event["id"]))
+            db.commit()
+            return True
+
+    @app.post("/api/comptes/stripe/webhook", dependencies=[Depends(require_billing)])
+    async def stripe_webhook(request: Request):
+        payload = await request.body()
+        try:
+            verify_signature(payload, request.headers.get("stripe-signature", ""), settings.stripe_webhook_secret)
+            event = json.loads(payload)
+            event_id = event["id"]
+        except (BadSignature, ValueError, KeyError, TypeError):
+            raise HTTPException(400, "Signature ou contenu invalide") from None
+        try:
+            await asyncio.to_thread(handle_event, event)
+        except StripeError as exc:
+            log.warning("Événement Stripe %s non traité : %s", event_id, exc)
+            raise HTTPException(503, "Stripe injoignable : l'événement sera renvoyé") from None
+        return {"recu": True}
 
     # --- Résultats
 

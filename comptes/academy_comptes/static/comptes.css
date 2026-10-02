@@ -12,3 +12,7 @@ input { font: inherit; color: var(--text); background: var(--bg); border: 1px so
 table.results { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; }
 table.results th, table.results td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
 .final-grade { font-size: 1.3rem; }
+.plan { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.price { font-size: 1.4rem; font-weight: 600; }
+.notice { border-color: var(--accent); }
+.warn { color: var(--ko); }

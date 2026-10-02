@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Abonnement{% endblock %}
+{% block content %}
+<h1>Formule pro</h1>
+{% if en_attente %}
+<section class="card notice" role="status">
+  <p><strong>Paiement reçu, confirmation en cours.</strong> Votre formule passe en pro dans quelques secondes : rechargez cette page.</p>
+</section>
+{% endif %}
+<section class="card">
+  {% if actif %}
+  <p>Vous êtes abonné à la formule <strong>pro</strong>{% if user.abonnement_statut == "past_due" %} — <span class="warn">le dernier paiement a échoué, mettez à jour votre carte</span>{% endif %}.</p>
+  {% if user.abonnement_fin %}
+  <p class="muted">{% if user.abonnement_resilie %}Résilié : la formule pro reste active jusqu'au {{ user.abonnement_fin.strftime('%d/%m/%Y') }}, puis vous repasserez en formule gratuite.{% else %}Prochain renouvellement le {{ user.abonnement_fin.strftime('%d/%m/%Y') }}.{% endif %}</p>
+  {% endif %}
+  <form method="post" action="/compte/abonnement/gerer"><button class="button primary" type="submit">Gérer mon abonnement</button></form>
+  <p class="muted small">Carte bancaire, factures et résiliation, sur la page sécurisée de Stripe.</p>
+  {% else %}
+  <ul class="plan">
+    <li><strong>Lab sans limite de minutes</strong> (formule gratuite : 600 min par mois)</li>
+    <li>Conteneur plus puissant : 2 vCPU et 4 Go de mémoire, au lieu de 1 vCPU et 2 Go</li>
+    <li>Résiliable à tout moment ; vos fichiers, notes et résultats sont conservés</li>
+  </ul>
+  <p class="price">{{ prix or "Prix indisponible pour le moment" }}</p>
+  <form method="post" action="/compte/abonnement/souscrire"><button class="button primary" type="submit"{% if not prix %} disabled{% endif %}>S'abonner</button></form>
+  <p class="muted small">Le paiement se fait sur la page sécurisée de Stripe : vos coordonnées bancaires ne passent pas par ROS Academy.{% if user.formule == "pro" %} Votre compte est déjà en formule pro (attribuée par l'équipe).{% endif %}</p>
+  {% endif %}
+</section>
+<p><a href="/compte/">← Mon compte</a></p>
+{% endblock %}

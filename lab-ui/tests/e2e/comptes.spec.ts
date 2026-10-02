@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { expect, test, type APIRequestContext } from "@playwright/test";
 import { admin, cleanup, loginStudent, mint, newEmail, openLabViaAccount, sql, waitReady } from "./helpers";
 
@@ -100,6 +101,24 @@ test("dernières minutes : bandeau, puis arrêt du lab au passage à zéro", asy
   await expect(page.locator(".overlay")).toHaveAttribute("data-state", "quota", { timeout: 240_000 });
   await expect(page.locator(".overlay")).toContainText("Quota de lab épuisé");
   await expect(page.locator(".quota-banner")).toBeHidden();
+});
+
+test("formule pro : lab sans quota, conteneur 2 vCPU / 4 Go", async ({ page }) => {
+  const name = await loginStudent(page, newEmail());
+  students.push(name);
+  sql(`UPDATE users SET formule = 'pro' WHERE id = ${Number(name.slice(1))};`);
+  useMinutes(name, 600); // ne compte pas en pro
+  expect((await (await page.request.get("/api/comptes/moi")).json()).minutes_restantes).toBeNull();
+  await openLabViaAccount(page);
+  const fmt = "{{.HostConfig.NanoCpus}} {{.HostConfig.CpuQuota}} {{.HostConfig.CpuPeriod}} {{.HostConfig.Memory}} {{.HostConfig.PidsLimit}}";
+  const [nano, quota, period, memory, pids] = execSync(`docker inspect -f '${fmt}' jupyter-${name}`, { encoding: "utf8" })
+    .trim()
+    .split(" ")
+    .map(Number);
+  // DockerSpawner traduit cpu_limit en CpuQuota / CpuPeriod
+  expect(nano ? nano / 1e9 : quota / period).toBe(2);
+  expect(memory).toBe(4 * 1024 ** 3);
+  expect(pids).toBe(512);
 });
 
 test("session du lab expirée → « Se reconnecter » rouvre la même page du lab", async ({ page }) => {

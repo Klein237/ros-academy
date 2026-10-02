@@ -3,7 +3,7 @@
 <h1>Mon compte</h1>
 <section class="card">
   <p><strong>{{ user.nom or user.email }}</strong>{% if user.nom %} <span class="muted">· {{ user.email }}</span>{% endif %}</p>
-  <p>Formule : <strong>{{ user.formule }}</strong></p>
+  <p>Formule : <strong>{{ user.formule }}</strong>{% if billing %} · <a href="/compte/abonnement">{{ "Mon abonnement" if user.stripe_subscription_id else "Passer en pro" }}</a>{% endif %}</p>
   {% if restantes is none %}
   <p>Lab : sans limite ({{ utilisees }} min utilisées ce mois-ci).</p>
   {% else %}
