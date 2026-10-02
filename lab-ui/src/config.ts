@@ -19,6 +19,8 @@ export interface LabConfig {
   folder: string;
   idleStopMs: number;
   idleWarnMs: number;
+  /** Page réduite au bureau graphique, ouverte par « Fenêtre séparée » (?vue=bureau). */
+  desktopOnly: boolean;
 }
 
 function safePath(value: string | null): string | null {
@@ -45,5 +47,6 @@ export function readConfig(search: string): LabConfig {
     folder: safePath(params.get("dossier")) ?? "",
     idleStopMs,
     idleWarnMs,
+    desktopOnly: params.get("vue") === "bureau",
   };
 }

@@ -192,7 +192,8 @@ test("module Nœud : paquet, nœud écrit dans l'éditeur, build, run et echo @r
   await page.getByRole("button", { name: "Nouveau terminal" }).click();
   await expect(page.locator(".terminals .tab")).toHaveCount(2);
   await expect(activeTerminal(page)).toHaveAttribute("data-status", "open");
-  await run(page, "source ~/ws/install/setup.bash && ros2 topic echo --once /bavardage", "data: Bonjour ROS", 60_000);
+  // avec le type, echo attend que le nœud lancé dans l'autre terminal soit découvert
+  await run(page, "source ~/ws/install/setup.bash && ros2 topic echo --once /bavardage std_msgs/msg/String", "data: Bonjour ROS", 60_000);
 });
 
 test("vue 2D : le robot simulé avance avec la téléopération @ros", async ({ page }) => {
@@ -247,6 +248,38 @@ test("bureau graphique : un programme du terminal s'affiche dans le bureau", asy
   await expect(page.locator(".panel.editor")).toBeVisible();
   await page.getByRole("button", { name: "Bureau (RViz, Gazebo)" }).click();
   await expect(page.locator(".desktop .pill")).toHaveText("connecté");
+  expect(errors).toEqual([]);
+});
+
+test("bureau graphique : agrandi, puis dans une fenêtre séparée qui revient à sa fermeture", async ({ page }) => {
+  const name = student();
+  const errors = watchErrors(page);
+  await openLab(page, name);
+  await openDesktop(page);
+  const files = page.locator(".panel.files");
+  const terminals = page.locator(".panel.terminals");
+  await page.getByRole("button", { name: "Agrandir" }).click();
+  await expect(files).toBeHidden();
+  await expect(terminals).toBeHidden();
+  await page.getByRole("button", { name: "Réduire" }).click();
+  await expect(files).toBeVisible();
+  await expect(terminals).toBeVisible();
+  // fenêtre séparée : elle se connecte, le lab lâche sa connexion
+  const [popup] = await Promise.all([
+    page.waitForEvent("popup"),
+    page.getByRole("button", { name: "Fenêtre séparée" }).click(),
+  ]);
+  await expect(popup.locator(".desktop .pill")).toHaveText("connecté", { timeout: 60_000 });
+  await expect(page.locator(".desktop .pill")).toHaveText("dans une fenêtre séparée");
+  await expect(page.locator(".desktop-detached")).toBeVisible();
+  // la fenêtre séparée suit sa taille : l'écran du lab prend les dimensions de la fenêtre
+  await popup.setViewportSize({ width: 900, height: 600 });
+  await expect.poll(() => popup.locator(".desktop-screen canvas").evaluate((c) => (c as HTMLCanvasElement).width), {
+    timeout: 20_000,
+  }).toBeLessThan(1000);
+  await popup.close();
+  await expect(page.locator(".desktop .pill")).toHaveText("connecté", { timeout: 30_000 });
+  await expect(page.locator(".desktop-detached")).toBeHidden();
   expect(errors).toEqual([]);
 });
 

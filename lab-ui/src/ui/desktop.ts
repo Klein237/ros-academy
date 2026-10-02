@@ -6,13 +6,14 @@
 import { Backoff, realTimers, type Timers } from "../backoff";
 import { button, h } from "./dom";
 
-export type DesktopStatus = "arrete" | "connexion" | "connecte" | "reconnexion";
+export type DesktopStatus = "arrete" | "connexion" | "connecte" | "reconnexion" | "separe";
 
 const STATUS_TEXT: Record<DesktopStatus, string> = {
   arrete: "arrêté",
   connexion: "démarrage…",
   connecte: "connecté",
   reconnexion: "reconnexion…",
+  separe: "dans une fenêtre séparée",
 };
 
 /** Ce que le panneau utilise du client RFB de noVNC (remplaçable dans les tests). */
@@ -30,6 +31,12 @@ export interface DesktopOptions {
   url: () => Promise<string>;
   rfb?: RfbFactory;
   timers?: Timers;
+  /** Bouton « Agrandir » : le bureau prend tout l'espace de travail (absent si non fourni). */
+  onMaximize?: () => void;
+  /** Bouton « Fenêtre séparée » (absent si non fourni). */
+  onDetach?: () => void;
+  /** « Ramener ici » quand le bureau est dans une fenêtre séparée. */
+  onReattach?: () => void;
 }
 
 async function noVncFactory(): Promise<RfbFactory> {
@@ -46,8 +53,11 @@ export class DesktopPanel {
     class: "desktop-hint muted small",
     text: "Lancez rviz2 ou gazebo dans un terminal : leurs fenêtres s'affichent ici.",
   });
+  private readonly maximizeButton: HTMLButtonElement | null;
+  private readonly detachedNote: HTMLElement;
   private rfb: RfbLike | null = null;
   private wanted = false;
+  private detached = false;
   private retryTimer: unknown = null;
   private readonly backoff = new Backoff(1000, 15_000);
   private readonly timers: Timers;
@@ -55,6 +65,20 @@ export class DesktopPanel {
 
   constructor(private readonly options: DesktopOptions) {
     this.timers = options.timers ?? realTimers;
+    this.maximizeButton = options.onMaximize
+      ? button("Agrandir", () => options.onMaximize?.(), { class: "small", attrs: { "aria-pressed": "false" } })
+      : null;
+    this.detachedNote = h(
+      "div",
+      { class: "desktop-detached", attrs: { hidden: "" } },
+      h("p", { text: "Le bureau est ouvert dans une fenêtre séparée." }),
+      button("Ramener ici", () => options.onReattach?.(), { class: "small" }),
+    );
+    this.screen.append(this.detachedNote);
+    const fullscreen =
+      typeof this.el.requestFullscreen === "function"
+        ? button("Plein écran", () => void this.el.requestFullscreen().catch(() => undefined), { class: "small" })
+        : null;
     this.el.append(
       h(
         "div",
@@ -62,11 +86,44 @@ export class DesktopPanel {
         h("h2", { text: "Bureau" }),
         this.statusPill,
         h("span", { class: "spacer" }),
+        this.maximizeButton,
+        fullscreen,
+        options.onDetach ? button("Fenêtre séparée", () => options.onDetach?.(), { class: "small" }) : null,
         button("Reconnecter", () => this.reconnect(), { class: "small" }),
       ),
       this.hint,
       this.screen,
     );
+  }
+
+  /** État du bouton « Agrandir » (l'agrandissement lui-même est fait par la page). */
+  setMaximized(on: boolean): void {
+    if (!this.maximizeButton) return;
+    this.maximizeButton.setAttribute("aria-pressed", String(on));
+    this.maximizeButton.textContent = on ? "Réduire" : "Agrandir";
+  }
+
+  get isDetached(): boolean {
+    return this.detached;
+  }
+
+  /**
+   * Bureau affiché dans une autre fenêtre : ce panneau lâche sa connexion (une seule fenêtre
+   * fixe la taille de l'écran) et la reprend quand on le ramène.
+   */
+  setDetached(on: boolean): void {
+    if (on === this.detached) return;
+    this.detached = on;
+    this.detachedNote.hidden = !on;
+    if (on) {
+      if (this.retryTimer !== null) this.timers.clearTimeout(this.retryTimer);
+      this.retryTimer = null;
+      this.closeRfb();
+      this.setStatus("separe");
+    } else {
+      this.setStatus("arrete");
+      if (this.visible) this.reconnect();
+    }
   }
 
   get visible(): boolean {
@@ -76,6 +133,7 @@ export class DesktopPanel {
   /** Affiche le bureau et s'y connecte (le premier accès démarre l'écran virtuel). */
   show(): void {
     this.el.hidden = false;
+    if (this.detached) return;
     this.wanted = true;
     if (this.rfb) this.rfb.focus();
     else if (this.retryTimer === null) void this.connect();
@@ -87,6 +145,9 @@ export class DesktopPanel {
   }
 
   reconnect(): void {
+    if (this.detached) return;
+    if (this.retryTimer !== null) this.timers.clearTimeout(this.retryTimer);
+    this.retryTimer = null;
     this.closeRfb();
     this.backoff.reset();
     this.wanted = true;
@@ -115,11 +176,14 @@ export class DesktopPanel {
 
   private async connect(): Promise<void> {
     this.retryTimer = null;
+    if (this.detached) return;
     this.setStatus(this.status === "arrete" ? "connexion" : "reconnexion");
     let rfb: RfbLike;
     try {
       const factory = this.options.rfb ?? (await noVncFactory());
-      rfb = factory(this.screen, await this.options.url());
+      const url = await this.options.url();
+      if (this.detached || !this.wanted) return; // détaché ou arrêté pendant l'attente du jeton
+      rfb = factory(this.screen, url);
     } catch (e) {
       console.warn("Bureau : connexion impossible", e);
       this.scheduleRetry();

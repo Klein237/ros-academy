@@ -282,6 +282,55 @@ button.link {
   background: #1b1f24;
 }
 
+.desktop-detached {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.desktop-detached[hidden] {
+  display: none;
+}
+
+/* « Plein écran » : le panneau du bureau occupe tout l'écran */
+.desktop:fullscreen {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* « Agrandir » : seul le bureau reste dans l'espace de travail */
+.workspace.bureau-agrandi {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.workspace.bureau-agrandi > .files,
+.workspace.bureau-agrandi > .side,
+.workspace.bureau-agrandi .splitter,
+.workspace.bureau-agrandi .terminals {
+  display: none;
+}
+
+.workspace.bureau-agrandi .center {
+  grid-template-rows: minmax(0, 1fr) !important; /* la hauteur réglée par la barre est ignorée */
+}
+
+/* Fenêtre séparée (?vue=bureau) : l'écran du lab, sans le reste */
+.bureau-seul {
+  grid-row: 1 / -1;
+  display: flex;
+  height: 100vh;
+  min-height: 0;
+}
+
+.bureau-seul .desktop {
+  flex: 1;
+}
+
 .pill[data-status="connecte"] {
   color: var(--accent);
 }
