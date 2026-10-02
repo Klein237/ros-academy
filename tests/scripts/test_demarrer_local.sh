@@ -82,6 +82,15 @@ egal "--local : retour à localhost" "$(sed -n 3p "$TMP/acces")" "localhost|0|1"
   configurer_acces
 ) >/dev/null 2>&1 && ko "Internet sans SMTP accepté" || ok "Internet sans SMTP refusé en mode non interactif"
 
+echo "fonctions appelées"
+# toute fonction appelée dans le script y est définie (une suppression par erreur casse le démarrage)
+manque=""
+for f in $(grep -oE '^ *[a-z_]+( |$)' "$DEPOT/scripts/demarrer-local.sh" | tr -d ' ' | sort -u); do
+  grep -qE "^ *$f\(\) \{" "$DEPOT/scripts/demarrer-local.sh" "$DEPOT/scripts/lib-image-ros.sh" && continue
+  command -v "$f" >/dev/null 2>&1 || type "$f" >/dev/null 2>&1 || manque="$manque $f"
+done
+egal "aucune fonction manquante" "$manque" ""
+
 echo "lire_options"
 lire_options arreter --admin a@b.fr --non-interactif
 egal "commande" "$COMMANDE" arreter

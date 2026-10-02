@@ -95,7 +95,7 @@ lire_options() {
       --internet) MODE=internet; shift ;;
       --local) MODE=local; shift ;;
       demarrer|arreter|lien|effacer) COMMANDE=$1; shift ;;
-      -h|--help) sed -n '2,22p' "$0"; exit 0 ;;
+      -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
       *) fail "argument inconnu : $1 (--help)" ;;
     esac
   done
@@ -189,6 +189,13 @@ ouvrir_tunnel() {
   [ -n "$adresse" ] || fail "pas d'adresse de tunnel (Cloudflare injoignable ?) : cd deploy && docker compose logs tunnel"
   maj_env "$ENV_FILE" DOMAIN "${adresse#https://}"
   info "adresse publique : $adresse"
+}
+
+image_ros() {
+  etape "Image ROS des labs"
+  local image
+  image=$(valeur_env "$ENV_FILE" ROS_LAB_IMAGE)
+  image_ros_a_jour "${image:-ros-lab:0.1.0}" "$RACINE/images/ros-lab"
 }
 
 demarrer() {
