@@ -1,4 +1,5 @@
 import json
+import os
 import ssl
 import time
 import uuid
@@ -115,6 +116,30 @@ def test_lab_network_is_removed_after_stop(student, hub, docker_client):
     assert {c["Name"] for c in net.attrs["Containers"].values()} == {"hub", f"jupyter-{name}"}
     hub.stop(name)
     assert not docker_client.networks.list(names=[f"ros-lab-{name}"])
+
+
+def test_rootfs_is_read_only_and_tmp_is_bounded(student, hub):
+    name = student()
+    out = hub.run(name, "touch /opt/x 2>&1; touch ~/ok && echo HOME-\"\"OK; df -BM --output=size /tmp | tail -1", timeout=30)
+    assert "Read-only file system" in out
+    assert "HOME-OK" in out
+    assert "512M" in out
+
+
+@pytest.mark.skipif(not os.environ.get("LAB_HOMES_DIR"), reason="LAB_HOMES_DIR non défini (quotas XFS)")
+def test_home_is_limited_to_1g(student, hub):
+    name = student()
+    out = hub.run(
+        name,
+        "df -BM --output=size ~ | tail -1; "
+        # message d'erreur de dd réécrit (l'écho de la commande tapée ne doit pas suffire au test)
+        "dd if=/dev/zero of=~/gros bs=1M count=1100 2>&1 | grep -i error | tr 'A-Z ' 'a-z_'; "
+        "rm -f ~/gros; touch ~/apres && echo APRES-\"\"OK",
+        timeout=240,
+    )
+    assert "1024M" in out  # df ~ affiche la limite du dossier
+    assert "quota_exceeded" in out or "no_space_left" in out  # XFS répond ENOSPC pour un projet
+    assert "APRES-OK" in out  # place libérée : l'étudiant peut de nouveau écrire
 
 
 def test_rosbridge_is_reachable_through_proxy(student):

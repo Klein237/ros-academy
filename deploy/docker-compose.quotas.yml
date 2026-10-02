@@ -1,0 +1,17 @@
+# Dossiers des étudiants limités à 1 Go (quotas de projet XFS) au lieu de volumes Docker sans limite.
+# Préparer l'hôte une fois : sudo scripts/preparer-hote.sh …, puis dans deploy/.env :
+#   LAB_HOMES_DIR=/srv/ros-academy/homes
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.quotas.yml
+services:
+  hub:
+    environment:
+      LAB_HOMES_DIR: ${LAB_HOMES_DIR:?LAB_HOMES_DIR doit être défini (scripts/preparer-hote.sh)}
+    volumes:
+      # même chemin que sur l'hôte : le Hub crée les dossiers, Docker les monte dans les labs
+      - ${LAB_HOMES_DIR}:${LAB_HOMES_DIR}
+
+  contenus:
+    environment:
+      LAB_HOMES_DIR: ${LAB_HOMES_DIR:?LAB_HOMES_DIR doit être défini (scripts/preparer-hote.sh)}
+    volumes:
+      - ${LAB_HOMES_DIR}:${LAB_HOMES_DIR}:ro   # vérification des exercices (lecture seule)

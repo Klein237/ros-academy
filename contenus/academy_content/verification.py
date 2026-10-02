@@ -95,16 +95,27 @@ def _journal(output, code):
     return text[-4000:]
 
 
-def verify_exercise(module_dir, module_id, student, image, client=None, slots=None, wait=60, timeout=420):
-    """Lance check.sh sur le workspace de l'étudiant ; ne lève que pour un nom invalide ou une surcharge."""
+def verify_exercise(module_dir, module_id, student, image, client=None, slots=None, wait=60, timeout=420,
+                    homes_dir=None):
+    """Lance check.sh sur le workspace de l'étudiant ; ne lève que pour un nom invalide ou une surcharge.
+
+    homes_dir : dossiers des étudiants à quota (LAB_HOMES_DIR, monté au même chemin dans Contenus) ;
+    sinon, le volume Docker de l'étudiant.
+    """
     import docker  # importé ici : inutile pour le site et les tests unitaires
 
     volume = volume_name(student)
     client = client or docker.from_env()
-    try:
-        client.volumes.get(volume)  # un volume absent serait créé vide par Docker : on ne monte rien
-    except docker.errors.NotFound:
-        return Resultat(False, 3, _journal("::absent::", 3))
+    if homes_dir:
+        home = Path(homes_dir) / student
+        if not home.is_dir() or home.is_symlink():  # Docker créerait un dossier absent : on ne monte rien
+            return Resultat(False, 3, _journal("::absent::", 3))
+        volume = str(home)
+    else:
+        try:
+            client.volumes.get(volume)  # un volume absent serait créé vide par Docker : on ne monte rien
+        except docker.errors.NotFound:
+            return Resultat(False, 3, _journal("::absent::", 3))
     if slots is not None and not slots.acquire(timeout=wait):
         raise Busy()
     try:

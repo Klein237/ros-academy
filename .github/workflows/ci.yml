@@ -81,6 +81,12 @@ jobs:
             echo "GRAFANA_ADMIN_PASSWORD=$(openssl rand -hex 32)"
             echo "VEILLE_SEUIL_DISQUE=1"   # alerte de disque immédiate : vérifiée dans Loki par l'e2e
           } > deploy/.env
+      - name: Dossiers des étudiants limités à 1 Go (XFS, quotas de projet)
+        run: |
+          sudo apt-get install -y -q xfsprogs
+          sudo scripts/preparer-hote.sh --image /var/tmp/ros-academy-homes.img --taille 6G
+          echo "LAB_HOMES_DIR=/srv/ros-academy/homes" >> deploy/.env
+          echo "COMPOSE_FILE=docker-compose.yml:docker-compose.quotas.yml" >> deploy/.env
       - run: cd deploy && docker compose up -d --build
       - run: scripts/wait_for_hub.sh
       - name: Site des formations prêt

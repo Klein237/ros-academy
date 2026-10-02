@@ -94,6 +94,20 @@ def test_container_is_isolated_and_mounts_the_volume_read_only(tmp_path):
     assert fake.removed == {"force": True, "v": True}
 
 
+def test_quota_homes_are_mounted_by_path_read_only(tmp_path):
+    base = make_module(tmp_path)
+    homes = tmp_path / "homes"
+    (homes / "u7").mkdir(parents=True)
+    fake = FakeDocker()
+    assert verify_exercise(base, "01-demo", "u7", "img", client=fake, homes_dir=str(homes)).ok
+    assert fake.created[0][1]["volumes"] == {str(homes / "u7"): {"bind": "/eleve", "mode": "ro"}}
+    # dossier absent ou remplacé par un lien : rien n'est monté
+    assert verify_exercise(base, "01-demo", "u8", "img", client=fake, homes_dir=str(homes)).code == 3
+    (homes / "u9").symlink_to(tmp_path)
+    assert verify_exercise(base, "01-demo", "u9", "img", client=fake, homes_dir=str(homes)).code == 3
+    assert len(fake.created) == 1
+
+
 def test_missing_volume_is_not_created(tmp_path):
     fake = FakeDocker()
     r = verify_exercise(make_module(tmp_path), "01-demo", "u7", "img", client=fake)
