@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Mentions légales{% endblock %}
+{% block content %}
+<h1>Mentions légales</h1>
+<section class="card">
+  <h2>Éditeur du site</h2>
+  <p>{{ s.editeur_nom or "[à compléter : nom ou raison sociale — EDITEUR_NOM]" }}<br>
+     {{ s.editeur_adresse or "[à compléter : adresse — EDITEUR_ADRESSE]" }}<br>
+     Contact : {% if s.editeur_contact %}<a href="mailto:{{ s.editeur_contact }}">{{ s.editeur_contact }}</a>{% else %}[à compléter : EDITEUR_CONTACT]{% endif %}</p>
+  <h2>Hébergement</h2>
+  <p>{{ s.hebergeur or "[à compléter : nom et adresse de l'hébergeur — HEBERGEUR]" }}</p>
+  <h2>Données personnelles</h2>
+  <p>Voir la <a href="/confidentialite">politique de confidentialité</a>.</p>
+</section>
+{% endblock %}

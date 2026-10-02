@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Confidentialité{% endblock %}
+{% block content %}
+<h1>Politique de confidentialité</h1>
+<section class="card">
+  <p>Responsable du traitement : {{ s.editeur_nom or "[à compléter : EDITEUR_NOM]" }}
+    ({% if s.editeur_contact %}<a href="mailto:{{ s.editeur_contact }}">{{ s.editeur_contact }}</a>{% else %}[à compléter : EDITEUR_CONTACT]{% endif %}).</p>
+
+  <h2>Ce que nous enregistrons, et pourquoi</h2>
+  <ul>
+    <li><strong>Votre adresse e-mail</strong> (et votre nom si vous vous connectez avec GitHub ou Google) : pour vous connecter et vous envoyer les liens de connexion.</li>
+    <li><strong>Votre progression</strong> : réponses aux QCM (la note seulement), indices demandés, exercices vérifiés, minutes de lab : pour vos notes, vos certificats et le quota de la formule gratuite.</li>
+    <li><strong>Les fichiers de votre lab</strong> : ce que vous écrivez dans votre espace de travail ROS, limité à 1 Go.</li>
+    <li><strong>Vos certificats</strong> : le nom que vous y faites imprimer, publié sur leur page de vérification (jamais votre adresse e-mail).</li>
+    <li><strong>L'abonnement pro</strong> : le paiement est traité par Stripe ; nous ne voyons ni ne gardons vos données de carte.</li>
+    <li><strong>Les journaux techniques</strong> du service (30 jours) : pour la sécurité et le diagnostic des pannes.</li>
+  </ul>
+  <p>Base légale : l'exécution du service que vous demandez (la formation). Aucune publicité, aucun traçage, aucune revente.</p>
+
+  <h2>Cookies</h2>
+  <p>Seulement des cookies de session, nécessaires à la connexion (le site et le lab). Pas de cookie de mesure d'audience ni de publicité : aucun consentement n'est demandé.</p>
+
+  <h2>Durée de conservation</h2>
+  <p>Tant que votre compte existe. Les sauvegardes sont effacées au bout de {{ conservation }} jours. Les factures de l'abonnement sont conservées par Stripe pour la durée exigée par la loi.</p>
+
+  <h2>Vos droits</h2>
+  <p>Depuis <a href="/compte/">Mon compte</a>, vous pouvez à tout moment <a href="/compte/donnees">télécharger vos données</a> et <a href="/compte/supprimer">supprimer votre compte</a>. Pour toute autre demande (rectification, opposition), écrivez au contact ci-dessus. Vous pouvez aussi saisir la CNIL (<a href="https://www.cnil.fr">cnil.fr</a>).</p>
+
+  <h2>Hébergement</h2>
+  <p>{{ s.hebergeur or "[à compléter : HEBERGEUR]" }}</p>
+</section>
+{% endblock %}

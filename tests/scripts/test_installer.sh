@@ -22,6 +22,7 @@ TMP=$(mktemp -d)
 DOMAINE=academy.exemple.fr ADMIN="moi@exemple.fr" SESSIONS=18 SMTP_HOST=smtp.gmail.com SMTP_PORT=587
 SMTP_USER=moi@gmail.com SMTP_PASSWORD='abcd efgh|&\ijkl' SMTP_FROM="ROS Academy <moi@gmail.com>"
 EXTRA_ENV=("VEILLE_SEUIL_DISQUE=1")
+EDITEUR_NOM="Klein & Fils" EDITEUR_ADRESSE="1 rue de la Paix, 75002 Paris" HEBERGEUR="Hetzner Online GmbH"
 generer_env "$RACINE/deploy/.env.example" "$TMP/.env"
 E="$TMP/.env"
 egal "DOMAIN" "$(valeur_env "$E" DOMAIN)" academy.exemple.fr
@@ -32,6 +33,9 @@ egal "SMTP_FROM" "$(valeur_env "$E" SMTP_FROM)" "ROS Academy <moi@gmail.com>"
 egal "lien à l'écran désactivé" "$(valeur_env "$E" CONNEXION_LIEN_A_L_ECRAN)" 0
 egal "dossiers à quota" "$(valeur_env "$E" LAB_HOMES_DIR)" /srv/ros-academy/homes
 egal "override compose" "$(valeur_env "$E" COMPOSE_FILE)" docker-compose.yml:docker-compose.quotas.yml
+egal "éditeur (caractère &)" "$(valeur_env "$E" EDITEUR_NOM)" "Klein & Fils"
+egal "adresse de l'éditeur" "$(valeur_env "$E" EDITEUR_ADRESSE)" "1 rue de la Paix, 75002 Paris"
+egal "hébergeur" "$(valeur_env "$E" HEBERGEUR)" "Hetzner Online GmbH"
 egal "--env ajouté" "$(valeur_env "$E" VEILLE_SEUIL_DISQUE)" 1
 egal "une seule ligne VEILLE_SEUIL_DISQUE effective (la dernière)" "$(grep -c '^VEILLE_SEUIL_DISQUE=' "$E")" 2
 for cle in JWT_SECRET JUPYTERHUB_CRYPT_KEY HUB_ADMIN_TOKEN POSTGRES_PASSWORD GRAFANA_ADMIN_PASSWORD; do

@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { execSync } from "node:child_process";
 import { createHmac, randomBytes } from "node:crypto";
 import { expect, request, type APIRequestContext, type Page } from "@playwright/test";
@@ -168,4 +170,16 @@ export async function stopServer(api: APIRequestContext, name: string): Promise<
       timeout: 60_000,
     })
     .toBe(0);
+}
+
+/** Le dossier personnel de l'étudiant existe-t-il (dossier à quota, ou volume Docker) ? */
+export function homeExists(name: string): boolean {
+  const dir = process.env.LAB_HOMES_DIR;
+  if (dir) return existsSync(join(dir, name));
+  try {
+    execSync(`docker volume inspect ros-lab-home-${name}`, { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
 }

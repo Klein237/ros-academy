@@ -30,6 +30,15 @@ class FakeHub:
         self.stopped.append(name)
         self.servers.pop(name, None)
 
+    deleted = None
+    fail_delete = False
+
+    def delete_user(self, name):
+        if self.fail_delete:
+            raise UpstreamError(502)
+        self.deleted = (self.deleted or []) + [name]
+        self.servers.pop(name, None)
+
 
 class FakeContenus:
     QCM = {"q1": [0], "q2": [1]}

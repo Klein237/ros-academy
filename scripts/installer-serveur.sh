@@ -16,6 +16,7 @@
 #   --sans-smtp            pas d'e-mail (les liens de connexion restent dans les journaux)
 #   --homes-taille TAILLE  image disque des dossiers étudiants (défaut : 100G, creuse)
 #   --sessions N           labs simultanés (défaut : calculé d'après le processeur et la mémoire)
+#   --editeur-nom NOM --editeur-adresse ADRESSE --hebergeur TEXTE   mentions légales (modifiables ensuite)
 #   --env CLÉ=VALEUR       ligne ajoutée à deploy/.env (répétable)
 #   --non-interactif       ne rien demander : échoue si une valeur obligatoire manque
 #   -h, --help
@@ -29,6 +30,7 @@ HOMES_DIR=/srv/ros-academy/homes
 
 DOMAINE="" ADMIN="" SMTP_HOST="" SMTP_PORT="" SMTP_USER="" SMTP_PASSWORD="" SMTP_FROM=""
 SANS_SMTP=0 HOMES_TAILLE=100G SESSIONS="" INTERACTIF=1
+EDITEUR_NOM="" EDITEUR_ADRESSE="" HEBERGEUR=""
 EXTRA_ENV=()
 
 etape() { printf '\n\033[1m== %s\033[0m\n' "$*"; }
@@ -74,6 +76,9 @@ generer_env() {  # generer_env EXEMPLE SORTIE
   remplacer SMTP_PASSWORD "$SMTP_PASSWORD"
   remplacer SMTP_FROM "$SMTP_FROM"
   remplacer CONNEXION_LIEN_A_L_ECRAN 0
+  remplacer EDITEUR_NOM "$EDITEUR_NOM"
+  remplacer EDITEUR_ADRESSE "$EDITEUR_ADRESSE"
+  remplacer HEBERGEUR "$HEBERGEUR"
   # dossiers des étudiants à quota (lignes commentées dans l'exemple)
   sed -i '/^# *LAB_HOMES_DIR=/d; /^# *COMPOSE_FILE=/d' "$tmp"
   {
@@ -104,6 +109,9 @@ lire_options() {
       --smtp-password) SMTP_PASSWORD=$2; shift 2 ;;
       --smtp-from) SMTP_FROM=$2; shift 2 ;;
       --sans-smtp) SANS_SMTP=1; shift ;;
+      --editeur-nom) EDITEUR_NOM=$2; shift 2 ;;
+      --editeur-adresse) EDITEUR_ADRESSE=$2; shift 2 ;;
+      --hebergeur) HEBERGEUR=$2; shift 2 ;;
       --homes-taille) HOMES_TAILLE=$2; shift 2 ;;
       --sessions) SESSIONS=$2; shift 2 ;;
       --env) [[ $2 =~ ^[A-Z_][A-Z0-9_]*= ]] || fail "--env attend CLÉ=VALEUR : $2"; EXTRA_ENV+=("$2"); shift 2 ;;
@@ -154,6 +162,12 @@ questions() {
     SMTP_FROM=${SMTP_FROM:-"ROS Academy <$SMTP_USER>"}
   elif [ "$DOMAINE" != localhost ]; then
     attention "sans SMTP, les étudiants ne recevront pas leur lien de connexion"
+  fi
+  if [ "$INTERACTIF" = 1 ] && [ -z "$EDITEUR_NOM$EDITEUR_ADRESSE$HEBERGEUR" ]; then
+    info "Mentions légales (obligatoires en ligne ; vide = à compléter plus tard dans deploy/.env) :"
+    read -r -p "   Éditeur du site (votre nom ou votre société) : " EDITEUR_NOM
+    read -r -p "   Adresse de l'éditeur : " EDITEUR_ADRESSE
+    read -r -p "   Hébergeur (nom et adresse) : " HEBERGEUR
   fi
   if [ -z "$SESSIONS" ]; then
     SESSIONS=$(sessions_conseillees "$MEMOIRE_GO" "$VCPU")
@@ -280,12 +294,41 @@ demarrer() {
   fi
 }
 
+sauvegardes() {
+  etape "Sauvegarde quotidienne"
+  cat > /etc/systemd/system/ros-academy-sauvegarde.service <<UNIT
+[Unit]
+Description=ROS Academy : sauvegarde (base, formations, dossiers des étudiants, configuration)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=$RACINE/scripts/sauvegarder.sh
+UNIT
+  cat > /etc/systemd/system/ros-academy-sauvegarde.timer <<'UNIT'
+[Unit]
+Description=ROS Academy : sauvegarde tous les jours à 3 h 17
+
+[Timer]
+OnCalendar=*-*-* 03:17:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+UNIT
+  systemctl daemon-reload
+  systemctl enable --now ros-academy-sauvegarde.timer >/dev/null 2>&1 || attention "timer de sauvegarde non activé"
+  info "tous les jours à 3 h 17 dans /var/backups/ros-academy ($(valeur_env "$ENV_FILE" SAUVEGARDE_JOURS || true) jours gardés)"
+  info "copie hors du serveur recommandée : scripts/sauvegarder.sh --copier-vers (deploy/README.md)"
+}
+
 resume() {
   etape "Terminé"
   info "Site : https://$DOMAINE"
   info "Administrateur : $ADMIN (« Mon compte » → éditeur, tableau de bord formateur, journaux)"
   info "Avant d'accueillir des étudiants : test de charge (deploy/README.md, « Test de charge »)"
-  info "Sauvegardes : base (pg_dump), volume contenus-data, $HOMES_IMG, et deploy/.env"
+  info "Sauvegarde maintenant : sudo scripts/sauvegarder.sh ; état : systemctl list-timers ros-academy-sauvegarde"
   info "Mise à jour : git pull, puis cd deploy && docker compose up -d --build"
 }
 
@@ -300,6 +343,7 @@ main() {
   dossiers_etudiants
   ecrire_env
   demarrer
+  sauvegardes
   resume
 }
 

@@ -1,5 +1,17 @@
 import { expect, request, test, type APIRequestContext } from "@playwright/test";
-import { admin, cleanup, containerLimits, loginStudent, mint, newEmail, openLabViaAccount, sql, waitReady } from "./helpers";
+import {
+  admin,
+  cleanup,
+  containerLimits,
+  homeExists,
+  loginStudent,
+  mint,
+  newEmail,
+  openLabViaAccount,
+  run,
+  sql,
+  waitReady,
+} from "./helpers";
 
 let api: APIRequestContext;
 const students: string[] = [];
@@ -223,6 +235,38 @@ test("une adresse administratrice ouvre l'éditeur depuis son compte", async ({ 
   await loginStudent(page, email!, "/compte/");
   await page.getByRole("link", { name: "Éditer les formations" }).click();
   await expect(page.locator("h1")).toHaveText("Formations");
+});
+
+test("supprimer son compte efface aussi le lab et ses fichiers (RGPD)", async ({ page }) => {
+  const email = newEmail();
+  const name = await loginStudent(page, email, "/compte/");
+  await openLabViaAccount(page);
+  await run(page, "echo personnel > ~/a-effacer.txt && echo FICHIER-\"\"ECRIT", "FICHIER-ECRIT");
+  expect(homeExists(name)).toBe(true);
+  // l'export contient le compte
+  const exported = await page.request.get("/compte/donnees");
+  expect((await exported.json()).compte.email).toBe(email);
+  await page.goto("/compte/");
+  await page.getByRole("link", { name: "Supprimer mon compte" }).click();
+  await expect(page.getByLabel("Recopiez votre adresse e-mail pour confirmer")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Supprimer définitivement mon compte" })).toBeVisible();
+  // envoyé hors du navigateur : sur la machine de test, Chromium voit disparaître l'interface réseau du
+  // lab supprimé (ERR_NETWORK_CHANGED) et abandonnerait la réponse ; un vrai navigateur n'est pas concerné
+  const deleted = await page.request.post("/compte/supprimer", {
+    form: { confirmation: email },
+    headers: { Origin: new URL(page.url()).origin },
+    timeout: 120_000,
+  });
+  expect(deleted.status()).toBe(200);
+  expect(await deleted.text()).toContain("Compte supprimé");
+  await page.goto("/compte/");
+  await expect(page).toHaveURL(/\/connexion/); // plus de session
+  expect((await api.get(`/hub/api/users/${name}`)).status()).toBe(404);
+  expect(homeExists(name)).toBe(false);
+  expect(sql(`SELECT count(*) FROM users WHERE email = '${email}';`).trim()).toBe("0");
+  // les pages légales sont liées depuis le pied de page
+  await page.getByRole("link", { name: "Confidentialité" }).click();
+  await expect(page.locator("h1")).toHaveText("Politique de confidentialité");
 });
 
 test("serveur plein → position dans la file, puis démarrage à son tour @limit", async ({ page }) => {

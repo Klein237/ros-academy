@@ -139,3 +139,5 @@ figure.code pre { margin: 0; padding: 14px 16px; overflow-x: auto; color: var(--
   .card { padding: 16px; }
   .site-header { gap: 12px; }
 }
+
+.site-footer a { color: inherit; }

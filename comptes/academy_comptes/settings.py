@@ -55,6 +55,12 @@ class Settings:
     stripe_api_base: str = "https://api.stripe.com/v1"
     stripe_redirect_origins: tuple = STRIPE_REDIRECT_ORIGINS
     certificat_note_min: float = 10.0
+    # Mentions légales : éditeur du site (obligatoire en ligne) et hébergeur
+    editeur_nom: str = ""
+    editeur_adresse: str = ""
+    editeur_contact: str = ""
+    hebergeur: str = ""
+    sauvegarde_jours: int = 14  # conservation des sauvegardes (scripts/sauvegarder.sh), annoncée aux utilisateurs
     admin_emails: frozenset = field(default_factory=frozenset)
     cookie_secure: bool = True
     plan_minutes: dict = field(default_factory=lambda: dict(PLAN_MINUTES))
@@ -113,6 +119,12 @@ class Settings:
             stripe_api_base=env("STRIPE_API_BASE") or "https://api.stripe.com/v1",
             stripe_redirect_origins=_origins(env("STRIPE_REDIRECT_ORIGINS", "")),
             certificat_note_min=float(env("CERTIFICAT_NOTE_MIN") or "10"),
+            editeur_nom=env("EDITEUR_NOM", ""),
+            editeur_adresse=env("EDITEUR_ADRESSE", ""),
+            editeur_contact=env("EDITEUR_CONTACT", "") or next(iter(sorted(
+                e.strip() for e in env("ADMIN_EMAILS", "").split(",") if e.strip())), ""),
+            hebergeur=env("HEBERGEUR", ""),
+            sauvegarde_jours=int(env("SAUVEGARDE_JOURS") or "14"),
             admin_emails=frozenset(e.strip().lower() for e in env("ADMIN_EMAILS", "").split(",") if e.strip()),
             cookie_secure=env("COOKIE_SECURE", "1") != "0",
         )

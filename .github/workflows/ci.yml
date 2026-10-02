@@ -118,6 +118,19 @@ jobs:
           (cd deploy && IDLE_TIMEOUT_SECONDS=90 docker compose up -d hub)
           scripts/wait_for_hub.sh
           cd tests/integration && python -m pytest -v -m cull
+      - name: Sauvegarde et restauration
+        run: |
+          systemctl is-enabled ros-academy-sauvegarde.timer   # posé par l'installeur
+          sudo scripts/sauvegarder.sh --destination /tmp/sauvegardes --jours 2
+          D=$(sudo find /tmp/sauvegardes -mindepth 1 -maxdepth 1 -type d -name '20*' | sort | tail -1)
+          sudo sh -c "cd '$D' && sha256sum -c --quiet SHA256SUMS"
+          # la base se restaure dans une base vide et contient les comptes créés par les tests
+          sudo cat "$D/comptes.dump" | (cd deploy && docker compose exec -T postgres \
+            sh -c 'createdb -U comptes restauration && pg_restore -U comptes -d restauration')
+          test "$(cd deploy && docker compose exec -T postgres psql -U comptes -d restauration -tAc 'SELECT count(*) > 0 FROM users')" = t
+          sudo tar -tzf "$D/contenus.tar.gz" | grep -q parcours
+          sudo tar -tzf "$D/etudiants.tar.gz" > /dev/null
+          test "$(sudo stat -c %a "$D/env")" = 600
       - if: failure()
         uses: actions/upload-artifact@v4
         with:

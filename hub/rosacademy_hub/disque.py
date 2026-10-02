@@ -103,3 +103,16 @@ def prepare_home(root, username, skel="/etc/skel"):
     finally:
         os.close(fd)
     return path
+
+
+def remove_home(root, username):
+    """Efface le dossier personnel (suppression du compte). Retourne True s'il existait."""
+    if not USERNAME_RE.fullmatch(username or ""):
+        raise HomeError(f"nom d'utilisateur refusé : {username!r}")
+    path = os.path.join(root, username)
+    if os.path.islink(path):
+        raise HomeError(f"{path} est un lien : refus de le suivre")
+    if not os.path.isdir(path):
+        return False
+    shutil.rmtree(path)  # ne suit pas les liens symboliques
+    return True
