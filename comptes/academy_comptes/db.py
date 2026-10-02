@@ -31,6 +31,12 @@ class User(Base):
     nom: Mapped[str] = mapped_column(String(120), default="")
     formule: Mapped[str] = mapped_column(String(20), default="free")
     cree_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    # Abonnement Stripe (formule pro) ; Stripe fait foi, relu à chaque événement
+    stripe_customer_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
+    stripe_subscription_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    abonnement_statut: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    abonnement_fin: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    abonnement_resilie: Mapped[bool] = mapped_column(Boolean, default=False)
 
     @property
     def hub_name(self):
@@ -64,6 +70,14 @@ class LoginToken(Base):
     cree_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     expire_le: Mapped[datetime] = mapped_column(DateTime)
     utilise_le: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class StripeEvent(Base):
+    """Événement Stripe déjà traité (les webhooks peuvent être livrés plusieurs fois)."""
+
+    __tablename__ = "stripe_events"
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    recu_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class UsageTick(Base):

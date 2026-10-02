@@ -32,6 +32,9 @@ class Settings:
     github_client_secret: str = ""
     google_client_id: str = ""
     google_client_secret: str = ""
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_price_id: str = ""
     admin_emails: frozenset = field(default_factory=frozenset)
     cookie_secure: bool = True
     plan_minutes: dict = field(default_factory=lambda: dict(PLAN_MINUTES))
@@ -43,6 +46,11 @@ class Settings:
     @property
     def google_enabled(self):
         return bool(self.google_client_id and self.google_client_secret)
+
+    @property
+    def billing_enabled(self):
+        """Abonnement pro proposé seulement quand Stripe est entièrement configuré."""
+        return bool(self.stripe_secret_key and self.stripe_webhook_secret and self.stripe_price_id)
 
     @classmethod
     def from_env(cls):
@@ -65,6 +73,9 @@ class Settings:
             github_client_secret=env("GITHUB_CLIENT_SECRET", ""),
             google_client_id=env("GOOGLE_CLIENT_ID", ""),
             google_client_secret=env("GOOGLE_CLIENT_SECRET", ""),
+            stripe_secret_key=env("STRIPE_SECRET_KEY", ""),
+            stripe_webhook_secret=env("STRIPE_WEBHOOK_SECRET", ""),
+            stripe_price_id=env("STRIPE_PRICE_ID", ""),
             admin_emails=frozenset(e.strip().lower() for e in env("ADMIN_EMAILS", "").split(",") if e.strip()),
             cookie_secure=env("COOKIE_SECURE", "1") != "0",
         )
