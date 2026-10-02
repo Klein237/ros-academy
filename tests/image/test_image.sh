@@ -20,4 +20,10 @@ run 'cd /tmp && mkdir -p ws/src && cd ws/src \
      && ros2 pkg create --build-type ament_python py_pkg >/dev/null \
      && ros2 pkg create --build-type ament_cmake cpp_pkg >/dev/null \
      && cd .. && colcon build >/dev/null' || fail "colcon build Python + C++ échoue"
+run 'command -v academy-diffbot' >/dev/null || fail "academy-diffbot manquant"
+# le robot simulé avance quand il reçoit une commande
+odom_x=$(run 'academy-diffbot >/dev/null 2>&1 & sleep 3
+  ros2 topic pub -r 10 -t 20 /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.5}}" >/dev/null &
+  sleep 1.5; ros2 topic echo --once /odom | awk "/position:/ {p=1} p && /x:/ {print \$2; exit}"')
+awk -v x="$odom_x" 'BEGIN { exit !(x > 0.1) }' || fail "academy-diffbot n'avance pas (x=$odom_x)"
 echo "ALL IMAGE TESTS PASSED"

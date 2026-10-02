@@ -3,7 +3,7 @@ import time
 import jwt
 import pytest
 
-from rosacademy_hub.auth import TokenError, verify_token
+from rosacademy_hub.auth import TokenError, is_cross_site, lab_token_scopes, safe_next_url, verify_token
 
 SECRET = "s" * 40
 
@@ -85,3 +85,34 @@ def test_short_secret_is_refused():
     token = make(secret=short_secret)
     with pytest.raises(TokenError):
         verify_token(token, short_secret)
+
+
+def test_lab_token_scopes_are_limited_to_the_owner():
+    assert lab_token_scopes("alice") == [
+        "access:servers!user=alice",
+        "servers!user=alice",
+        "read:users:name!user=alice",
+    ]
+
+
+@pytest.mark.parametrize("headers", [{}, {"Sec-Fetch-Site": "same-origin"}, {"Sec-Fetch-Site": "none"}])
+def test_same_site_requests_are_accepted(headers):
+    assert not is_cross_site(headers)
+
+
+@pytest.mark.parametrize("site", ["cross-site", "same-site", ""])
+def test_cross_site_requests_are_refused(site):
+    assert is_cross_site({"Sec-Fetch-Site": site})
+
+
+@pytest.mark.parametrize("next_url", ["/lab/", "/lab/?open=ws/a.py&dossier=ws", "/hub/home"])
+def test_local_next_url_is_kept(next_url):
+    assert safe_next_url(next_url) == next_url
+
+
+@pytest.mark.parametrize("next_url", [
+    "", None, "lab/", "//evil.example/", "/\\evil.example", "/\t/evil.example",
+    "https://evil.example/", "/lab/\n", "javascript:alert(1)",
+])
+def test_unsafe_next_url_goes_to_the_lab(next_url):
+    assert safe_next_url(next_url) == "/lab/"

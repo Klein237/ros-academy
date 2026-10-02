@@ -20,6 +20,7 @@ RUN pip3 install --no-cache-dir \
       "terminado==0.18.1"
 
 COPY ros.sh /etc/profile.d/ros.sh
+COPY academy_diffbot.py /usr/local/bin/academy-diffbot
 COPY jupyter_server_config.py /etc/jupyter/jupyter_server_config.py
 RUN echo 'source /etc/profile.d/ros.sh' >> /etc/bash.bashrc \
  && useradd --create-home --uid 1000 --shell /bin/bash etudiant
