@@ -152,7 +152,7 @@ def run_module_tests(module_dir, image="ros-lab:0.1.0", client=None, timeout=120
         pids_limit=512,
         cap_drop=["ALL"],
         security_opt=["no-new-privileges"],
-        environment={"ROS_LOCALHOST_ONLY": "1"},
+        environment={"ROS_AUTOMATIC_DISCOVERY_RANGE": "LOCALHOST"},
     )
     try:
         container.put_archive("/", module_archive(module_dir))

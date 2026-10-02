@@ -14,11 +14,11 @@ duree: 1 h 30
 
 ## 1. Introduction et ressources officielles
 
-Dans ce parcours, nous utilisons la distribution **Humble** de ROS 2, compatible avec Ubuntu 22.04. Il est possible d'opter pour une distribution plus récente, à condition de disposer de la version d'Ubuntu correspondante.
+Dans ce parcours, nous utilisons la distribution **Jazzy Jalisco** de ROS 2 (maintenue jusqu'en 2029), avec Ubuntu 24.04 et le simulateur Gazebo Harmonic. Chaque distribution correspond à une version d'Ubuntu : Humble à la 22.04, Jazzy à la 24.04.
 
 Ressources officielles à connaître :
 
-- **Documentation** : [docs.ros.org](https://docs.ros.org/en/humble/) — installation, tutoriels, API ;
+- **Documentation** : [docs.ros.org](https://docs.ros.org/en/jazzy/) — installation, tutoriels, API ;
 - **GitHub ROS 2** : [github.com/ros2](https://github.com/ros2) — les dépôts et la structure du projet ;
 - **Metrics** : [metrics.ros.org](https://metrics.ros.org/) — l'usage de ROS par la communauté ;
 - **Index des packages** : [index.ros.org](https://index.ros.org/) — rechercher un package et lire sa documentation ;
@@ -28,18 +28,18 @@ Ressources officielles à connaître :
 
 **Compétences utiles :** la ligne de commande Linux, et des bases de Python ou de C++ (recommandées, pas obligatoires).
 
-**Dans ce parcours, rien à installer :** votre lab est un vrai Ubuntu 22.04 avec ROS 2 Humble, dans votre navigateur. Le terminal charge ROS automatiquement.
+**Dans ce parcours, rien à installer :** votre lab est un vrai Ubuntu 24.04 avec ROS 2 Jazzy, dans votre navigateur. Le terminal charge ROS automatiquement.
 
-**Chez vous**, l'installation se fait par paquets Debian en suivant la [procédure officielle](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html) : mettre à jour le système et installer les dépendances (curl, locales…), ajouter le dépôt ROS 2 et sa clé GPG, puis installer l'environnement complet (avec RViz et les tutoriels) :
+**Chez vous**, l'installation se fait par paquets Debian en suivant la [procédure officielle](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html) : mettre à jour le système et installer les dépendances (curl, locales…), ajouter le dépôt ROS 2 et sa clé GPG, puis installer l'environnement complet (avec RViz et les tutoriels) :
 
 ```bash
-sudo apt install ros-humble-desktop
+sudo apt install ros-jazzy-desktop
 ```
 
 Après l'installation, il faut **sourcer** la configuration de ROS dans chaque nouveau terminal :
 
 ```bash
-source /opt/ros/humble/setup.bash
+source /opt/ros/jazzy/setup.bash
 ```
 
 Astuce : ajoutez cette ligne à la fin de `~/.bashrc` pour qu'elle s'exécute à chaque ouverture de terminal. Dans votre lab, c'est déjà fait — vérifiez-le :

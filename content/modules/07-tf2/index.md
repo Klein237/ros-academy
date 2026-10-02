@@ -21,7 +21,7 @@ Les repères de notre robot, selon les conventions de ROS ([REP 105](https://www
 
 Les transformations forment un **arbre** : chaque repère a un seul parent (`odom → base_link → laser`). Conventions à retenir : `x` vers l'avant, `y` vers la gauche, `z` vers le haut ; distances en mètres, angles en radians.
 
-Tutoriels officiels : [Introducing tf2](https://docs.ros.org/en/humble/Tutorials/Intermediate/Tf2/Introduction-To-Tf2.html), [Writing a broadcaster (Python)](https://docs.ros.org/en/humble/Tutorials/Intermediate/Tf2/Writing-A-Tf2-Broadcaster-Py.html).
+Tutoriels officiels : [Introducing tf2](https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Tf2/Introduction-To-Tf2.html), [Writing a broadcaster (Python)](https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Tf2/Writing-A-Tf2-Broadcaster-Py.html).
 
 ## 2. Les rotations en quaternions
 

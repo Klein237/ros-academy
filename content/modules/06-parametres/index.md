@@ -15,7 +15,7 @@ duree: 1 h 15
 - Un paramètre doit être **déclaré** par le nœud avant d'être utilisé : c'est la liste de ce qui est réglable, avec les valeurs par défaut.
 - Les types sont stricts : un paramètre déclaré `0.5` (un `double`) refuse la valeur `1` (un entier) ; écrivez `1.0`.
 
-Tutoriel officiel : [Using parameters in a class (Python)](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Using-Parameters-In-A-Class-Python.html).
+Tutoriel officiel : [Using parameters in a class (Python)](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Using-Parameters-In-A-Class-Python.html).
 
 ## 2. Déclarer et lire les paramètres
 

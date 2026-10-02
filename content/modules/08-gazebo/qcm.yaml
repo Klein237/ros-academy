@@ -26,10 +26,10 @@ questions:
   - id: plugin
     question: Quel élément publie /odom et la TF odom → base_link du robot simulé ?
     choix:
-      - texte: Le plugin gazebo_ros_diff_drive, qui pilote aussi les roues à partir de /cmd_vel.
+      - texte: Le système DiffDrive de Gazebo (gz-sim-diff-drive-system), qui pilote aussi les roues à partir de /cmd_vel.
         correct: true
       - texte: robot_state_publisher, à partir de l'URDF.
-      - texte: spawn_entity.py, au moment où le robot apparaît.
+      - texte: ros_gz_sim create, au moment où le robot apparaît.
     explication: robot_state_publisher publie les TF internes au robot (roues, laser) ; la position du robot dans le monde vient du plugin.
   - id: simtime
     question: À quoi sert use_sim_time avec Gazebo ?
@@ -47,3 +47,11 @@ questions:
       - texte: Parce que model://ground_plane ne fonctionne qu'avec l'interface graphique.
       - texte: Pour que le sol soit invisible au laser.
     explication: Gazebo cherche les modèles manquants dans sa base en ligne, ce qui bloque ou échoue sans réseau.
+  - id: pont
+    question: Pourquoi le launch démarre-t-il ros_gz_bridge ?
+    choix:
+      - texte: Gazebo a ses propres topics (gz-transport) ; le pont les relie aux topics ROS 2 listés dans pont.yaml, dans le sens indiqué.
+        correct: true
+      - texte: Pour que Gazebo et RViz2 partagent la même fenêtre.
+      - texte: Pour télécharger les modèles du monde.
+    explication: Un topic absent du pont existe dans Gazebo (gz topic -l) mais pas dans ROS 2 (ros2 topic list).

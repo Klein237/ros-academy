@@ -31,7 +31,7 @@ questions:
       - texte: <member_of_group>rosidl_interface_packages</member_of_group> dans package.xml
         correct: true
       - texte: Une entrée dans entry_points de setup.py
-    explication: CMake génère le code ; package.xml déclare le package comme fournisseur d'interfaces (obligatoire sous Humble).
+    explication: CMake génère le code ; package.xml déclare le package comme fournisseur d'interfaces (obligatoire).
   - id: attente
     question: ros2 service call affiche « waiting for service to become available… » sans fin. Quelle est la cause la plus probable ?
     choix:
