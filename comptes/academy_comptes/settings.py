@@ -51,6 +51,7 @@ class Settings:
     stripe_price_id: str = ""
     stripe_api_base: str = "https://api.stripe.com/v1"
     stripe_redirect_origins: tuple = STRIPE_REDIRECT_ORIGINS
+    certificat_note_min: float = 10.0
     admin_emails: frozenset = field(default_factory=frozenset)
     cookie_secure: bool = True
     plan_minutes: dict = field(default_factory=lambda: dict(PLAN_MINUTES))
@@ -95,6 +96,7 @@ class Settings:
             # tests de bout en bout seulement (Stripe simulé)
             stripe_api_base=env("STRIPE_API_BASE") or "https://api.stripe.com/v1",
             stripe_redirect_origins=_origins(env("STRIPE_REDIRECT_ORIGINS", "")),
+            certificat_note_min=float(env("CERTIFICAT_NOTE_MIN") or "10"),
             admin_emails=frozenset(e.strip().lower() for e in env("ADMIN_EMAILS", "").split(",") if e.strip()),
             cookie_secure=env("COOKIE_SECURE", "1") != "0",
         )

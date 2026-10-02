@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext } from "@playwright/test";
+import { expect, request, test, type APIRequestContext } from "@playwright/test";
 import { admin, cleanup, containerLimits, loginStudent, mint, newEmail, openLabViaAccount, sql, waitReady } from "./helpers";
 
 let api: APIRequestContext;
@@ -86,6 +86,30 @@ test("parcours terminé : la note finale pondérée s'affiche sur la page Résul
   const finale = modules.reduce((acc, m) => acc + m.coef * Math.round(notes[m.id] * 100) / 100, 0) / total;
   await expect(page.locator(".final-grade")).toHaveText(`Note finale : ${finale.toFixed(2).replace(".", ",")} / 20`);
   await expect(page.getByRole("row", { name: /Initiation/ })).toContainText("réussi (1 indice) · 17,0");
+
+  // certificat (si la note atteint le seuil) : nom imprimé, page publique de vérification, PDF
+  const seuil = Number(process.env.CERTIFICAT_NOTE_MIN ?? 10);
+  if (finale < seuil) {
+    await expect(page.getByText(/Le certificat demande une note finale d'au moins/)).toBeVisible();
+    return;
+  }
+  await page.getByLabel("Nom à imprimer sur le certificat").fill("Élodie N'Diaye-Martin");
+  await page.getByRole("button", { name: "Obtenir mon certificat" }).click();
+  await expect(page).toHaveURL(/\/certificats\/[2-9A-Z]{16}$/);
+  await expect(page.locator(".verdict")).toContainText("Certificat authentique");
+  await expect(page.locator("h1")).toHaveText("Élodie N'Diaye-Martin");
+  await expect(page.getByText(`${finale.toFixed(2).replace(".", ",")} / 20`).first()).toBeVisible();
+  const code = page.url().split("/").at(-1)!;
+  // vérifiable par n'importe qui, avec le numéro tel qu'il est imprimé (ABCD-EFGH-…)
+  const printed = code.match(/.{4}/g)!.join("-");
+  const anonymous = await request.newContext({ baseURL: new URL(page.url()).origin, ignoreHTTPSErrors: true });
+  const check = await anonymous.get(`/certificats/${printed}`);
+  expect(check.ok()).toBe(true);
+  expect(await check.text()).toContain("Certificat authentique");
+  const pdf = await anonymous.get(`/certificats/${code}.pdf`);
+  expect(pdf.headers()["content-type"]).toBe("application/pdf");
+  expect((await pdf.body()).subarray(0, 5).toString()).toBe("%PDF-");
+  await anonymous.dispose();
 });
 
 test("routes internes injoignables depuis l'extérieur", async ({ request }) => {

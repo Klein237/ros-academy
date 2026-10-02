@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Certificat n° {{ numero }}{% endblock %}
+{% block content %}
+<section class="card certificate-page{% if revoque %} revoked{% endif %}">
+  {% if revoque %}
+  <p class="verdict ko" role="status"><strong>Certificat révoqué</strong> le {{ revoque }}. Il n'atteste plus de la réussite de ce parcours.</p>
+  {% else %}
+  <p class="verdict ok" role="status"><strong>Certificat authentique</strong>, délivré par ROS Academy.</p>
+  {% endif %}
+  <h1>{{ cert.nom }}</h1>
+  <p>a terminé le parcours <strong>{{ cert.parcours_titre }}</strong> avec une note finale de <strong>{{ fr(cert.note) }} / 20</strong>{% if cert.mention %} (mention {{ cert.mention }}){% endif %}.</p>
+  <table class="results">
+    <thead><tr><th>Module</th><th>Coef.</th><th>Note</th></tr></thead>
+    <tbody>{% for m in modules %}<tr><td>{{ m.titre }}</td><td>{{ '%g' | format(m.coef) }}</td><td>{{ fr(m.note) }} / 20</td></tr>{% endfor %}</tbody>
+  </table>
+  <p class="muted">Délivré le {{ date }} · certificat n° {{ numero }}</p>
+  <p class="muted small">Chaque note de module compte pour moitié le QCM (meilleure de 2 tentatives) et pour moitié l'exercice pratique, vérifié par le serveur sur un vrai environnement ROS 2 (−15 % par indice utilisé).</p>
+  {% if proprietaire and not revoque %}<p><a class="button primary" href="/certificats/{{ cert.code }}.pdf">Télécharger le PDF</a></p>{% endif %}
+</section>
+{% endblock %}

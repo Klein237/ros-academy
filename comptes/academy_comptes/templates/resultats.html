@@ -24,6 +24,28 @@
     {% endfor %}
     </tbody>
   </table>
+  <div class="certificate-box" id="certificat">
+  {% if r.certificat %}
+    {% if r.certificat.revoque_le %}
+    <p><strong class="warn">Votre certificat a été révoqué.</strong> Contactez l'équipe de la formation.</p>
+    {% else %}
+    <p><strong>Certificat obtenu</strong> le {{ r.certificat.emis_le.strftime('%d/%m/%Y') }} — note figée à {{ '%.2f' | format(r.certificat.note) | replace('.', ',') }} / 20.</p>
+    <p class="row"><a class="button primary" href="/certificats/{{ r.certificat.code }}.pdf">Télécharger le certificat (PDF)</a> <a class="button" href="/certificats/{{ r.certificat.code }}">Page de vérification</a></p>
+    {% endif %}
+  {% elif r.eligible.ok %}
+    <p><strong>Parcours réussi : vous pouvez obtenir votre certificat.</strong> Il portera votre nom, votre note finale et la date d'aujourd'hui, et ne pourra plus être modifié.</p>
+    {% if erreur %}<p class="form-error" role="alert">{{ erreur }}</p>{% endif %}
+    <form method="post" action="/compte/certificats" class="stack">
+      <input type="hidden" name="parcours" value="{{ r.parcours.id }}">
+      <label>Nom à imprimer sur le certificat <input name="nom" required minlength="2" maxlength="80" value="{{ user.nom }}" autocomplete="name"></label>
+      <p><button class="button primary" type="submit">Obtenir mon certificat</button></p>
+    </form>
+  {% elif r.finale is not none %}
+    <p class="muted">{{ r.eligible.raison }}</p>
+  {% else %}
+    <p class="muted">Un certificat est délivré quand le parcours est terminé avec une note finale d'au moins {{ ('%g' | format(note_min)) | replace('.', ',') }} / 20.</p>
+  {% endif %}
+  </div>
   <p class="muted small">Module sur 20 : 50 % QCM (meilleure des 2 tentatives) et 50 % exercice (−15 % par indice). Un module est terminé quand l'exercice est réussi et le QCM passé.</p>
 </section>
 {% else %}
