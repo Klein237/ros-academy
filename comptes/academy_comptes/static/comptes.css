@@ -1,0 +1,14 @@
+.page.narrow { max-width: 760px; }
+.login { max-width: 460px; margin: 32px auto; }
+.providers { display: flex; flex-direction: column; gap: 10px; margin: 16px 0; }
+.provider { text-align: center; }
+.separator { text-align: center; color: var(--muted); }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+label { display: flex; flex-direction: column; gap: 4px; }
+input { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+.form-error { color: var(--ko); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.meter { width: 100%; height: 10px; accent-color: var(--accent); }
+table.results { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; }
+table.results th, table.results td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.final-grade { font-size: 1.3rem; }

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Connexion{% endblock %}
+{% block content %}
+<section class="card login">
+  <h1>Se connecter</h1>
+  <p class="muted">Un compte gratuit donne accès au lab ROS 2, enregistre vos exercices et vos QCM, et calcule votre note.</p>
+  {% if erreur %}<p class="form-error" role="alert">{{ erreur }}</p>{% endif %}
+  {% if github or google %}
+  <div class="providers">
+    {% if github %}<a class="button provider" href="/connexion/github?suite={{ suite | urlencode }}">Continuer avec GitHub</a>{% endif %}
+    {% if google %}<a class="button provider" href="/connexion/google?suite={{ suite | urlencode }}">Continuer avec Google</a>{% endif %}
+  </div>
+  <p class="separator"><span>ou</span></p>
+  {% endif %}
+  <form method="post" action="/connexion/email" class="stack">
+    <input type="hidden" name="suite" value="{{ suite }}">
+    <label>Adresse e-mail <input type="email" name="email" required autocomplete="email" placeholder="vous@exemple.fr"></label>
+    <button class="button primary" type="submit">Recevoir un lien de connexion</button>
+  </form>
+  <p class="muted small">Pas de mot de passe : nous vous envoyons un lien valable 15 minutes.</p>
+</section>
+{% endblock %}
