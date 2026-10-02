@@ -16,12 +16,13 @@ services:
       HUB_ADMIN_TOKEN: ${HUB_ADMIN_TOKEN:?}
       ROS_LAB_IMAGE: ${ROS_LAB_IMAGE:-ros-lab:0.1.0}
       ACTIVE_SERVER_LIMIT: ${ACTIVE_SERVER_LIMIT:-35}
+      LAB_SUBNETS: ${LAB_SUBNETS:-10.213.0.0/16}   # un /28 par lab, ne doit recouvrir aucun réseau de l'hôte
       IDLE_TIMEOUT_SECONDS: ${IDLE_TIMEOUT_SECONDS:-1200}
       COMPTES_URL: http://comptes:8300   # quota de minutes vérifié avant chaque démarrage
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - hub-data:/srv/hub/data
-    networks: [public, ros-lab-net]
+    networks: [public]   # + un réseau par étudiant, rejoint à chaque démarrage de lab
 
   contenus:
     build:
@@ -177,9 +178,6 @@ networks:
     internal: true   # base de données joignable par Comptes seulement
   journaux:
     internal: true   # Loki n'est joignable que par Alloy, Grafana et la veille
-  ros-lab-net:
-    name: ros-lab-net
-    internal: true   # pas de sortie Internet pour les conteneurs étudiants
 
 volumes:
   hub-data: {}
