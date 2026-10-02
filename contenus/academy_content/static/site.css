@@ -128,6 +128,7 @@ figure.code pre { margin: 0; padding: 14px 16px; overflow-x: auto; color: var(--
 .qcm .feedback.ok { color: var(--ok); }
 .qcm .feedback.ko { color: var(--ko); }
 .qcm-result { font-size: 1.1rem; font-weight: 600; }
+.qcm-status { color: var(--muted); }
 
 .prev-next { display: flex; justify-content: space-between; gap: 16px; margin-top: 32px; }
 .preview-banner { background: var(--warn-bg); padding: 10px 16px; text-align: center; }

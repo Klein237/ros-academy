@@ -10,6 +10,7 @@ services:
       ROS_LAB_IMAGE: ${ROS_LAB_IMAGE:-ros-lab:0.1.0}
       ACTIVE_SERVER_LIMIT: ${ACTIVE_SERVER_LIMIT:-35}
       IDLE_TIMEOUT_SECONDS: ${IDLE_TIMEOUT_SECONDS:-1200}
+      COMPTES_URL: http://comptes:8300   # quota de minutes vérifié avant chaque démarrage
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - hub-data:/srv/hub/data
@@ -30,6 +31,45 @@ services:
       - contenus-data:/srv/contenus                 # dépôt Git du contenu
     networks: [public]
 
+  comptes:
+    build: ../comptes
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+      JWT_SECRET: ${JWT_SECRET:?}
+      HUB_ADMIN_TOKEN: ${HUB_ADMIN_TOKEN:?}
+      DATABASE_URL: postgresql+psycopg://comptes:${POSTGRES_PASSWORD:?}@postgres:5432/comptes
+      ACTIVE_SERVER_LIMIT: ${ACTIVE_SERVER_LIMIT:-35}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+    networks: [public, data]
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: comptes
+      POSTGRES_DB: comptes
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U comptes -d comptes"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks: [data]
+
   caddy:
     build: ../lab-ui   # Caddy + Lab UI construit (servi sous /lab/)
     restart: unless-stopped
@@ -43,6 +83,8 @@ services:
 
 networks:
   public: {}
+  data:
+    internal: true   # base de données joignable par Comptes seulement
   ros-lab-net:
     name: ros-lab-net
     internal: true   # pas de sortie Internet pour les conteneurs étudiants
@@ -51,3 +93,4 @@ volumes:
   hub-data: {}
   contenus-data: {}
   caddy-data: {}
+  postgres-data: {}

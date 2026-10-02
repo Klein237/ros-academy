@@ -1,4 +1,5 @@
 import "./style.css";
+import { ComptesClient } from "./api/comptes";
 import { ContentsClient } from "./api/contents";
 import { HubClient } from "./api/hub";
 import { ModuleClient } from "./api/module";
@@ -9,7 +10,7 @@ import { ensureCourseFile, exerciseDir, installLab, labDir } from "./module";
 import { normalizePath, parentOf } from "./paths";
 import { RosbridgeClient } from "./ros/rosbridge";
 import { Session } from "./session";
-import { IdleBanner } from "./ui/banner";
+import { IdleBanner, QuotaBanner } from "./ui/banner";
 import { button, h, toast } from "./ui/dom";
 import { EditorPanel } from "./ui/editor";
 import { FileTree } from "./ui/files";
@@ -20,7 +21,8 @@ import { WaitingScreen } from "./ui/waiting";
 
 const config = readConfig(location.search);
 const hub = new HubClient();
-const session = new Session(hub);
+const comptes = new ComptesClient();
+const session = new Session(hub, { account: comptes });
 const contents = new ContentsClient(hub);
 const terminalsClient = new TerminalsClient(hub);
 const moduleClient = config.moduleId ? new ModuleClient(config.moduleId) : null;
@@ -28,6 +30,7 @@ const moduleClient = config.moduleId ? new ModuleClient(config.moduleId) : null;
 const app = document.getElementById("app")!;
 const waiting = new WaitingScreen(() => void session.launch());
 const banner = new IdleBanner(() => idle.activity());
+const quota = new QuotaBanner();
 const user = h("span", { class: "muted small" });
 const stopButton = button("Arrêter le lab", () => {
   if (confirm("Arrêter le lab ? Vos fichiers sont conservés.")) void session.stop("user");
@@ -44,7 +47,7 @@ app.append(
     show2d,
     stopButton,
   ),
-  banner.el,
+  h("div", { class: "banners" }, banner.el, quota.el),
   workspace,
   waiting.el,
 );
@@ -132,6 +135,7 @@ async function startWorkspace(): Promise<void> {
     const panel = new ModulePanel({
       moduleId: config.moduleId,
       client: moduleClient,
+      comptes,
       contents,
       terminals,
       reveal: (path) => files.reveal(path),
@@ -149,6 +153,7 @@ async function startWorkspace(): Promise<void> {
   setupSplitter(workspace.querySelector(".center")!);
   current = { terminals, ros, view, editor };
   idle.start();
+  watchQuota();
   await Promise.all([files.load(), terminals.restore().catch(() => undefined)]);
   void ros.connect();
   view.start();
@@ -160,9 +165,24 @@ async function startWorkspace(): Promise<void> {
   }
 }
 
+/** Minutes restantes, relues chaque minute : bandeau dans les 5 dernières. */
+let quotaTimer: number | null = null;
+function watchQuota(): void {
+  const refresh = () =>
+    comptes
+      .me()
+      .then((me) => quota.update(me.minutes_restantes))
+      .catch(() => quota.update(null)); // lab ouvert sans compte : pas de quota affiché
+  void refresh();
+  quotaTimer = window.setInterval(refresh, 60_000);
+}
+
 function teardown(): void {
   idle.dispose();
   banner.hide();
+  if (quotaTimer !== null) clearInterval(quotaTimer);
+  quotaTimer = null;
+  quota.update(null);
   if (!current) return;
   current.terminals.disposeAll();
   current.view.stop();
@@ -193,7 +213,7 @@ session.onChange((state) => {
   waiting.render(state);
   stopButton.disabled = state.kind !== "ready";
   if (state.kind === "ready") void startWorkspace();
-  else if (state.kind === "stopped" || state.kind === "failed" || state.kind === "noauth") teardown();
+  else if (state.kind === "stopped" || state.kind === "failed" || state.kind === "noauth" || state.kind === "quota") teardown();
 });
 
 // Une page parente de même origine (le site du cours) peut signaler une activité

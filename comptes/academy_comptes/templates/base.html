@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Mon compte{% endblock %} · ROS Academy</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/contenus/site.css">
+  <link rel="stylesheet" href="/static/comptes/comptes.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">ROS Academy</a>
+    <nav><a href="/">Parcours</a><a href="/compte/resultats">Résultats</a><a href="/compte/">Mon compte</a></nav>
+  </header>
+  <main class="page narrow">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="site-footer">Formation ROS 2 en français, sur un vrai ROS 2 Humble dans votre navigateur.</footer>
+</body>
+</html>

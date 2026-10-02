@@ -1,5 +1,17 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
-import { activeTerminal, admin, cleanup, mint, mintAdmin, newStudent, run, waitReady } from "./helpers";
+import {
+  activeTerminal,
+  admin,
+  cleanup,
+  loginStudent,
+  mint,
+  mintAdmin,
+  newEmail,
+  newStudent,
+  openLabViaAccount,
+  run,
+  waitReady,
+} from "./helpers";
 
 let api: APIRequestContext;
 const students: string[] = [];
@@ -23,6 +35,7 @@ function student(): string {
 }
 
 test("le site présente le parcours et corrige le QCM sans exposer les réponses", async ({ page }) => {
+  await loginStudent(page, newEmail());
   await page.goto("/");
   await page.getByRole("link", { name: "ROS 2 Fondamentaux" }).click();
   await expect(page.locator("h1")).toHaveText("ROS 2 Fondamentaux");
@@ -53,9 +66,11 @@ test("module Nœud : « Ouvrir dans le lab » crée le fichier du cours sans jam
 });
 
 test("module Nœud : l'exercice se fait entièrement dans le lab @ros", async ({ page }) => {
-  const name = student();
-  const next = "/lab/?module=02-noeud&exercice=1";
-  await page.goto(`/hub/jwt_login?token=${mint(name)}&next=${encodeURIComponent(next)}`);
+  students.push(await loginStudent(page, newEmail()));
+  // comme le bouton « Ouvrir l'exercice dans le lab » du site
+  await page.goto("/modules/02-noeud/");
+  await page.getByRole("link", { name: "Ouvrir l'exercice dans le lab" }).click();
+  await expect(page).toHaveURL(/\/lab\/\?module=02-noeud&exercice=1$/);
   await waitReady(page);
   const panel = page.locator(".module-panel");
   await expect(panel).toContainText("Écrire un nœud");
@@ -78,6 +93,14 @@ test("module Nœud : l'exercice se fait entièrement dans le lab @ros", async ({
   await panel.getByRole("button", { name: "Vérifier" }).click();
   await expect(panel.locator(".exercise-status")).toContainText("Exercice réussi", { timeout: 120_000 });
   await expect(panel.locator(".explication")).toContainText("cmd_vell");
+
+  // réussite et indice enregistrés : retrouvés en rouvrant le lab, comptés dans les résultats
+  await openLabViaAccount(page, "?module=02-noeud");
+  await expect(panel.locator(".hint")).toHaveCount(1);
+  await expect(panel.locator(".exercise-status")).toContainText("Exercice déjà réussi");
+  await expect(panel.locator(".explication")).toContainText("cmd_vell");
+  await page.goto("/compte/resultats");
+  await expect(page.getByRole("row", { name: /Écrire un nœud/ })).toContainText("réussi (1 indice) · 17,0");
 });
 
 test("l'administrateur modifie un module et le publie après les tests", async ({ page }) => {
@@ -110,6 +133,6 @@ test("l'administrateur modifie un module et le publie après les tests", async (
 test("l'éditeur refuse un lien étudiant", async ({ page }) => {
   const r = await page.goto(`/admin/login?token=${mint("pas-admin")}`);
   expect(r?.status()).toBe(403);
-  await page.goto("/admin/");
-  await expect(page.locator("h1")).toHaveText("Connexion requise");
+  await page.goto("/admin/"); // sans session : connexion par le service Comptes
+  await expect(page).toHaveURL(/\/connexion\?suite=%2Fcompte%2Fadmin$/);
 });

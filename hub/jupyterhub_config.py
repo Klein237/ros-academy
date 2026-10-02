@@ -2,7 +2,7 @@ import os
 import sys
 
 from rosacademy_hub.auth import ComptesJWTAuthenticator
-from rosacademy_hub.quotas import apply_limits
+from rosacademy_hub.quotas import apply_limits, make_quota_hook
 
 c = get_config()  # noqa: F821
 
@@ -47,6 +47,9 @@ c.DockerSpawner.extra_host_config = {
     "init": True,  # tini en PID 1 : récolte les processus zombies
 }
 c.Spawner.auth_state_hook = apply_limits
+comptes_url = env("COMPTES_URL", "")
+if comptes_url:
+    c.Spawner.pre_spawn_hook = make_quota_hook(comptes_url, jwt_secret)  # quota de minutes du mois
 # Le Lab UI passe son jeton dans l'URL des WebSockets (un navigateur ne sait pas y
 # mettre d'en-tête, et Chromium n'envoie pas Sec-Fetch-Mode: websocket). Les pages
 # servies sous /user/ sont isolées par la CSP « sandbox » posée par Caddy.

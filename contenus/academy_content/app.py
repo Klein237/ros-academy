@@ -1,5 +1,7 @@
 """Service Contenus : site étudiant, API publique des modules, espace d'administration."""
 
+import hashlib
+import hmac
 import logging
 import os
 import time
@@ -25,12 +27,14 @@ from .model import (
     load_parcours,
     module_files,
 )
-from .render import code_files, render_cours, render_markdown
+from .render import code_files, lab_link, render_cours, render_markdown
 from .store import ContentStore, StoreError
 
 log = logging.getLogger("contenus")
 HERE = Path(__file__).parent
 TEMPLATE_MODULE = HERE / "modele"
+
+INTERNAL_HEADER = "X-Academy-Interne"
 
 CSP = ("default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; "
        "connect-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'self'; object-src 'none'")
@@ -141,6 +145,14 @@ class RestoreBody(BaseModel):
 def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tests_enabled=True):
     app = FastAPI(title="Contenus ROS Academy", docs_url=None, redoc_url=None, openapi_url=None)
     templates = Jinja2Templates(directory=str(HERE / "templates"))
+    templates.env.globals["lab_link"] = lab_link
+    internal_token = hmac.new(secret.encode(), b"contenus-interne", hashlib.sha256).hexdigest()
+
+    def internal(request: Request):
+        """Routes appelées par le service Comptes seulement (Caddy les bloque aussi depuis l'extérieur)."""
+        if not hmac.compare_digest(request.headers.get(INTERNAL_HEADER, ""), internal_token):
+            raise HTTPException(403, "Route interne")
+
     sessions = Sessions(secret)
     app.mount("/static/contenus", StaticFiles(directory=str(HERE / "static")), name="static")
 
@@ -162,8 +174,8 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
         if request.url.path.startswith(("/api/", "/admin/api/")):
             return JSONResponse({"erreur": exc.detail}, status_code=exc.status_code)
         if exc.status_code == 401:
-            return page(request, "erreur.html", 401, titre="Connexion requise",
-                        message="Ouvrez l'espace d'administration avec votre lien de connexion.")
+            # Comptes vérifie que l'adresse est administratrice et renvoie vers /admin/login
+            return RedirectResponse("/compte/admin", status_code=303)
         return page(request, "erreur.html", exc.status_code, titre="Page introuvable" if exc.status_code == 404 else "Erreur",
                     message=exc.detail)
 
@@ -223,14 +235,21 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
         files = [f for f in _text_files(base) if not f["path"].startswith(hidden)]
         return {"enonce_html": render_markdown(m.exercice.enonce), "files": files, "indices": len(m.exercice.indices)}
 
-    @app.get("/api/contenus/modules/{module_id}/indices/{n}")
+    @app.get("/api/contenus/parcours")
+    def api_parcours():
+        return {"parcours": _parcours_list(published())}
+
+    # Routes internes : indices, explication et correction du QCM passent par Comptes,
+    # qui applique les règles (indices comptés, explication après réussite, 2 tentatives).
+
+    @app.get("/api/contenus/modules/{module_id}/indices/{n}", dependencies=[Depends(internal)])
     def api_hint(module_id: str, n: int):
         m = _module_or_404(published(), module_id)
         if not 1 <= n <= len(m.exercice.indices):
             raise HTTPException(404, "Indice introuvable")
         return {"n": n, "html": render_markdown(m.exercice.indices[n - 1])}
 
-    @app.get("/api/contenus/modules/{module_id}/explication")
+    @app.get("/api/contenus/modules/{module_id}/explication", dependencies=[Depends(internal)])
     def api_explanation(module_id: str):
         m = _module_or_404(published(), module_id)
         return {"html": render_markdown(m.exercice.explication)}
@@ -239,7 +258,7 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
     def api_qcm(module_id: str):
         return {"questions": _public_qcm(_module_or_404(published(), module_id))}
 
-    @app.post("/api/contenus/modules/{module_id}/qcm")
+    @app.post("/api/contenus/modules/{module_id}/qcm", dependencies=[Depends(internal)])
     def api_qcm_correct(module_id: str, body: QcmAnswers):
         return correct_qcm(_module_or_404(published(), module_id), body.reponses)
 

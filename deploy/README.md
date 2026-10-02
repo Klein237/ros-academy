@@ -6,10 +6,21 @@
 
 ## Installation
 1. `docker build -t ros-lab:0.1.0 images/ros-lab`
-2. `cp deploy/.env.example deploy/.env` puis remplacer chaque secret par `openssl rand -hex 32` et `DOMAIN` par le domaine.
+2. `cp deploy/.env.example deploy/.env` puis remplacer chaque secret par `openssl rand -hex 32`, `DOMAIN` par le domaine, et renseigner `ADMIN_EMAILS`, le SMTP et, si souhaité, GitHub / Google (voir « Comptes » ci-dessous).
 3. `cd deploy && docker compose up -d --build` (construit aussi le Lab UI dans l'image Caddy : Node n'est pas nécessaire sur le serveur), puis, toujours depuis `deploy/` : `set -a; . ./.env; set +a; BASE_URL=https://$DOMAIN ../scripts/wait_for_hub.sh`
 
-## Tester un accès étudiant
+## Comptes des étudiants (service Comptes)
+- **Connexion** sur `/connexion` : lien magique par e-mail (toujours disponible), GitHub et Google (affichés quand `GITHUB_CLIENT_*` / `GOOGLE_CLIENT_*` sont renseignés ; URL de retour `https://<domaine>/connexion/github/retour` et `…/google/retour`). Un compte = une adresse e-mail vérifiée : GitHub puis Google sous la même adresse ouvrent le même compte.
+- **Sans SMTP** (`SMTP_HOST` vide), le lien de connexion est écrit dans `docker compose logs comptes` : pratique en développement, à ne pas laisser en production.
+- **Lab** : les boutons « Ouvrir le lab » du site passent par `/compte/lab`, qui vérifie le quota du mois (formule `free` : 600 min ; `pro` : sans limite) puis émet le jeton court du Hub. Le Lab UI prévient 5 min avant la fin du quota ; à zéro, Comptes arrête le serveur et le Hub refuse tout nouveau démarrage (`COMPTES_URL`, vérifié avant chaque démarrage).
+- **Progression** : QCM (2 tentatives, la meilleure est gardée), indices (−15 % chacun) et réussite des exercices sont enregistrés dans Postgres (volume `postgres-data`) ; notes sur `/compte/resultats`. Les corrections, indices et explications ne sortent de Contenus que par Comptes : Caddy bloque ces routes internes et Contenus exige un secret dérivé de `JWT_SECRET`.
+- **Serveur plein** : le Lab UI prend un ticket dans la file de Comptes et affiche la position ; le démarrage est retenté quand le tour arrive.
+- **Administration** : une adresse de `ADMIN_EMAILS` connectée ouvre l'éditeur depuis « Mon compte » (`/compte/admin`).
+- Changer la formule d'un étudiant : `docker compose exec postgres psql -U comptes -d comptes -c "UPDATE users SET formule='pro' WHERE email='…'"`.
+- Sauvegarde : `docker compose exec postgres pg_dump -U comptes comptes > comptes.sql`.
+
+## Tester un accès étudiant sans compte (diagnostic)
+Le parcours normal passe par `/connexion`. Pour tester le Hub seul, un jeton peut être émis à la main :
 ```bash
 set -a; . deploy/.env; set +a
 pip install PyJWT==2.9.0
@@ -30,7 +41,7 @@ curl -sk -X POST -H "Authorization: token $HUB_ADMIN_TOKEN" https://$DOMAIN/user
 
 ## Formations (service Contenus)
 - Le site des formations est servi à la racine (`/`, `/parcours/…`, `/modules/…`). Son contenu vit dans un dépôt Git, dans le volume `contenus-data`, initialisé au premier démarrage avec le parcours « ROS 2 Fondamentaux » du dossier `content/`.
-- **Éditer** : générez un lien de connexion administrateur, valable 5 minutes (la session dure ensuite 12 h) :
+- **Éditer** : connectez-vous avec une adresse de `ADMIN_EMAILS`, puis « Mon compte » → « Éditer les formations » (la session de l'éditeur dure 12 h). En secours, un lien administrateur valable 5 minutes peut être émis à la main :
   ```bash
   set -a; . deploy/.env; set +a
   echo "https://$DOMAIN/admin/login?token=$(python scripts/mint_token.py --sub moi --role admin)"
@@ -51,7 +62,8 @@ curl -sk -X POST -H "Authorization: token $HUB_ADMIN_TOKEN" https://$DOMAIN/user
 Construire `ros-lab:<nouvelle version>`, changer `ROS_LAB_IMAGE` dans `.env`, `docker compose up -d`. Les conteneurs déjà lancés gardent l'ancienne image jusqu'à leur arrêt ; les volumes ne sont pas touchés.
 
 ## Diagnostic
-- `docker logs hub` : connexions refusées (`Connexion par jeton refusée`), démarrages, arrêts pour inactivité.
+- `docker logs hub` : connexions refusées (`Connexion par jeton refusée`), démarrages, arrêts pour inactivité, démarrages refusés pour quota.
+- `docker compose logs comptes` : liens de connexion (sans SMTP), arrêts pour quota (`Quota épuisé : serveur de u… arrêté`), erreurs d'envoi d'e-mail. Pas de journal d'accès : il contiendrait les liens de connexion.
 - `docker ps --filter name=jupyter-` : sessions actives.
 
 ## Limites connues
@@ -59,7 +71,8 @@ Construire `ros-lab:<nouvelle version>`, changer `ROS_LAB_IMAGE` dans `.env`, `d
 - `check.sh` et `explication.md` sont lisibles depuis le conteneur de l'étudiant (`~/.academy/<module>`) : la triche est possible en V1, comme prévu par la spec.
 - Les serveurs étudiants (`/user/<nom>/`) partagent l'origine du Lab UI et un étudiant peut y servir n'importe quel fichier. Caddy leur impose `Content-Security-Policy: sandbox` : ces pages ont une origine opaque et ne peuvent lire ni les cookies du Hub, ni `/hub/lab_token`, ni les autres serveurs. Ne pas retirer cet en-tête ; à terme, des sous-domaines par étudiant (`subdomain_host`) supprimeraient le partage d'origine.
 - Le jeton du Lab UI passe dans l'URL des WebSockets (`JUPYTERHUB_ALLOW_TOKEN_IN_URL=1`) : un navigateur ne peut pas y mettre d'en-tête. Il est limité au serveur de l'étudiant et expire en 1 h ; ne pas activer de journal d'accès Caddy qui enregistrerait les URL complètes.
-- Serveur plein : le Lab UI réessaie toutes les 15 s mais n'affiche pas de position dans la file (il faudra une file partagée, côté service Comptes).
+- La réussite d'un exercice est déclarée par le Lab UI après `check.sh`, qui tourne dans le conteneur de l'étudiant : un étudiant peut la simuler (triche possible en V1, comme prévu par la spec). Les QCM, eux, sont corrigés côté serveur.
+- Les minutes de lab sont relevées chaque minute auprès du Hub : un serveur prêt compte une minute entière, et un étudiant hors quota peut garder son lab jusqu'au relevé suivant (une minute au plus).
 - Tous les conteneurs étudiants partagent le réseau `ros-lab-net` : ils peuvent atteindre les ports des autres, protégés par l'authentification par jeton Jupyter mais non isolés au niveau réseau.
 - La limite de 1 Go par volume n'est pas encore appliquée (nécessite des quotas de projet XFS sur l'hôte).
 - Sur certaines versions de Docker, un réseau `internal` laisse quand même les conteneurs joindre l'hôte via l'adresse de la passerelle du bridge : les services de l'hôte écoutant sur 0.0.0.0 (sshd, bases de données, supervision) peuvent alors être atteints depuis le code des étudiants. L'opérateur doit lier ces services à des interfaces précises, ou ajouter une règle de pare-feu rejetant le trafic venant du sous-réseau `ros-lab-net` vers l'hôte. Exemple : trouver le bridge avec `docker network inspect ros-lab-net -f '{{.Id}}'` (le bridge s'appelle `br-` suivi des 12 premiers caractères de l'identifiant), puis `iptables -I INPUT -i <bridge> -j DROP`.

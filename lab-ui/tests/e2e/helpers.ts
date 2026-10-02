@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { createHmac, randomBytes } from "node:crypto";
 import { expect, request, type APIRequestContext, type Page } from "@playwright/test";
 
@@ -99,4 +100,51 @@ export async function pasteInEditor(page: Page, text: string): Promise<void> {
   await page.keyboard.press("ControlOrMeta+A");
   await page.evaluate((t) => navigator.clipboard.writeText(t), text);
   await page.keyboard.press("ControlOrMeta+V");
+}
+
+// --- Service Comptes
+
+export function newEmail(): string {
+  return `e2e-${randomBytes(4).toString("hex")}@exemple.fr`;
+}
+
+/**
+ * Journaux du service Comptes : sans SMTP, le lien de connexion y est écrit.
+ * COMPTES_LOGS remplace la commande (déploiement local).
+ */
+function comptesLogs(): string {
+  return execSync(process.env.COMPTES_LOGS ?? "docker logs deploy-comptes-1 2>&1", { encoding: "utf8", maxBuffer: 64 << 20 });
+}
+
+/** Requête SQL dans la base de Comptes (PSQL remplace la commande). */
+export function sql(query: string): string {
+  const cmd = process.env.PSQL ?? "docker exec -i deploy-postgres-1 psql -U comptes -d comptes -tA";
+  return execSync(cmd, { input: query, encoding: "utf8" }).trim();
+}
+
+/** Connexion par lien magique (lu dans les journaux) ; renvoie le nom de l'étudiant dans le Hub. */
+export async function loginStudent(page: Page, email: string, suite = "/"): Promise<string> {
+  await page.goto(`/connexion?suite=${encodeURIComponent(suite)}`);
+  await page.getByLabel("Adresse e-mail").fill(email);
+  await page.getByRole("button", { name: "Recevoir un lien de connexion" }).click();
+  await expect(page.getByText(`Un lien de connexion a été envoyé à ${email}`)).toBeVisible();
+  let link = "";
+  await expect
+    .poll(() => {
+      const lines = comptesLogs().split("\n").filter((l) => l.includes(`lien de connexion pour ${email}`));
+      link = lines.at(-1)?.split(" : ").at(-1)?.trim() ?? "";
+      return link;
+    })
+    .toMatch(/\/connexion\/email\//);
+  await page.goto(new URL(link).pathname);
+  const me = await page.request.get("/api/comptes/moi");
+  expect(me.ok()).toBe(true);
+  return ((await me.json()) as { hub: string }).hub;
+}
+
+/** Lab ouvert comme depuis le site : /compte/lab vérifie le quota et émet le jeton du Hub. */
+export async function openLabViaAccount(page: Page, query = ""): Promise<void> {
+  await page.goto(`/compte/lab?suite=${encodeURIComponent(`/lab/${query}`)}`);
+  await expect(page).toHaveURL(/\/lab\//);
+  await waitReady(page);
 }

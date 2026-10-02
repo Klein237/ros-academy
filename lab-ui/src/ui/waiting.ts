@@ -1,3 +1,4 @@
+import { reloginUrl } from "../api/comptes";
 import type { SessionState } from "../session";
 import { button, h } from "./dom";
 
@@ -42,7 +43,11 @@ export class WaitingScreen {
         card.append(
           h("h1", { text: "Le serveur est plein pour le moment" }),
           h("p", { text: "Trop d'étudiants travaillent en même temps. Votre place se libère dès qu'un lab s'arrête." }),
-          h("p", { class: "muted" }, "Nouvel essai automatique dans ", left, " s."),
+          state.position !== undefined
+            ? h("p", { class: "queue-position" }, "Vous êtes ", h("strong", { text: `n° ${state.position}` }),
+                " dans la file d'attente. Gardez cette page ouverte : le lab démarre dès que votre tour arrive.")
+            : "",
+          h("p", { class: "muted" }, state.position !== undefined ? "Prochaine vérification dans " : "Nouvel essai automatique dans ", left, " s."),
           button("Réessayer maintenant", this.onRetry, { class: "primary" }),
         );
         break;
@@ -62,11 +67,20 @@ export class WaitingScreen {
           button("Relancer le lab", this.onRetry, { class: "primary" }),
         );
         break;
+      case "quota":
+        card.append(
+          h("h1", { text: "Quota de lab épuisé" }),
+          h("p", { text: "Vous avez utilisé toutes vos minutes de lab ce mois-ci. Vos fichiers sont conservés ; le lab sera de nouveau disponible le mois prochain." }),
+          h("p", { class: "muted", text: "Les cours, les QCM et vos notes restent accessibles." }),
+          h("a", { class: "button primary", text: "Voir mes résultats", attrs: { href: "/compte/resultats" } }),
+        );
+        break;
       case "noauth":
         card.append(
           h("h1", { text: "Session expirée" }),
-          h("p", { text: "Le lien n'est plus valide. Rouvrez le lab depuis la page du cours." }),
-          h("a", { class: "button primary", text: "Retour au cours", attrs: { href: "/" } }),
+          h("p", { text: "Votre accès au lab n'est plus valide. Reconnectez-vous pour reprendre là où vous en étiez." }),
+          h("a", { class: "button primary", text: "Se reconnecter", attrs: { href: reloginUrl() } }),
+          h("p", { class: "small" }, h("a", { text: "Retour aux cours", attrs: { href: "/" } })),
         );
         break;
       case "ready":

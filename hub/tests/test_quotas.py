@@ -61,3 +61,49 @@ def test_apply_limits_without_plan_uses_free(auth_state):
     apply_limits(spawner, auth_state)
     assert spawner.mem_limit == "2G"
     assert spawner.extra_host_config["pids_limit"] == 256
+
+
+# --- Quota de minutes vérifié auprès de Comptes avant le démarrage
+
+import asyncio  # noqa: E402
+import json  # noqa: E402
+
+from tornado import web  # noqa: E402
+
+from rosacademy_hub.quotas import comptes_token, make_quota_hook  # noqa: E402
+
+
+def run_hook(name, reply):
+    calls = []
+
+    async def fetch(url, headers):
+        calls.append((url, headers))
+        if isinstance(reply, Exception):
+            raise reply
+        return reply
+
+    hook = make_quota_hook("http://comptes:8300/", "s" * 40, fetch=fetch)
+    asyncio.run(hook(SimpleNamespace(user=SimpleNamespace(name=name))))
+    return calls
+
+
+def test_quota_hook_refuses_an_exhausted_student():
+    with pytest.raises(web.HTTPError) as err:
+        run_hook("u7", (200, json.dumps({"autorise": False}).encode()))
+    assert err.value.status_code == 403
+
+
+def test_quota_hook_sends_the_derived_secret_only():
+    calls = run_hook("u7", (200, b'{"autorise": true}'))
+    assert calls == [("http://comptes:8300/api/comptes/interne/lab/u7",
+                      {"X-Academy-Interne": comptes_token("s" * 40)})]
+    assert "s" * 40 not in str(calls)
+
+
+@pytest.mark.parametrize("reply", [(500, b""), (404, b""), OSError("injoignable")])
+def test_quota_hook_lets_the_lab_start_when_comptes_cannot_answer(reply):
+    run_hook("u7", reply)
+
+
+def test_quota_hook_ignores_non_student_accounts():
+    assert run_hook("test-e2e-1", (200, b'{"autorise": false}')) == []

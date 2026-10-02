@@ -45,7 +45,8 @@ def test_safe_rel_path():
 def test_render_tabs_buttons_and_escaping():
     html = render_cours(COURS, "02-noeud")
     assert html.count('<div class="code-tabs">') == 1  # python + cpp regroupés, pas le bash
-    assert 'href="/lab/?module=02-noeud&amp;open=ws/02-noeud/src/my_pkg/my_pkg/node.py"' in html
+    href = "/compte/lab?suite=/lab/%3Fmodule%3D02-noeud%26open%3Dws/02-noeud/src/my_pkg/my_pkg/node.py"
+    assert f'href="{href}"' in html
     assert "print(&quot;py&quot;)" in html
     assert "etc/passwd" not in html.split("<code class=\"language-python\">x = 1")[0].split("figcaption")[-1]
 

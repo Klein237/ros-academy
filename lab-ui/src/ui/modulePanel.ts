@@ -1,3 +1,4 @@
+import { NoAccount, reloginUrl, type ComptesClient } from "../api/comptes";
 import type { ContentsClient } from "../api/contents";
 import type { ModuleClient } from "../api/module";
 import {
@@ -16,6 +17,8 @@ import type { TerminalPanel } from "./terminals";
 export interface ModulePanelOptions {
   moduleId: string;
   client: ModuleClient;
+  /** Indices comptés, réussite enregistrée, explication après réussite. */
+  comptes: Pick<ComptesClient, "exercise" | "hint" | "reportSuccess" | "explanation">;
   contents: ContentsClient;
   terminals: TerminalPanel;
   /** Déplier ce dossier dans l'arborescence (et la rafraîchir). */
@@ -30,6 +33,7 @@ export class ModulePanel {
   readonly el = h("section", { class: "panel module-panel", attrs: { "aria-label": "Module" } });
   private readonly status = h("div", { class: "exercise-status", attrs: { role: "status", "aria-live": "polite" } });
   private readonly hints = h("div", { class: "hints" });
+  private readonly account = h("p", { class: "account-note small", attrs: { hidden: "" } });
   private readonly startButton: HTMLButtonElement;
   private readonly checkButton: HTMLButtonElement;
   private readonly hintButton: HTMLButtonElement;
@@ -47,6 +51,10 @@ export class ModulePanel {
     const id = this.opts.moduleId;
     const [info, exercise] = await Promise.all([this.opts.client.info(), this.opts.client.exercise()]);
     this.hintCount = exercise.indices;
+    const state = await this.opts.comptes.exercise(id).catch((e: unknown) => {
+      if (e instanceof NoAccount) this.askLogin();
+      return null;
+    });
     const enonce = h("div", { class: "enonce" });
     enonce.innerHTML = exercise.enonce_html; // HTML produit par le service Contenus (Markdown sans HTML brut)
     const details = h("details", { class: "exercise-details" }, h("summary", { text: "Énoncé de l'exercice" }), enonce);
@@ -62,6 +70,7 @@ export class ModulePanel {
         h("h3", { text: "Exercice" }),
         details,
         h("div", { class: "exercise-actions" }, this.startButton, this.checkButton),
+        this.account,
         this.status,
         h("div", { class: "hint-row" }, this.hintButton,
           h("span", { class: "muted small", text: "chaque indice retire 15 % de la note de l'exercice" })),
@@ -69,6 +78,35 @@ export class ModulePanel {
       ),
     );
     this.hintButton.disabled = this.hintCount === 0;
+    if (!state) return;
+    // retour sur le module : indices déjà vus (sans nouvelle pénalité) et réussite
+    try {
+      for (let n = 1; n <= Math.min(state.indices, this.hintCount); n++) await this.showHint(n);
+    } catch {
+      toast("Vos indices précédents n'ont pas pu être rechargés", "error");
+    }
+    if (state.reussi) {
+      this.show("ok", "Exercice déjà réussi", "Votre réussite est enregistrée. Vous pouvez le refaire pour vous entraîner.");
+      await this.appendExplanation();
+    }
+  }
+
+  private askLogin(): void {
+    this.account.replaceChildren(
+      "Vous n'êtes pas connecté : vos indices et votre réussite ne seront pas enregistrés. ",
+      h("a", { text: "Se connecter", attrs: { href: reloginUrl() } }),
+    );
+    this.account.hidden = false;
+  }
+
+  private async appendExplanation(): Promise<void> {
+    try {
+      const explication = h("div", { class: "explication" });
+      explication.innerHTML = await this.opts.comptes.explanation(this.opts.moduleId); // HTML produit par Contenus
+      this.status.append(h("h4", { text: "Explication" }), explication);
+    } catch {
+      this.status.append(h("p", { class: "muted small", text: "L'explication n'a pas pu être chargée." }));
+    }
   }
 
   private setBusy(busy: boolean): void {
@@ -126,9 +164,14 @@ export class ModulePanel {
       const text = tail(cleanOutput(output, n));
       if (code === 0) {
         this.show("ok", "Exercice réussi !", text);
-        const explication = h("div", { class: "explication" });
-        explication.innerHTML = await this.opts.client.explanation();
-        this.status.append(h("h4", { text: "Explication" }), explication);
+        try {
+          await this.opts.comptes.reportSuccess(id);
+        } catch (e) {
+          if (e instanceof NoAccount) this.askLogin();
+          this.status.append(h("p", { class: "muted small", text: "Réussite non enregistrée : reconnectez-vous puis vérifiez à nouveau." }));
+          return;
+        }
+        await this.appendExplanation();
       } else {
         this.show("ko", code === null ? "La vérification n'a pas abouti" : "Pas encore : le problème est toujours là", text);
       }
@@ -144,17 +187,25 @@ export class ModulePanel {
     if (n > this.hintCount) return;
     if (!confirm(`Afficher l'indice ${n} sur ${this.hintCount} ? Chaque indice utilisé retire 15 % de la note de l'exercice.`)) return;
     try {
-      const block = h("div", { class: "hint" }, h("h4", { text: `Indice ${n}` }));
-      const body = h("div");
-      body.innerHTML = await this.opts.client.hint(n);
-      block.append(body);
-      this.hints.append(block);
-      this.hintsShown = n;
-      this.hintButton.textContent = n < this.hintCount ? `Indice ${n + 1}` : "Plus d'indice";
-      this.hintButton.disabled = n >= this.hintCount;
-    } catch {
-      toast("Indice indisponible", "error");
+      await this.showHint(n);
+    } catch (e) {
+      if (e instanceof NoAccount) {
+        this.askLogin();
+        toast("Connectez-vous pour obtenir un indice", "error");
+      } else {
+        toast("Indice indisponible", "error");
+      }
     }
+  }
+
+  private async showHint(n: number): Promise<void> {
+    const html = await this.opts.comptes.hint(this.opts.moduleId, n);
+    const body = h("div");
+    body.innerHTML = html; // HTML produit par Contenus (Markdown sans HTML brut)
+    this.hints.append(h("div", { class: "hint" }, h("h4", { text: `Indice ${n}` }), body));
+    this.hintsShown = n;
+    this.hintButton.textContent = n < this.hintCount ? `Indice ${n + 1}` : "Plus d'indice";
+    this.hintButton.disabled = n >= this.hintCount;
   }
 
   private async reset(): Promise<void> {

@@ -78,4 +78,4 @@ export function cleanOutput(output: string, nonce: string): string {
     .trim();
 }
 
-export type ModuleClientLike = Pick<ModuleClient, "labFiles" | "courseFiles" | "exercise" | "hint" | "explanation">;
+export type ModuleClientLike = Pick<ModuleClient, "labFiles" | "courseFiles" | "exercise">;

@@ -151,3 +151,80 @@ it("demande de démarrage perdue (aucun serveur) → redemandée", async () => {
   expect(hub.start).toHaveBeenCalledTimes(2);
   expect(s.state.kind).toBe("ready");
 });
+
+function fakeAccount(opts: { minutes?: (number | null)[]; queue?: { position: number; a_vous: boolean }[] } = {}) {
+  const minutes = [...(opts.minutes ?? [null])];
+  const queue = [...(opts.queue ?? [])];
+  const next = () => ({ ticket: "t1", ...(queue.length > 1 ? queue.shift()! : queue[0] ?? { position: 1, a_vous: true }) });
+  return {
+    me: vi.fn(async () => ({
+      nom: "", email: "e@x.fr", formule: "free", hub: "u1", minutes_utilisees: 0,
+      minutes_restantes: minutes.length > 1 ? minutes.shift()! : minutes[0]!,
+    })),
+    joinQueue: vi.fn(async () => next()),
+    beat: vi.fn(async () => next()),
+    leaveQueue: vi.fn(async () => undefined),
+  };
+}
+
+it("quota épuisé → état quota, sans demander de démarrage au Hub", async () => {
+  const hub = fakeHub({});
+  const s = new Session(hub as never, { account: fakeAccount({ minutes: [0] }) });
+  await s.open();
+  expect(s.state.kind).toBe("quota");
+  expect(hub.start).not.toHaveBeenCalled();
+});
+
+it("démarrage refusé par le Hub et quota à zéro → état quota", async () => {
+  const hub = fakeHub({});
+  hub.start.mockRejectedValueOnce(new HttpError(403, "Quota"));
+  const s = new Session(hub as never, { account: fakeAccount({ minutes: [3, 0] }) });
+  await s.open();
+  expect(s.state.kind).toBe("quota");
+});
+
+it("sans compte (401 de Comptes), le lab démarre quand même", async () => {
+  const account = fakeAccount();
+  account.me.mockRejectedValue(new Error("401"));
+  const s = new Session(fakeHub({}) as never, { account });
+  await s.open();
+  expect(s.state.kind).toBe("ready");
+});
+
+it("serveur plein : position dans la file, nouvel essai quand le tour arrive, place rendue", async () => {
+  const hub = fakeHub({ start: ["full", "started"] });
+  const account = fakeAccount({ queue: [{ position: 3, a_vous: false }, { position: 2, a_vous: false }, { position: 1, a_vous: true }] });
+  const s = new Session(hub as never, { fullRetryMs: 15_000, account });
+  await s.open();
+  expect(s.state).toEqual({ kind: "full", retryInMs: 15_000, position: 3 });
+  await vi.advanceTimersByTimeAsync(15_000);
+  await flush();
+  expect(s.state).toEqual({ kind: "full", retryInMs: 15_000, position: 2 });
+  expect(hub.start).toHaveBeenCalledTimes(1); // pas encore son tour
+  await vi.advanceTimersByTimeAsync(15_000);
+  await flush();
+  expect(hub.start).toHaveBeenCalledTimes(2);
+  expect(s.state.kind).toBe("ready");
+  expect(account.leaveQueue).toHaveBeenCalledWith("t1");
+});
+
+it("ticket expiré → nouvelle place dans la file", async () => {
+  const hub = fakeHub({ start: ["full", "started"] });
+  const account = fakeAccount({ queue: [{ position: 1, a_vous: true }] });
+  account.beat.mockRejectedValueOnce(new Error("404"));
+  const s = new Session(hub as never, { fullRetryMs: 15_000, account });
+  await s.open();
+  await vi.advanceTimersByTimeAsync(15_000);
+  await flush();
+  expect(account.joinQueue).toHaveBeenCalledTimes(2);
+  expect(s.state.kind).toBe("ready");
+});
+
+it("serveur arrêté pendant la session, quota à zéro → état quota", async () => {
+  const hub = fakeHub({ server: [{ ready: true, pending: null }, null] });
+  const s = new Session(hub as never, { account: fakeAccount({ minutes: [10, 0] }) });
+  await s.open();
+  expect(s.state.kind).toBe("ready");
+  expect(await s.checkAlive()).toBe(false);
+  expect(s.state.kind).toBe("quota");
+});

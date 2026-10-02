@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Résultats{% endblock %}
+{% block content %}
+<h1>Mes résultats</h1>
+{% for r in resultats %}
+<section class="card">
+  <h2>{{ r.parcours.titre }}</h2>
+  {% if r.finale is not none %}
+  <p class="final-grade">Note finale : <strong>{{ '%.2f' | format(r.finale) | replace('.', ',') }} / 20</strong></p>
+  {% else %}
+  <p class="muted">Note finale : disponible quand les {{ r.modules | length }} modules seront terminés ({{ r.termines }} terminé{{ 's' if r.termines > 1 }}).</p>
+  {% endif %}
+  <table class="results">
+    <thead><tr><th>Module</th><th>Exercice</th><th>QCM</th><th>Note</th><th>Coef.</th></tr></thead>
+    <tbody>
+    {% for m in r.modules %}
+      <tr>
+        <td><a href="/modules/{{ m.module.id }}/">{{ m.module.titre }}</a></td>
+        <td>{% if m.reussi %}réussi{% if m.indices %} ({{ m.indices }} indice{{ 's' if m.indices > 1 }}){% endif %} · {{ '%.1f' | format(m.grade.exercice) | replace('.', ',') }}{% else %}<span class="muted">à faire</span>{% endif %}</td>
+        <td>{% if m.grade.qcm is not none %}{{ '%.1f' | format(m.grade.qcm) | replace('.', ',') }} <span class="muted small">({{ m.tentatives }}/2)</span>{% else %}<span class="muted">à faire</span>{% endif %}</td>
+        <td>{% if m.grade.termine %}<strong>{{ '%.2f' | format(m.grade.note) | replace('.', ',') }}</strong>{% else %}<span class="muted">—</span>{% endif %}</td>
+        <td>{{ m.module.coef | round(1) | replace('.0', '') }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted small">Module sur 20 : 50 % QCM (meilleure des 2 tentatives) et 50 % exercice (−15 % par indice). Un module est terminé quand l'exercice est réussi et le QCM passé.</p>
+</section>
+{% else %}
+<p class="muted">Aucun parcours publié.</p>
+{% endfor %}
+{% endblock %}

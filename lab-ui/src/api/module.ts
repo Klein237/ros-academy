@@ -1,4 +1,4 @@
-/** API publique du service Contenus (même origine, sans jeton). */
+/** API publique du service Contenus (même origine, sans jeton). Indices et explication : voir comptes.ts. */
 
 export interface ModuleFile {
   path: string;
@@ -49,13 +49,5 @@ export class ModuleClient {
 
   exercise(): Promise<ExerciseInfo> {
     return this.get("/exercice");
-  }
-
-  async hint(n: number): Promise<string> {
-    return (await this.get<{ html: string }>(`/indices/${n}`)).html;
-  }
-
-  async explanation(): Promise<string> {
-    return (await this.get<{ html: string }>("/explication")).html;
   }
 }
