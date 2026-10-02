@@ -2,6 +2,7 @@ import os
 import sys
 
 from rosacademy_hub.auth import ComptesJWTAuthenticator
+from rosacademy_hub.disque import HomeError, quota_mount
 from rosacademy_hub.quotas import apply_limits, make_quota_hook
 from rosacademy_hub.reseau import DEFAULT_SUBNETS, reconnect_at_startup
 
@@ -43,11 +44,24 @@ c.DockerSpawner.cmd = ["jupyterhub-singleuser"]
 c.DockerSpawner.use_internal_ip = True
 c.DockerSpawner.remove = True
 c.DockerSpawner.notebook_dir = "/home/etudiant"
+# Dossier personnel : sur un XFS à quotas de projet (1 Go) si LAB_HOMES_DIR est défini,
+# sinon un volume Docker (développement, sans limite de taille)
+lab_homes_dir = env("LAB_HOMES_DIR", "")
+if lab_homes_dir:
+    try:
+        quota_mount(lab_homes_dir)
+    except HomeError as exc:
+        sys.exit(str(exc))
+    c.RosLabSpawner.lab_homes_dir = lab_homes_dir
 c.DockerSpawner.volumes = {"ros-lab-home-{username}": "/home/etudiant"}
 c.DockerSpawner.extra_host_config = {
     "cap_drop": ["ALL"],
     "security_opt": ["no-new-privileges"],
     "init": True,  # tini en PID 1 : récolte les processus zombies
+    # racine en lecture seule : l'étudiant n'écrit que dans son dossier (limité) et dans des tmpfs
+    # comptés dans sa mémoire ; sans cela, la couche du conteneur pourrait remplir le disque de l'hôte
+    "read_only": True,
+    "tmpfs": {"/tmp": "rw,nosuid,nodev,size=512m", "/var/tmp": "rw,nosuid,nodev,size=64m"},
     # journal Docker limité en taille ; Alloy l'envoie à Loki pendant que le conteneur tourne
     "log_config": {"type": "json-file", "config": {"max-size": "10m", "max-file": "2"}},
 }

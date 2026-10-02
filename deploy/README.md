@@ -7,7 +7,8 @@
 ## Installation
 1. `docker build -t ros-lab:0.1.0 images/ros-lab`
 2. `cp deploy/.env.example deploy/.env` puis remplacer chaque secret par `openssl rand -hex 32`, `DOMAIN` par le domaine, et renseigner `ADMIN_EMAILS`, le SMTP et, si souhaité, GitHub / Google (voir « Comptes » ci-dessous).
-3. `cd deploy && docker compose up -d --build` (construit aussi le Lab UI dans l'image Caddy : Node n'est pas nécessaire sur le serveur), puis, toujours depuis `deploy/` : `set -a; . ./.env; set +a; BASE_URL=https://$DOMAIN ../scripts/wait_for_hub.sh`
+3. Dossiers des étudiants limités à 1 Go (voir « Espace disque des étudiants ») : `sudo apt install xfsprogs`, puis `sudo scripts/preparer-hote.sh --image /var/lib/ros-academy/homes.img --taille 200G` (ou `--partition /dev/sdX1`), et ajouter à `.env` les deux lignes `LAB_HOMES_DIR` et `COMPOSE_FILE` affichées par le script.
+4. `cd deploy && docker compose up -d --build` (construit aussi le Lab UI dans l'image Caddy : Node n'est pas nécessaire sur le serveur), puis, toujours depuis `deploy/` : `set -a; . ./.env; set +a; BASE_URL=https://$DOMAIN ../scripts/wait_for_hub.sh`
 
 ## Comptes des étudiants (service Comptes)
 - **Connexion** sur `/connexion` : lien magique par e-mail (toujours disponible), GitHub et Google (affichés quand `GITHUB_CLIENT_*` / `GOOGLE_CLIENT_*` sont renseignés ; URL de retour `https://<domaine>/connexion/github/retour` et `…/google/retour`). Un compte = une adresse e-mail vérifiée : GitHub puis Google sous la même adresse ouvrent le même compte.
@@ -96,6 +97,15 @@ Mesure de référence (2 octobre 2026, machine de 4 vCPU / 16 Go, plus petite qu
 - `docker compose logs comptes` : liens de connexion (sans SMTP), arrêts pour quota (`Quota épuisé : serveur de u… arrêté`), erreurs d'envoi d'e-mail. Pas de journal d'accès : il contiendrait les liens de connexion.
 - `docker ps --filter name=jupyter-` : sessions actives.
 
+## Espace disque des étudiants
+
+- **Dossier personnel limité à 1 Go** (fichiers et workspaces ; 200 000 fichiers au plus) : chaque étudiant a un dossier `LAB_HOMES_DIR/<nom>` sur un XFS monté avec les quotas de projet, monté en `/home/etudiant` dans son lab. `scripts/preparer-hote.sh` prépare l'hôte une fois : image disque creuse (seul l'espace écrit est consommé) ou partition dédiée, montée au démarrage par `/etc/fstab`, et limite par défaut de tous les projets (`--quota`, `--inodes`). Le Hub rattache chaque nouveau dossier à son projet (10000 + id pour `u<id>`) sans droit particulier ; il refuse de démarrer si `LAB_HOMES_DIR` n'est pas un XFS avec `prjquota`.
+- Dans le lab, `df -h ~` affiche la limite ; au-delà, l'écriture échoue (« No space left on device ») et l'étudiant libère de la place (`build/`, `log/` de colcon par exemple).
+- Occupation : `sudo xfs_quota -x -c 'report -p -h' /srv/ros-academy/homes` ; changer la limite : relancer le script avec `--quota 2g`, ou pour un seul étudiant `sudo xfs_quota -x -c 'limit -p bhard=2g 10042' /srv/ros-academy/homes`.
+- **Passer des volumes Docker aux dossiers à quota** (déploiement existant) : labs arrêtés, `sudo scripts/migrer-volumes.sh /srv/ros-academy/homes` copie chaque volume `ros-lab-home-u<id>` dans son dossier et le rattache à son projet ; les volumes sont gardés jusqu'à leur suppression manuelle.
+- **Reste du conteneur** : la racine est en lecture seule ; `/tmp` (512 Mo) et `/var/tmp` (64 Mo) sont des tmpfs comptés dans la mémoire du lab. Un étudiant ne peut donc plus remplir le disque de l'hôte.
+- Sans `LAB_HOMES_DIR` (développement), les dossiers sont des volumes Docker `ros-lab-home-<nom>`, sans limite de taille.
+
 ## Réseau des labs
 
 Chaque étudiant a son propre réseau Docker (`ros-lab-<nom>`, `internal` : pas d'Internet), créé au démarrage de son lab et supprimé à l'arrêt. Seul le Hub le rejoint : un étudiant atteint l'API du Hub, mais pas les conteneurs des autres étudiants. Les sous-réseaux sont pris dans `LAB_SUBNETS` (par défaut `10.213.0.0/16`, découpé en /28, soit 4096 labs simultanés au plus) : choisir une plage qui ne recouvre aucun réseau de l'hôte. Au redémarrage, le Hub rejoint les réseaux des labs encore en cours et supprime les réseaux orphelins.
@@ -109,9 +119,9 @@ Chaque étudiant a son propre réseau Docker (`ros-lab-<nom>`, `internal` : pas 
 - Le jeton du Lab UI passe dans l'URL des WebSockets (`JUPYTERHUB_ALLOW_TOKEN_IN_URL=1`) : un navigateur ne peut pas y mettre d'en-tête. Il est limité au serveur de l'étudiant et expire en 1 h ; ne pas activer de journal d'accès Caddy qui enregistrerait les URL complètes.
 - **Vérification des exercices hors du conteneur** : « Vérifier » fait lancer par Contenus le `check.sh` **publié** dans un conteneur `ros-lab` neuf (sans réseau, non-root, 1 vCPU / 2 Go), sur une copie du workspace de l'étudiant lue dans son volume monté en lecture seule (sans `build/`, `install/`, `log/` : tout est recompilé ; 200 Mo au plus). Seule cette vérification enregistre la réussite ; ni un `check.sh` modifié, ni une requête du navigateur ne le peuvent. Au plus `VERIFICATIONS_MAX` (4) vérifications en même temps. Un étudiant peut encore écrire un code qui trompe le test sans corriger la panne : c'est aux auteurs des modules d'écrire des `check.sh` qui testent le comportement, pas la forme.
 - Les minutes de lab sont relevées chaque minute auprès du Hub : un serveur prêt compte une minute entière, et un étudiant hors quota peut garder son lab jusqu'au relevé suivant (une minute au plus).
-- La limite de 1 Go par volume n'est pas encore appliquée (nécessite des quotas de projet XFS sur l'hôte).
+- La limite de 1 Go par étudiant n'est appliquée qu'avec `LAB_HOMES_DIR` (hôte préparé par `scripts/preparer-hote.sh`).
 - Sur certaines versions de Docker, un réseau `internal` laisse quand même les conteneurs joindre l'hôte via l'adresse de la passerelle du bridge : les services de l'hôte écoutant sur 0.0.0.0 (sshd, bases de données, supervision) peuvent alors être atteints depuis le code des étudiants. L'opérateur doit lier ces services à des interfaces précises, ou rejeter le trafic des réseaux étudiants vers l'hôte. Leurs bridges s'appellent tous `rl-<n>` : une seule règle suffit, `iptables -I INPUT -i rl-+ -j DROP` (à rendre persistante, par exemple avec `iptables-persistent`).
 - Alloy (collecte des journaux) monte la socket Docker : comme le Hub et Contenus, sa compromission équivaut à un accès root à l'hôte. Il n'est joignable par aucun autre conteneur (réseau `journaux`, interne, sans port).
 - Alloy découvre un nouveau conteneur en quelques secondes : les journaux d'un lab arrêté moins de ~10 s après son démarrage peuvent manquer.
 - Le Hub s'exécute en root avec accès à la socket Docker (inhérent à DockerSpawner) : sa compromission équivaut à un accès root à l'hôte.
-- La couche inscriptible du conteneur et le swap ne sont pas limités en taille : un étudiant peut remplir le disque de l'hôte.
+- Si l'hôte a du swap, Docker autorise par défaut chaque lab à en utiliser autant que sa mémoire : prévoir un swap de taille raisonnable (ou aucun).

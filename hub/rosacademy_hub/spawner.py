@@ -1,16 +1,19 @@
-"""DockerSpawner avec un réseau Docker par étudiant (voir reseau.py)."""
+"""DockerSpawner avec un réseau Docker par étudiant (reseau.py) et un dossier limité à 1 Go (disque.py)."""
 
 import asyncio
 
 from dockerspawner import DockerSpawner
 from traitlets import Unicode, default
 
-from . import reseau
+from . import disque, reseau
 
 
 class RosLabSpawner(DockerSpawner):
     hub_container = Unicode("hub", config=True, help="Nom du conteneur du Hub, connecté au réseau de chaque étudiant.")
     lab_subnets = Unicode(reseau.DEFAULT_SUBNETS, config=True, help="Plage découpée en /28, un par étudiant.")
+    lab_homes_dir = Unicode(
+        "", config=True,
+        help="Dossier XFS avec quotas de projet pour les dossiers des étudiants ; vide : volumes Docker sans limite.")
 
     @default("network_name")
     def _default_network_name(self):
@@ -22,6 +25,10 @@ class RosLabSpawner(DockerSpawner):
         return asyncio.wrap_future(self.executor.submit(fn, self.client, *args))
 
     async def start(self):
+        if self.lab_homes_dir:
+            path = await asyncio.get_running_loop().run_in_executor(
+                None, disque.prepare_home, self.lab_homes_dir, self.user.name)
+            self.volumes = {path: self.notebook_dir or "/home/etudiant"}
         await self._in_docker_thread(reseau.ensure_network, self.user.name, self.hub_container, self.lab_subnets)
         return await super().start()
 

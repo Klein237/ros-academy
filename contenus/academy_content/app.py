@@ -516,9 +516,10 @@ def app_from_env():
     from .verification import make_slots, verify_exercise
 
     slots = make_slots(int(os.environ.get("VERIFICATIONS_MAX", "4")))
+    homes_dir = os.environ.get("LAB_HOMES_DIR") or None  # dossiers à quota des étudiants (sinon volumes Docker)
 
     def verifier(module_dir, module_id, student):
-        return verify_exercise(module_dir, module_id, student, image=image, slots=slots)
+        return verify_exercise(module_dir, module_id, student, image=image, slots=slots, homes_dir=homes_dir)
 
     return create_app(store, runner, secret, cookie_secure=os.environ.get("COOKIE_SECURE", "1") != "0",
                       tests_enabled=tests_enabled, verifier=verifier)
