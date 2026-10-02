@@ -27,9 +27,15 @@ done
 run 'command -v check_urdf' >/dev/null || fail "check_urdf manquant"
 run 'command -v academy-diffbot' >/dev/null || fail "academy-diffbot manquant"
 # le robot simulé avance quand il reçoit une commande
+# (echo avec le type : il attend que /odom apparaisse ; relu jusqu'à ce que le robot ait avancé)
 odom_x=$(run 'academy-diffbot >/dev/null 2>&1 & sleep 3
-  ros2 topic pub -r 10 -t 20 /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.5}}" >/dev/null &
-  sleep 1.5; ros2 topic echo --once /odom | awk "/position:/ {p=1} p && /x:/ {print \$2; exit}"')
+  ros2 topic pub -r 10 -t 100 /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.5}}" >/dev/null &
+  for _ in $(seq 1 10); do
+    x=$(timeout 20 ros2 topic echo --once /odom nav_msgs/msg/Odometry | awk "/position:/ {p=1} p && /x:/ {print \$2; exit}")
+    awk -v x="$x" "BEGIN { exit !(x > 0.1) }" && break
+    sleep 0.5
+  done
+  echo "$x"')
 awk -v x="$odom_x" 'BEGIN { exit !(x > 0.1) }' || fail "academy-diffbot n'avance pas (x=$odom_x)"
 # bureau graphique : RViz2 et Gazebo (Harmonic, gz sim) installés, écran virtuel démarré comme dans un lab
 # (racine en lecture seule, /tmp en tmpfs, dossier personnel inscriptible comme le volume
