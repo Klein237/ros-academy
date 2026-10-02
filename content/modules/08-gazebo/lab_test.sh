@@ -6,7 +6,7 @@ export ROS_DOMAIN_ID=88
 export GZ_PARTITION=lab_test_08
 setsid ros2 launch my_robot_description gazebo.launch.py > /tmp/gazebo.log 2>&1 &
 NODE=$!
-trap 'kill -TERM -- -$NODE 2>/dev/null; sleep 2; kill -KILL -- -$NODE 2>/dev/null; wait $NODE 2>/dev/null || true' EXIT
+trap 'kill -TERM -- -$NODE 2>/dev/null; sleep 2; kill -KILL -- -$NODE 2>/dev/null || true; wait $NODE 2>/dev/null || true' EXIT
 python3 - <<'PY' || { tail -30 /tmp/gazebo.log; exit 1; }
 import math
 import sys
