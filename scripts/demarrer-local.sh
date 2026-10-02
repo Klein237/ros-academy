@@ -122,10 +122,11 @@ demarrer() {
   compose up -d --build || fail "démarrage impossible (un autre programme utilise peut-être les ports 80 ou 443)"
   info "attente du site…"
   for _ in $(seq 1 120); do
-    curl -ksf https://localhost/hub/api >/dev/null 2>&1 && curl -ksf https://localhost/ >/dev/null 2>&1 && break
+    curl -ksf https://localhost/hub/api >/dev/null 2>&1 && curl -ksf https://localhost/ >/dev/null 2>&1 \
+      && curl -ksf https://localhost/connexion >/dev/null 2>&1 && break
     sleep 2
   done
-  curl -ksf https://localhost/ >/dev/null || fail "le site ne répond pas : cd deploy && docker compose logs"
+  curl -ksf https://localhost/connexion >/dev/null || fail "le site ne répond pas : cd deploy && docker compose logs"
   etape "Prêt"
   info "Ouvrez https://localhost (acceptez le certificat local la première fois)."
   info "Connexion : « Connexion », votre adresse $ADMIN, puis le bouton « Se connecter » de la page."

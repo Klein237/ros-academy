@@ -35,7 +35,7 @@ jobs:
       - name: Connexion par le lien affiché sur la page
         run: |
           page=$(curl -ks -c /tmp/jar -H "Origin: https://localhost" -d "email=moi@exemple.fr" https://localhost/connexion/email)
-          grep -q "Test en local" <<<"$page"
+          grep -q "Test en local" <<<"$page" || { echo "$page"; exit 1; }
           lien=$(grep -o 'href="https://localhost/connexion/email/[^"]*"' <<<"$page" | head -1 | cut -d'"' -f2)
           test "$(curl -ks -o /dev/null -w '%{http_code}' -b /tmp/jar -c /tmp/jar "$lien")" = 303
           curl -ks -b /tmp/jar https://localhost/compte/ | grep -q "moi@exemple.fr"
@@ -45,7 +45,7 @@ jobs:
           scripts/demarrer-local.sh effacer --non-interactif
           test ! -f deploy/.env
       - if: failure()
-        run: cd deploy && docker compose logs --tail 80
+        run: cd deploy && docker compose logs --tail 80 comptes caddy hub
 
   lab-ui:
     runs-on: ubuntu-22.04
