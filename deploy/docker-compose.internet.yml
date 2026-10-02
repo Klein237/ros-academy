@@ -1,0 +1,18 @@
+# Essai rapide ouvert sur Internet, depuis un ordinateur : un tunnel Cloudflare gratuit et sans
+# compte (« quick tunnel ») donne une adresse publique https://<mots-au-hasard>.trycloudflare.com,
+# qui disparaît à l'arrêt. Rien à ouvrir sur la box. scripts/demarrer-local.sh --internet ajoute à
+# deploy/.env COMPOSE_FILE=docker-compose.yml:docker-compose.internet.yml et met l'adresse
+# du tunnel dans DOMAIN (nouvelle à chaque démarrage).
+services:
+  caddy:
+    environment:
+      # HTTPS est assuré par Cloudflare : Caddy sert tous les noms en HTTP, pour le tunnel seulement
+      DOMAIN: "http://"
+      CADDY_RELAIS: private_ranges
+
+  tunnel:
+    image: cloudflare/cloudflared:2025.9.1
+    command: tunnel --no-autoupdate --url http://caddy:80
+    depends_on: [caddy]
+    restart: "no"   # une adresse par démarrage : pas de reprise automatique avec une adresse périmée
+    networks: [public]

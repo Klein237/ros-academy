@@ -22,6 +22,21 @@ Autres commandes :
 
 La CI rejoue ce démarrage à chaque PR.
 
+### Essai rapide ouvert sur Internet (tunnel Cloudflare)
+
+Pour montrer le site à quelques testeurs sans serveur, le temps d'un essai :
+
+```bash
+scripts/demarrer-local.sh --internet
+```
+
+Un tunnel Cloudflare gratuit et sans compte (« quick tunnel », service `tunnel` de `docker-compose.internet.yml`) donne une adresse publique `https://<mots-au-hasard>.trycloudflare.com`, avec un vrai certificat : rien à ouvrir sur la box, rien à installer chez les testeurs. Le script met cette adresse dans `DOMAIN`, puis l'affiche. Derrière le tunnel, Caddy sert le site en HTTP (HTTPS est assuré par Cloudflare) et garde l'en-tête `X-Forwarded-Proto` de cloudflared.
+
+- **L'adresse est ouverte à tous** tant que le site tourne. `scripts/demarrer-local.sh arreter` ferme le tunnel ; l'adresse change à chaque démarrage. Le nombre de labs simultanés reste limité par `ACTIVE_SERVER_LIMIT`.
+- Hors de localhost, le lien de connexion n'est plus affiché à l'écran (n'importe qui pourrait ouvrir la session de n'importe quelle adresse) : il part **par e-mail**. Le script demande le serveur SMTP la première fois (par exemple Gmail : `smtp.gmail.com`, port 587, un mot de passe d'application). Vérifier l'envoi : `cd deploy && docker compose exec comptes python -m academy_comptes.mail vous@exemple.fr`.
+- Le mode est gardé : `scripts/demarrer-local.sh` rouvre un tunnel (nouvelle adresse) ; `scripts/demarrer-local.sh --local` revient à https://localhost.
+- Pour un essai seulement : le PC doit rester allumé, chaque lab prend environ 1,5 Go de mémoire, et Cloudflare ne garantit pas ces tunnels gratuits. Pour une vraie ouverture, voir « Installation en une commande » sur un serveur.
+
 ## Installation en une commande (recommandé)
 
 Sur un serveur Ubuntu 22.04 ou 24.04 dont le nom de domaine (enregistrement DNS de type A) pointe vers lui :
