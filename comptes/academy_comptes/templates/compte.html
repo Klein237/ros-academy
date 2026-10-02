@@ -13,4 +13,9 @@
   <p class="row"><a class="button primary" href="/compte/lab">Ouvrir le lab</a> <a class="button" href="/compte/resultats">Mes résultats</a>{% if admin %} <a class="button" href="/compte/formateur">Tableau de bord formateur</a> <a class="button" href="/compte/admin">Éditer les formations</a>{% endif %}</p>
   <form method="post" action="/deconnexion"><button class="button" type="submit">Se déconnecter</button></form>
 </section>
+<section class="card">
+  <h2>Mes données</h2>
+  <p class="row"><a class="button" href="/compte/donnees">Télécharger mes données</a> <a class="button" href="/compte/supprimer">Supprimer mon compte</a></p>
+  <p class="muted small"><a href="/confidentialite">Ce que nous enregistrons et pourquoi</a></p>
+</section>
 {% endblock %}

@@ -38,3 +38,4 @@ select { font: inherit; color: var(--text); background: var(--bg); border: 1px s
 .verdict.ok { color: var(--ok); }
 .verdict.ko { color: var(--ko); }
 .cert-row { justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); }
+.button.danger { color: var(--ko); border-color: var(--ko); }

@@ -21,7 +21,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from sqlalchemy import select
 
-from . import certificats, formateur, grading
+from . import certificats, formateur, grading, rgpd
 from .billing import PAYING, BadSignature, StripeClient, StripeError, apply_subscription, format_price, verify_signature
 from .auth import (
     OAUTH_COOKIE,
@@ -295,6 +295,53 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         if user.email not in settings.admin_emails:
             raise HTTPException(403, "Ce compte n'a pas accès à l'administration")
         return RedirectResponse(f"/admin/login?token={mint_admin_token(settings.jwt_secret, user)}", status_code=303)
+
+    # --- Données personnelles (RGPD) et pages légales
+
+    @app.get("/compte/donnees")
+    def compte_donnees(user=Depends(current_user), db=Depends(get_db)):
+        if not user:
+            return login_redirect("/compte/")
+        return Response(rgpd.export_json(db, user), media_type="application/json; charset=utf-8",
+                        headers={"Content-Disposition": 'attachment; filename="ros-academy-mes-donnees.json"',
+                                 "Cache-Control": "no-store"})
+
+    @app.get("/compte/supprimer", response_class=HTMLResponse)
+    def compte_supprimer_page(request: Request, user=Depends(current_user)):
+        if not user:
+            return login_redirect("/compte/supprimer")
+        return page(request, "supprimer.html", user=user)
+
+    @app.post("/compte/supprimer", response_class=HTMLResponse)
+    def compte_supprimer(request: Request, confirmation: str = Form(""), user=Depends(current_user),
+                         db=Depends(get_db), _=Depends(same_origin)):
+        if not user:
+            return login_redirect("/compte/supprimer")
+        if confirmation.strip().lower() != user.email:
+            return page(request, "supprimer.html", 400, user=user,
+                        erreur="Recopiez exactement votre adresse e-mail pour confirmer.")
+        try:
+            rgpd.delete_account(db, user, hub)
+        except rgpd.DeletionRefused as exc:
+            return page(request, "supprimer.html", 409, user=user, erreur=str(exc))
+        except (UpstreamError, httpx.HTTPError):
+            log.exception("Suppression du compte %s : Hub injoignable", user.id)
+            return page(request, "supprimer.html", 502, user=user,
+                        erreur="Votre lab n'a pas pu être supprimé pour l'instant : réessayez dans un moment.")
+        log.info("Compte %s supprimé à la demande de son titulaire", user.id)
+        response = page(request, "message.html", titre="Compte supprimé",
+                        message="Votre compte, vos résultats, vos certificats et les fichiers de votre lab ont été "
+                                "supprimés.", lien="/", lien_texte="Retour à l'accueil")
+        response.delete_cookie(SESSION_COOKIE, path="/")
+        return response
+
+    @app.get("/mentions-legales", response_class=HTMLResponse)
+    def mentions_legales(request: Request):
+        return page(request, "mentions_legales.html", s=settings)
+
+    @app.get("/confidentialite", response_class=HTMLResponse)
+    def confidentialite(request: Request):
+        return page(request, "confidentialite.html", s=settings, conservation=settings.sauvegarde_jours)
 
     # --- Abonnement (formule pro, Stripe)
 

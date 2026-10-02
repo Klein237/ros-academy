@@ -38,3 +38,23 @@ class RosLabSpawner(DockerSpawner):
             await self._in_docker_thread(reseau.remove_network, self.user.name, self.hub_container)
         except Exception as exc:  # noqa: BLE001 - supprimé au prochain démarrage du Hub
             self.log.warning("Réseau de %s non supprimé : %s", self.user.name, exc)
+
+    async def delete_forever(self):
+        """Utilisateur supprimé du Hub (suppression du compte) : son dossier personnel est effacé."""
+        name = self.user.name
+        if self.lab_homes_dir:
+            removed = await asyncio.get_running_loop().run_in_executor(
+                None, disque.remove_home, self.lab_homes_dir, name)
+        else:
+            removed = await self._in_docker_thread(remove_volume, f"ros-lab-home-{name}")
+        self.log.info("Dossier personnel de %s %s", name, "effacé" if removed else "absent")
+
+
+def remove_volume(client, volume):
+    from docker.errors import NotFound
+
+    try:
+        client.remove_volume(volume, force=True)
+    except NotFound:
+        return False
+    return True

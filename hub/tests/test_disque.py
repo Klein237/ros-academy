@@ -104,3 +104,59 @@ def test_project_not_settable_is_an_explicit_error(fs, monkeypatch):
     monkeypatch.setattr(disque, "set_project", refuse)
     with pytest.raises(HomeError, match="projet 10001 impossible"):
         prepare_home(str(root), "u1", skel=str(skel))
+
+
+def test_remove_home_erases_the_folder_but_never_follows_links(tmp_path):
+    root = tmp_path / "homes"
+    (root / "u42" / "ws" / "src").mkdir(parents=True)
+    (root / "u42" / "ws" / "src" / "noeud.py").write_text("print(1)\n")
+    outside = tmp_path / "ailleurs"
+    outside.mkdir()
+    (outside / "garde.txt").write_text("x")
+    (root / "u42" / "lien").symlink_to(outside)
+    assert disque.remove_home(str(root), "u42") is True
+    assert not (root / "u42").exists()
+    assert (outside / "garde.txt").exists()  # le lien est supprimé, pas sa cible
+    assert disque.remove_home(str(root), "u42") is False  # déjà effacé
+    (root / "u7").symlink_to(outside)
+    with pytest.raises(HomeError, match="lien"):
+        disque.remove_home(str(root), "u7")
+    with pytest.raises(HomeError):
+        disque.remove_home(str(root), "../ailleurs")
+
+
+def test_spawner_delete_forever_removes_the_home(tmp_path):
+    import asyncio
+    from types import SimpleNamespace
+
+    from rosacademy_hub.spawner import RosLabSpawner
+
+    root = tmp_path / "homes"
+    (root / "u5").mkdir(parents=True)
+    spawner = RosLabSpawner(user=SimpleNamespace(name="u5", id=5, url="/user/u5/", escaped_name="u5"))
+    spawner.lab_homes_dir = str(root)
+    asyncio.run(spawner.delete_forever())
+    assert not (root / "u5").exists()
+
+
+def test_spawner_delete_forever_removes_the_docker_volume(monkeypatch):
+    import asyncio
+    from types import SimpleNamespace
+
+    from docker.errors import NotFound
+
+    from rosacademy_hub import spawner as spawner_mod
+
+    removed = []
+
+    class Client:
+        def remove_volume(self, name, force):
+            if name in removed:
+                raise NotFound("absent")
+            removed.append(name)
+
+    s = spawner_mod.RosLabSpawner(user=SimpleNamespace(name="u6", id=6, url="/user/u6/", escaped_name="u6"))
+    monkeypatch.setattr(spawner_mod.RosLabSpawner, "client", Client())
+    asyncio.run(s.delete_forever())
+    assert removed == ["ros-lab-home-u6"]
+    asyncio.run(s.delete_forever())  # déjà supprimé : pas d'erreur

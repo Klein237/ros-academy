@@ -4,7 +4,24 @@
 - Un serveur Linux avec Docker et le plugin Compose (≈16 vCPU / 64 Go pour 30 à 40 sessions).
 - Un nom de domaine pointant vers le serveur (ports 80 et 443 ouverts).
 
-## Installation
+## Installation en une commande (recommandé)
+
+Sur un serveur Ubuntu 22.04 ou 24.04 dont le nom de domaine (enregistrement DNS de type A) pointe vers lui :
+
+```bash
+git clone https://github.com/Klein237/ros-academy.git && cd ros-academy
+sudo scripts/installer-serveur.sh
+```
+
+Le script demande le domaine, l'adresse de l'administrateur et le SMTP (facultatif). Il installe ensuite :
+- Docker et la règle de pare-feu des labs (service `ros-academy-pare-feu`) ;
+- l'image ROS et les dossiers des étudiants limités à 1 Go (image XFS `/var/lib/ros-academy/homes.img`).
+
+Puis il génère `deploy/.env` (secrets aléatoires, droits 600), démarre la plateforme et vérifie le Hub, Comptes et le certificat HTTPS. Si le SMTP est renseigné, il envoie aussi un e-mail de test. Le nombre de labs simultanés est calculé d'après le serveur (`--sessions` pour le fixer).
+
+Le script est rejouable : un `deploy/.env` existant est gardé. Sans questions : `--non-interactif --domaine … --admin … --smtp-host … --smtp-user … --smtp-password …` (ou `--sans-smtp`) ; `--help` pour la liste. La CI installe son serveur de test avec ce script.
+
+## Installation pas à pas
 1. `docker build -t ros-lab:0.1.0 images/ros-lab`
 2. `cp deploy/.env.example deploy/.env` puis remplacer chaque secret par `openssl rand -hex 32`, `DOMAIN` par le domaine, et renseigner `ADMIN_EMAILS`, le SMTP et, si souhaité, GitHub / Google (voir « Comptes » ci-dessous).
 3. Dossiers des étudiants limités à 1 Go (voir « Espace disque des étudiants ») : `sudo apt install xfsprogs`, puis `sudo scripts/preparer-hote.sh --image /var/lib/ros-academy/homes.img --taille 200G` (ou `--partition /dev/sdX1`), et ajouter à `.env` les deux lignes `LAB_HOMES_DIR` et `COMPOSE_FILE` affichées par le script.
@@ -21,7 +38,7 @@
 - **Certificats** : un parcours terminé avec une note finale d'au moins `CERTIFICAT_NOTE_MIN` (10/20) donne droit à un certificat, demandé depuis la page Résultats (l'étudiant saisit le nom à imprimer). Il fige le nom, la note, la mention (≥ 12 Assez bien, ≥ 14 Bien, ≥ 16 Très bien) et les notes des modules. PDF : `/certificats/<numéro>.pdf` ; vérification publique (sans adresse e-mail) : `/certificats/<numéro>`, imprimée sur le PDF avec un QR code. Le formateur peut révoquer un certificat depuis la fiche de l'étudiant (fraude, erreur) : la page publique l'affiche alors comme révoqué et le PDF n'est plus servi.
 - **Tableau de bord formateur** (`/compte/formateur`, adresses de `ADMIN_EMAILS`, lien dans « Mon compte ») : chiffres clés (inscrits, actifs sur 7 jours, labs en cours, minutes du mois, parcours terminés, abonnés pro) ; par module : étudiants qui l'ont commencé, exercice réussi, « bloqués » (3 vérifications ratées ou plus), vérifications avant réussite, indices demandés, QCM et note moyens ; liste des étudiants (recherche, du plus récemment actif) avec fiche détaillée ; export CSV pour un tableur (`;`, UTF-8).
 - Changer la formule d'un étudiant : `docker compose exec postgres psql -U comptes -d comptes -c "UPDATE users SET formule='pro' WHERE email='…'"`.
-- Sauvegarde : `docker compose exec postgres pg_dump -U comptes comptes > comptes.sql`.
+- Sauvegarde : voir « Sauvegardes » ci-dessous.
 
 ## Abonnement pro (Stripe)
 Formule `pro` : lab sans limite de minutes, conteneur 2 vCPU / 4 Go. Proposée sur `/compte/abonnement` seulement quand les trois variables `STRIPE_*` sont renseignées.
@@ -99,6 +116,42 @@ Mesure de référence (2 octobre 2026, machine de 4 vCPU / 16 Go, plus petite qu
 - `docker logs hub` : connexions refusées (`Connexion par jeton refusée`), démarrages, arrêts pour inactivité, démarrages refusés pour quota.
 - `docker compose logs comptes` : liens de connexion (sans SMTP), arrêts pour quota (`Quota épuisé : serveur de u… arrêté`), erreurs d'envoi d'e-mail. Pas de journal d'accès : il contiendrait les liens de connexion.
 - `docker ps --filter name=jupyter-` : sessions actives.
+
+## Sauvegardes
+
+`scripts/sauvegarder.sh` (installé par `installer-serveur.sh`, tous les jours à 3 h 17 : `systemctl list-timers ros-academy-sauvegarde`) crée `/var/backups/ros-academy/<date>/`, lisible par root seulement. Il contient :
+- `comptes.dump` : la base des comptes (`pg_dump -Fc`, relue après écriture) ;
+- `contenus.tar.gz` : le dépôt Git des formations (brouillon, publié, historique) ;
+- `etudiants.tar.gz` : les dossiers des étudiants (`etudiants/` : un fichier par volume sans `LAB_HOMES_DIR`) ;
+- `env` : la configuration, secrets compris ;
+- `SHA256SUMS`.
+
+Les sauvegardes de plus de `SAUVEGARDE_JOURS` jours (14) sont effacées. **Copiez-les hors du serveur**, par exemple sur une Hetzner Storage Box ou un autre serveur, avec `--copier-vers utilisateur@hôte:dossier` (rsync, clé SSH installée avant) : remplacer `ExecStart` dans `/etc/systemd/system/ros-academy-sauvegarde.service`, ou ajouter une tâche. Sans copie extérieure, une panne du disque emporte aussi les sauvegardes. La CI sauvegarde et restaure la base à chaque PR.
+
+**Restaurer** (labs arrêtés : `cd deploy && docker compose stop hub`), avec `D=/var/backups/ros-academy/<date>` :
+```bash
+sudo sh -c "cd $D && sha256sum -c SHA256SUMS"
+# base des comptes
+sudo cat $D/comptes.dump | docker compose exec -T postgres pg_restore -U comptes -d comptes --clean --if-exists
+# formations
+docker compose stop contenus
+sudo cat $D/contenus.tar.gz | docker run --rm -i -v deploy_contenus-data:/data postgres:16-alpine sh -c 'rm -rf /data/* && tar -C /data -xzf -'
+# dossiers des étudiants (LAB_HOMES_DIR), puis leurs quotas (le Hub les reprend au démarrage de chaque lab)
+sudo tar -C /srv/ros-academy/homes --numeric-owner -xzf $D/etudiants.tar.gz
+for d in /srv/ros-academy/homes/u*; do sudo xfs_quota -x -c "project -s -p $d $((10000 + ${d##*/u}))" /srv/ros-academy/homes; done
+docker compose up -d
+```
+Sur un nouveau serveur : copiez `env` en `deploy/.env`, lancez `scripts/installer-serveur.sh` (il garde ce `.env`), puis restaurez comme ci-dessus.
+
+## Données personnelles (RGPD)
+
+- **Pages** `/mentions-legales` et `/confidentialite`, liées depuis le pied de page. Les informations de l'éditeur viennent de `EDITEUR_NOM`, `EDITEUR_ADRESSE`, `EDITEUR_CONTACT` (par défaut, la première adresse de `ADMIN_EMAILS`) et `HEBERGEUR`. Tant qu'elles sont vides, la page affiche « [à compléter : …] » : à remplir avant l'ouverture au public. Le texte de la politique décrit ce que la plateforme enregistre réellement ; relisez-le et adaptez-le à votre activité (au besoin avec un conseil juridique).
+- **Droits des utilisateurs**, depuis « Mon compte » :
+  - « Télécharger mes données » : un JSON avec le compte, les notes, les minutes de lab et les certificats ;
+  - « Supprimer mon compte » : confirmation par l'adresse e-mail, puis effacement du compte, des résultats, des certificats et du dossier du lab (le Hub le supprime avec l'utilisateur).
+  - La suppression est refusée tant qu'un abonnement pro est en cours ; les factures restent chez Stripe (obligation comptable).
+- **Cookies** : seulement des cookies de session (connexion) : aucun bandeau de consentement n'est nécessaire.
+- Les sauvegardes gardent les données d'un compte supprimé jusqu'à leur rotation (`SAUVEGARDE_JOURS`), ce qu'annonce la politique de confidentialité.
 
 ## Espace disque des étudiants
 

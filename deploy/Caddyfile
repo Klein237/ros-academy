@@ -74,7 +74,7 @@
 	}
 
 	# Connexion, compte, accès au lab, progression, notes et certificats (pages publiques de vérification)
-	@comptes path /connexion /connexion/* /deconnexion /compte /compte/* /api/comptes/* /static/comptes/* /certificats/*
+	@comptes path /connexion /connexion/* /deconnexion /compte /compte/* /api/comptes/* /static/comptes/* /certificats/* /mentions-legales /confidentialite
 	handle @comptes {
 		reverse_proxy comptes:8300
 	}

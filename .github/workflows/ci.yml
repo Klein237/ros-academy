@@ -19,6 +19,8 @@ jobs:
       - run: cd contenus && python -m pytest -v
       - run: cd comptes && python -m pytest -v
       - run: cd veille && python -m pytest -v
+      - run: shellcheck -S warning scripts/*.sh tests/scripts/*.sh
+      - run: bash tests/scripts/test_installer.sh
 
   lab-ui:
     runs-on: ubuntu-22.04
@@ -69,26 +71,14 @@ jobs:
         working-directory: lab-ui
         run: npm ci && npx playwright install --with-deps chromium
       - run: docker build -t ros-lab:0.1.0 images/ros-lab
-      - name: Secrets de test
+      - name: Installation du serveur (scripts/installer-serveur.sh)
         run: |
-          {
-            echo "DOMAIN=localhost"
-            echo "JWT_SECRET=$(openssl rand -hex 32)"
-            echo "JUPYTERHUB_CRYPT_KEY=$(openssl rand -hex 32)"
-            echo "HUB_ADMIN_TOKEN=$(openssl rand -hex 32)"
-            echo "POSTGRES_PASSWORD=$(openssl rand -hex 32)"
-            echo "ADMIN_EMAILS=admin-e2e@exemple.fr"
-            echo "GRAFANA_ADMIN_PASSWORD=$(openssl rand -hex 32)"
-            echo "VEILLE_SEUIL_DISQUE=1"   # alerte de disque immédiate : vérifiée dans Loki par l'e2e
-          } > deploy/.env
-      - name: Dossiers des étudiants limités à 1 Go (XFS, quotas de projet)
-        run: |
-          sudo apt-get install -y -q xfsprogs
-          sudo scripts/preparer-hote.sh --image /var/tmp/ros-academy-homes.img --taille 6G
-          echo "LAB_HOMES_DIR=/srv/ros-academy/homes" >> deploy/.env
-          echo "COMPOSE_FILE=docker-compose.yml:docker-compose.quotas.yml" >> deploy/.env
-      - run: cd deploy && docker compose up -d --build
-      - run: scripts/wait_for_hub.sh
+          # comme sur un vrai serveur : paquets, pare-feu des labs, dossiers à quota (XFS), .env, démarrage
+          sudo scripts/installer-serveur.sh --non-interactif --domaine localhost --admin admin-e2e@exemple.fr \
+            --sans-smtp --sessions 35 --homes-taille 6G \
+            --env VEILLE_SEUIL_DISQUE=1   # alerte de disque immédiate : vérifiée dans Loki par l'e2e
+          sudo chown "$USER" deploy/.env   # lu par les étapes de test
+          sudo iptables -C INPUT -i rl-+ -j DROP   # règle du pare-feu des labs posée
       - name: Site des formations prêt
         run: |
           for _ in $(seq 1 30); do curl -ksf https://localhost/ >/dev/null && curl -ksf https://localhost/connexion >/dev/null && exit 0; sleep 2; done
@@ -128,6 +118,19 @@ jobs:
           (cd deploy && IDLE_TIMEOUT_SECONDS=90 docker compose up -d hub)
           scripts/wait_for_hub.sh
           cd tests/integration && python -m pytest -v -m cull
+      - name: Sauvegarde et restauration
+        run: |
+          systemctl is-enabled ros-academy-sauvegarde.timer   # posé par l'installeur
+          sudo scripts/sauvegarder.sh --destination /tmp/sauvegardes --jours 2
+          D=$(sudo find /tmp/sauvegardes -mindepth 1 -maxdepth 1 -type d -name '20*' | sort | tail -1)
+          sudo sh -c "cd '$D' && sha256sum -c --quiet SHA256SUMS"
+          # la base se restaure dans une base vide et contient les comptes créés par les tests
+          sudo cat "$D/comptes.dump" | (cd deploy && docker compose exec -T postgres \
+            sh -c 'createdb -U comptes restauration && pg_restore -U comptes -d restauration')
+          test "$(cd deploy && docker compose exec -T postgres psql -U comptes -d restauration -tAc 'SELECT count(*) > 0 FROM users')" = t
+          sudo tar -tzf "$D/contenus.tar.gz" | grep -q parcours
+          sudo tar -tzf "$D/etudiants.tar.gz" > /dev/null
+          test "$(sudo stat -c %a "$D/env")" = 600
       - if: failure()
         uses: actions/upload-artifact@v4
         with:

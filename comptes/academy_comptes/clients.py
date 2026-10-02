@@ -44,6 +44,24 @@ class HubClient:
     def stop(self, name):
         self.http.delete(f"{self.base}/hub/api/users/{name}/server", headers=self.headers)
 
+    def delete_user(self, name, timeout=90):
+        """Arrête le serveur puis supprime l'utilisateur du Hub, qui efface son dossier personnel
+        (RosLabSpawner.delete_forever). Sans utilisateur au Hub (lab jamais ouvert) : rien à faire."""
+        from .rgpd import wait_until
+
+        url = f"{self.base}/hub/api/users/{name}"
+        self.http.delete(f"{url}/server", headers=self.headers)
+
+        def stopped():
+            r = self.http.get(url, headers=self.headers)
+            return r.status_code == 404 or (r.status_code == 200 and not (r.json().get("servers") or {}))
+
+        if not wait_until(stopped, timeout):
+            raise UpstreamError(409)
+        r = self.http.delete(url, headers=self.headers)
+        if r.status_code not in (204, 404):
+            raise UpstreamError(r.status_code)
+
 
 class ContenusClient:
     def __init__(self, base, secret, http=None):

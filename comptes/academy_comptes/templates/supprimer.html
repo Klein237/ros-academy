@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Supprimer mon compte{% endblock %}
+{% block content %}
+<h1>Supprimer mon compte</h1>
+<section class="card">
+  <p>La suppression est <strong>définitive</strong>. Elle efface :</p>
+  <ul>
+    <li>votre compte ({{ user.email }}) et vos moyens de connexion ;</li>
+    <li>vos résultats : QCM, exercices, notes ;</li>
+    <li>vos certificats (leur page de vérification n'existera plus) ;</li>
+    <li>les fichiers de votre lab.</li>
+  </ul>
+  <p>Pour garder une copie, <a href="/compte/donnees">téléchargez d'abord vos données</a> et récupérez vos fichiers depuis le lab.</p>
+  {% if erreur %}<p class="form-error" role="alert">{{ erreur }}</p>{% endif %}
+  <form method="post" action="/compte/supprimer">
+    <label>Recopiez votre adresse e-mail pour confirmer
+      <input type="email" name="confirmation" required autocomplete="off" placeholder="{{ user.email }}">
+    </label>
+    <p class="row"><button class="button danger" type="submit">Supprimer définitivement mon compte</button> <a class="button" href="/compte/">Annuler</a></p>
+  </form>
+</section>
+{% endblock %}
