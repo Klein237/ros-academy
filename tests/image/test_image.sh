@@ -31,14 +31,15 @@ odom_x=$(run 'academy-diffbot >/dev/null 2>&1 & sleep 3
   sleep 1.5; ros2 topic echo --once /odom | awk "/position:/ {p=1} p && /x:/ {print \$2; exit}"')
 awk -v x="$odom_x" 'BEGIN { exit !(x > 0.1) }' || fail "academy-diffbot n'avance pas (x=$odom_x)"
 # bureau graphique : RViz2 et Gazebo installés, écran virtuel démarré comme dans un lab
-# (racine en lecture seule, /tmp en tmpfs), fenêtre RViz créée avec le rendu logiciel
+# (racine en lecture seule, /tmp en tmpfs, dossier personnel inscriptible comme le volume
+# de l'étudiant), fenêtre RViz créée avec le rendu logiciel
 for pkg in rviz2 gazebo_ros joint_state_publisher_gui; do
   grep -qx "$pkg" <<<"$(run 'ros2 pkg list')" || fail "$pkg manquant"
 done
 for cmd in academy-bureau Xvnc websockify openbox gzserver; do
   run "command -v $cmd" >/dev/null || fail "$cmd manquant"
 done
-bureau=$(docker run --rm --read-only --tmpfs /tmp:size=512m "$IMG" bash -lc '
+bureau=$(docker run --rm --read-only --tmpfs /tmp:size=512m --tmpfs /home/etudiant:uid=1000,gid=1000 "$IMG" bash -lc '
   academy-bureau 6080 >/tmp/bureau.log 2>&1 &
   for _ in $(seq 1 50); do xdpyinfo >/dev/null 2>&1 && break; sleep 0.2; done
   xdpyinfo >/dev/null 2>&1 && echo ECRAN-OK
