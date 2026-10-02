@@ -23,6 +23,8 @@
 set -euo pipefail
 
 RACINE=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+# shellcheck source=scripts/lib-image-ros.sh
+. "$RACINE/scripts/lib-image-ros.sh"
 DEPLOY="$RACINE/deploy"
 ENV_FILE="$DEPLOY/.env"
 HOMES_IMG=/var/lib/ros-academy/homes.img
@@ -236,16 +238,10 @@ UNIT
 
 image_ros() {
   etape "Image ROS des labs"
-  local image
-  image=""
+  local image=""
   [ -f "$ENV_FILE" ] && image=$(valeur_env "$ENV_FILE" ROS_LAB_IMAGE)
-  image=${image:-ros-lab:0.1.0}
-  if docker image inspect "$image" >/dev/null 2>&1; then
-    info "$image déjà construite (docker build -t $image images/ros-lab pour la reconstruire)"
-  else
-    info "construction de $image (15 à 30 minutes la première fois)…"
-    docker build -q -t "$image" "$RACINE/images/ros-lab" >/dev/null
-  fi
+  image_ros_a_jour "${image:-ros-lab:0.1.0}" "$RACINE/images/ros-lab" -q >/dev/null
+  info "${image:-ros-lab:0.1.0} à jour"
 }
 
 dossiers_etudiants() {

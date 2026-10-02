@@ -15,6 +15,8 @@
 set -euo pipefail
 
 RACINE=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+# shellcheck source=scripts/lib-image-ros.sh
+. "$RACINE/scripts/lib-image-ros.sh"
 DEPLOY="$RACINE/deploy"
 ENV_FILE="$DEPLOY/.env"
 ADMIN="" INTERACTIF=1 COMMANDE=demarrer
@@ -109,13 +111,7 @@ image_ros() {
   etape "Image ROS des labs"
   local image
   image=$(valeur_env "$ENV_FILE" ROS_LAB_IMAGE)
-  image=${image:-ros-lab:0.1.0}
-  if docker image inspect "$image" >/dev/null 2>&1; then
-    info "$image déjà construite"
-  else
-    info "construction de $image : 15 à 40 minutes la première fois (ROS 2, RViz, Gazebo)…"
-    docker build -t "$image" "$RACINE/images/ros-lab"
-  fi
+  image_ros_a_jour "${image:-ros-lab:0.1.0}" "$RACINE/images/ros-lab"
 }
 
 demarrer() {
