@@ -1,3 +1,11 @@
+{
+	# Avec le tunnel (scripts/demarrer-local.sh --internet), l'en-tête X-Forwarded-Proto: https
+	# posé par cloudflared est gardé ; ailleurs, aucun relais n'est cru (valeur par défaut)
+	servers {
+		trusted_proxies static {$CADDY_RELAIS:127.0.0.1/32}
+	}
+}
+
 {$DOMAIN} {
 	encode zstd gzip
 

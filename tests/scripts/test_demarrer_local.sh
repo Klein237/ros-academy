@@ -35,11 +35,62 @@ if command -v docker >/dev/null && docker compose version >/dev/null 2>&1; then
   if (cd "$DEPOT/deploy" && docker compose --env-file "$E" config --quiet 2>"$TMP/err"); then ok "docker compose config"; else ko "docker compose config : $(head -3 "$TMP/err")"; fi
 fi
 
+echo "maj_env"
+maj_env "$E" DOMAIN essai-rapide.trycloudflare.com
+maj_env "$E" SMTP_FROM "'ROS Academy <moi@exemple.fr>'"
+maj_env "$E" COMPOSE_FILE docker-compose.yml:docker-compose.internet.yml
+egal "remplace" "$(valeur_env "$E" DOMAIN)" essai-rapide.trycloudflare.com
+egal "une seule ligne" "$(grep -c '^DOMAIN=' "$E")" 1
+egal "valeur entre apostrophes" "$(valeur_env "$E" SMTP_FROM)" "'ROS Academy <moi@exemple.fr>'"
+# shellcheck disable=SC1090
+egal "deploy/.env reste lisible par le shell" "$( (set -a; . "$E"; echo "$SMTP_FROM") 2>&1)" "ROS Academy <moi@exemple.fr>"
+egal "droits gardés" "$(stat -c %a "$E" 2>/dev/null || stat -f %Lp "$E")" 600
+if command -v docker >/dev/null && docker compose version >/dev/null 2>&1; then
+  if (cd "$DEPOT/deploy" && docker compose --env-file "$E" config 2>"$TMP/err" >"$TMP/config"); then ok "docker compose config (tunnel)"; else ko "docker compose config (tunnel) : $(head -3 "$TMP/err")"; fi
+  egal "Caddy en HTTP derrière le tunnel" "$(grep -c 'DOMAIN: http://$' "$TMP/config")" 1
+  egal "service du tunnel" "$(grep -c 'cloudflare/cloudflared:' "$TMP/config")" 1
+  if grep -q "SMTP_FROM: ROS Academy <moi@exemple.fr>" "$TMP/config"; then ok "expéditeur transmis tel quel"; else ko "expéditeur : $(grep SMTP_FROM "$TMP/config" | head -1)"; fi
+fi
+maj_env "$E" COMPOSE_FILE ""
+egal "valeur vide : ligne supprimée" "$(grep -c '^COMPOSE_FILE=' "$E")" 0
+
+echo "adresse_tunnel"
+JOURNAL='tunnel-1  | 2026-10-02T22:17:03Z INF Requesting new quick Tunnel on trycloudflare.com...
+tunnel-1  | 2026-10-02T22:17:05Z INF |  https://lot-pixel-quiet-river.trycloudflare.com                    |'
+egal "adresse lue dans le journal" "$(adresse_tunnel <<<"$JOURNAL")" https://lot-pixel-quiet-river.trycloudflare.com
+egal "pas encore d'adresse" "$(adresse_tunnel <<<'tunnel-1 | Requesting new quick Tunnel on trycloudflare.com...')" ""
+
+echo "configurer_acces"
+mkdir -p "$TMP/deploy"
+generer_env_local "$DEPOT/deploy/.env.example" "$TMP/deploy/.env" moi@exemple.fr 2
+(
+  ENV_FILE="$TMP/deploy/.env" INTERACTIF=0 MODE=internet
+  maj_env "$ENV_FILE" SMTP_HOST smtp.exemple.fr
+  configurer_acces >/dev/null
+  echo "$(valeur_env "$ENV_FILE" COMPOSE_FILE)|$(valeur_env "$ENV_FILE" CONNEXION_LIEN_A_L_ECRAN)"
+  maj_env "$ENV_FILE" DOMAIN lot-pixel-quiet-river.trycloudflare.com   # posé par ouvrir_tunnel
+  MODE="" configurer_acces >/dev/null; echo "$MODE"   # mode gardé dans deploy/.env
+  MODE=local; configurer_acces >/dev/null
+  echo "$(valeur_env "$ENV_FILE" DOMAIN)|$(grep -c '^COMPOSE_FILE=' "$ENV_FILE")|$(valeur_env "$ENV_FILE" CONNEXION_LIEN_A_L_ECRAN)"
+) > "$TMP/acces" 2>&1
+egal "--internet : tunnel, lien par e-mail" "$(sed -n 1p "$TMP/acces")" "docker-compose.yml:docker-compose.internet.yml|0"
+egal "mode gardé au démarrage suivant" "$(sed -n 2p "$TMP/acces")" internet
+egal "--local : retour à localhost" "$(sed -n 3p "$TMP/acces")" "localhost|0|1"
+(
+  ENV_FILE="$TMP/deploy/.env" INTERACTIF=0 MODE=internet
+  maj_env "$ENV_FILE" SMTP_HOST ""
+  configurer_acces
+) >/dev/null 2>&1 && ko "Internet sans SMTP accepté" || ok "Internet sans SMTP refusé en mode non interactif"
+
 echo "lire_options"
 lire_options arreter --admin a@b.fr --non-interactif
 egal "commande" "$COMMANDE" arreter
 egal "admin" "$ADMIN" a@b.fr
 ( lire_options inconnu ) >/dev/null 2>&1 && ko "argument inconnu accepté" || ok "argument inconnu refusé"
+lire_options --internet
+egal "--internet" "$MODE" internet
+lire_options --local
+egal "--local" "$MODE" local
 
 rm -rf "$TMP"
 [ "$echecs" = 0 ] && echo "TOUS LES TESTS DU DÉMARRAGE LOCAL PASSENT" || { echo "$echecs échec(s)"; exit 1; }
