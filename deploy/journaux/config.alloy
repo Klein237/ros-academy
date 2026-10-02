@@ -1,0 +1,47 @@
+// Alloy : lit les journaux de chaque conteneur (services et labs des étudiants) et les envoie à Loki.
+// Étiquettes : service (nom compose, ou « lab » pour un conteneur étudiant), conteneur, etudiant.
+// Découverte chaque seconde : un conteneur supprimé avant d'être lu perd ses journaux.
+
+discovery.docker "conteneurs" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "1s"
+}
+
+discovery.relabel "conteneurs" {
+  targets = []
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "conteneur"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/jupyter-(.+)"
+    target_label  = "etudiant"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/jupyter-.+"
+    target_label  = "service"
+    replacement   = "lab"
+  }
+}
+
+loki.source.docker "conteneurs" {
+  host             = "unix:///var/run/docker.sock"
+  targets          = discovery.docker.conteneurs.targets
+  relabel_rules    = discovery.relabel.conteneurs.rules
+  refresh_interval = "1s"
+  forward_to       = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

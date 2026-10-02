@@ -58,6 +58,21 @@
 		respond 404
 	}
 
+	# Journaux (Grafana) : administrateur seulement. L'en-tête d'identité venu du
+	# navigateur est retiré ; seul celui posé par Contenus (session de l'éditeur) passe.
+	# « route » garde cet ordre : sinon Caddy place forward_auth avant request_header,
+	# qui effacerait alors l'en-tête posé par Contenus.
+	handle /admin/journaux* {
+		route {
+			request_header -X-Academy-Admin
+			forward_auth contenus:8200 {
+				uri /admin/api/verifier
+				copy_headers X-Academy-Admin
+			}
+			reverse_proxy grafana:3000
+		}
+	}
+
 	# Connexion, compte, accès au lab, progression et notes
 	@comptes path /connexion /connexion/* /deconnexion /compte /compte/* /api/comptes/* /static/comptes/*
 	handle @comptes {
