@@ -86,6 +86,37 @@ def test_dds_is_isolated_between_students(student, hub):
     assert "/secret_a" not in out_b
 
 
+def test_students_cannot_reach_each_other(student, hub, docker_client):
+    a, b = student(), student()
+    nets_a = docker_client.containers.get(f"jupyter-{a}").attrs["NetworkSettings"]["Networks"]
+    nets_b = docker_client.containers.get(f"jupyter-{b}").attrs["NetworkSettings"]["Networks"]
+    assert set(nets_a) == {f"ros-lab-{a}"} and set(nets_b) == {f"ros-lab-{b}"}
+    ip_b = nets_b[f"ros-lab-{b}"]["IPAddress"]
+    probe = "import socket,sys; socket.create_connection((sys.argv[1], int(sys.argv[2])), 5)"
+    # témoin positif : le Hub atteint le serveur Jupyter de b
+    code, _ = docker_client.containers.get("hub").exec_run(["python3", "-c", probe, ip_b, "8888"])
+    assert code == 0
+    out = hub.run(
+        a,
+        f"python3 -c \"{probe}\" hub 8081 && echo HUB-\"\"OK || echo HUB-\"\"KO; "
+        f"python3 -c \"{probe}\" {ip_b} 8888 2>/dev/null && echo PAIR-\"\"ON || echo PAIR-\"\"OFF; "
+        f"python3 -c \"{probe}\" jupyter-{b} 8888 2>/dev/null && echo NOM-\"\"ON || echo NOM-\"\"OFF",
+        timeout=40,
+    )
+    assert "HUB-OK" in out
+    assert "PAIR-OFF" in out and "PAIR-ON" not in out
+    assert "NOM-OFF" in out and "NOM-ON" not in out
+
+
+def test_lab_network_is_removed_after_stop(student, hub, docker_client):
+    name = student()
+    net = docker_client.networks.get(f"ros-lab-{name}")
+    assert net.attrs["Internal"] is True
+    assert {c["Name"] for c in net.attrs["Containers"].values()} == {"hub", f"jupyter-{name}"}
+    hub.stop(name)
+    assert not docker_client.networks.list(names=[f"ros-lab-{name}"])
+
+
 def test_rosbridge_is_reachable_through_proxy(student):
     name = student()
     ws = websocket.create_connection(

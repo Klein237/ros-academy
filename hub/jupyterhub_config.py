@@ -3,6 +3,7 @@ import sys
 
 from rosacademy_hub.auth import ComptesJWTAuthenticator
 from rosacademy_hub.quotas import apply_limits, make_quota_hook
+from rosacademy_hub.reseau import DEFAULT_SUBNETS, reconnect_at_startup
 
 c = get_config()  # noqa: F821
 
@@ -33,10 +34,12 @@ c.Authenticator.enable_auth_state = True
 c.Authenticator.auto_login = True
 
 # --- Conteneurs étudiants
-c.JupyterHub.spawner_class = "dockerspawner.DockerSpawner"
+# Un réseau Docker par étudiant, que seul le Hub rejoint (rosacademy_hub/reseau.py)
+c.JupyterHub.spawner_class = "rosacademy_hub.spawner.RosLabSpawner"
+c.RosLabSpawner.hub_container = env("HUB_CONTAINER", "hub")
+c.RosLabSpawner.lab_subnets = env("LAB_SUBNETS", DEFAULT_SUBNETS)
 c.DockerSpawner.image = env("ROS_LAB_IMAGE", "ros-lab:0.1.0")
 c.DockerSpawner.cmd = ["jupyterhub-singleuser"]
-c.DockerSpawner.network_name = "ros-lab-net"
 c.DockerSpawner.use_internal_ip = True
 c.DockerSpawner.remove = True
 c.DockerSpawner.notebook_dir = "/home/etudiant"
@@ -60,6 +63,15 @@ c.Spawner.start_timeout = 120
 c.Spawner.http_timeout = 90
 
 # --- Hub
+# Conteneur du Hub recréé : il rejoint les réseaux des labs encore en cours
+try:
+    from docker import APIClient
+    from docker.utils import kwargs_from_env
+
+    reconnect_at_startup(APIClient(version="auto", **kwargs_from_env()),
+                         c.RosLabSpawner.hub_container)
+except Exception as exc:  # noqa: BLE001 - Docker injoignable : les démarrages échoueront de toute façon
+    print(f"Réseaux des labs non vérifiés au démarrage : {exc}", file=sys.stderr)
 c.JupyterHub.hub_ip = "0.0.0.0"
 c.JupyterHub.hub_connect_ip = "hub"
 c.JupyterHub.active_server_limit = int(env("ACTIVE_SERVER_LIMIT", "35"))
