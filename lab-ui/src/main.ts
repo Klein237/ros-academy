@@ -11,6 +11,7 @@ import { normalizePath, parentOf } from "./paths";
 import { RosbridgeClient } from "./ros/rosbridge";
 import { Session } from "./session";
 import { IdleBanner, QuotaBanner } from "./ui/banner";
+import { DesktopPanel } from "./ui/desktop";
 import { button, h, toast } from "./ui/dom";
 import { EditorPanel } from "./ui/editor";
 import { FileTree } from "./ui/files";
@@ -36,6 +37,7 @@ const stopButton = button("Arrêter le lab", () => {
   if (confirm("Arrêter le lab ? Vos fichiers sont conservés.")) void session.stop("user");
 });
 const show2d = button("Vue 2D", () => toggle2d(), { attrs: { "aria-pressed": "true" } });
+const showDesktop = button("Bureau (RViz, Gazebo)", () => toggleDesktop(), { attrs: { "aria-pressed": "false" } });
 const workspace = h("main", { class: "workspace" });
 app.append(
   h(
@@ -44,6 +46,7 @@ app.append(
     h("strong", { text: "Lab ROS 2" }),
     user,
     h("span", { class: "spacer" }),
+    showDesktop,
     show2d,
     stopButton,
   ),
@@ -64,8 +67,24 @@ for (const event of ACTIVITY_EVENTS) {
 }
 
 /** État de l'espace de travail, recréé à chaque démarrage du conteneur. */
-let current: { terminals: TerminalPanel; ros: RosbridgeClient; view: View2D; editor: EditorPanel } | null = null;
+let current: {
+  terminals: TerminalPanel;
+  ros: RosbridgeClient;
+  view: View2D;
+  editor: EditorPanel;
+  desktop: DesktopPanel;
+} | null = null;
 let openedFromUrl = false;
+
+/** Le bureau graphique prend la place de l'éditeur (les terminaux restent dessous). */
+function toggleDesktop(): void {
+  if (!current) return;
+  const show = !current.desktop.visible;
+  if (show) current.desktop.show();
+  else current.desktop.hide();
+  current.editor.el.hidden = show;
+  showDesktop.setAttribute("aria-pressed", String(show));
+}
 
 function toggle2d(): void {
   const view = workspace.querySelector<HTMLElement>(".view2d");
@@ -132,6 +151,7 @@ async function startWorkspace(): Promise<void> {
     onStatus: (status) => view.setStatus(status),
   });
   const view = new View2D(ros);
+  const desktop = new DesktopPanel({ url: () => hub.wsUrl("bureau/") });
   const side = h("div", { class: "side" });
   if (moduleClient && config.moduleId) {
     const panel = new ModulePanel({
@@ -150,11 +170,19 @@ async function startWorkspace(): Promise<void> {
   side.append(view.el);
   workspace.replaceChildren(
     files.el,
-    h("div", { class: "center" }, editor.el, h("div", { class: "splitter", attrs: { "aria-hidden": "true" } }), terminals.el),
+    h(
+      "div",
+      { class: "center" },
+      editor.el,
+      desktop.el,
+      h("div", { class: "splitter", attrs: { "aria-hidden": "true" } }),
+      terminals.el,
+    ),
     side,
   );
   setupSplitter(workspace.querySelector(".center")!);
-  current = { terminals, ros, view, editor };
+  current = { terminals, ros, view, editor, desktop };
+  showDesktop.setAttribute("aria-pressed", "false");
   idle.start();
   watchQuota();
   await Promise.all([files.load(), terminals.restore().catch(() => undefined)]);
@@ -190,6 +218,7 @@ function teardown(): void {
   current.terminals.disposeAll();
   current.view.stop();
   current.ros.close();
+  current.desktop.dispose();
   current = null;
 }
 

@@ -10,6 +10,9 @@ RUN apt-get update \
       python3-pip python3-colcon-common-extensions build-essential \
       ros-humble-rosbridge-suite ros-humble-demo-nodes-py ros-humble-demo-nodes-cpp \
       ros-humble-action-tutorials-py ros-humble-xacro ros-humble-joint-state-publisher \
+      ros-humble-rviz2 ros-humble-gazebo-ros-pkgs ros-humble-joint-state-publisher-gui \
+      tigervnc-standalone-server python3-websockify openbox x11-utils x11-xserver-utils \
+      libgl1-mesa-dri fonts-dejavu-core \
       nano vim-tiny less \
  && SUDO_FORCE_REMOVE=yes apt-get purge -y --auto-remove sudo \
  && rm -rf /var/lib/apt/lists/*
@@ -22,6 +25,7 @@ RUN pip3 install --no-cache-dir \
 
 COPY ros.sh /etc/profile.d/ros.sh
 COPY academy_diffbot.py /usr/local/bin/academy-diffbot
+COPY academy_bureau.sh /usr/local/bin/academy-bureau
 COPY jupyter_server_config.py /etc/jupyter/jupyter_server_config.py
 RUN echo 'source /etc/profile.d/ros.sh' >> /etc/bash.bashrc \
  && useradd --create-home --uid 1000 --shell /bin/bash etudiant

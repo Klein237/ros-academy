@@ -415,7 +415,7 @@ ros2 topic echo --once /tf_static             # la transformation fixe du laser
 
 `tf2_echo` affiche la rotation sous trois formes (quaternion, angles en radians et en degrés) : vérifiez que le *yaw* correspond au `theta` renvoyé par `ros2 service call /get_pose my_interface/srv/GetPose`.
 
-Sur votre machine, RViz2 dessine l'arbre des repères (affichage « TF ») ; `ros2 run tf2_tools view_frames` en produit un PDF.
+Pour **voir** l'arbre : ouvrez le **Bureau (RViz, Gazebo)**, lancez `rviz2` dans un terminal, choisissez *Fixed Frame* `odom` et ajoutez l'affichage **TF** ; envoyez un goal et regardez `base_link` et `laser` se déplacer ensemble. Ajoutez aussi un affichage **PointStamped** sur `/obstacle` : le point doit rester 1,15 m devant le robot.
 
 ## 7. Rappel
 

@@ -1,0 +1,157 @@
+/**
+ * Bureau graphique du lab (RViz, Gazebo) : l'écran X virtuel du conteneur (Xvnc), affiché
+ * par noVNC. Le flux VNC passe par jupyter-server-proxy (/user/<nom>/bureau/), authentifié
+ * par le jeton du Lab UI ; le bureau démarre au premier accès.
+ */
+import { Backoff, realTimers, type Timers } from "../backoff";
+import { button, h } from "./dom";
+
+export type DesktopStatus = "arrete" | "connexion" | "connecte" | "reconnexion";
+
+const STATUS_TEXT: Record<DesktopStatus, string> = {
+  arrete: "arrêté",
+  connexion: "démarrage…",
+  connecte: "connecté",
+  reconnexion: "reconnexion…",
+};
+
+/** Ce que le panneau utilise du client RFB de noVNC (remplaçable dans les tests). */
+export interface RfbLike {
+  scaleViewport: boolean;
+  resizeSession: boolean;
+  addEventListener(type: "connect" | "disconnect", listener: (ev: Event) => void): void;
+  disconnect(): void;
+  focus(): void;
+}
+
+export type RfbFactory = (target: HTMLElement, url: string) => RfbLike;
+
+export interface DesktopOptions {
+  url: () => Promise<string>;
+  rfb?: RfbFactory;
+  timers?: Timers;
+}
+
+async function noVncFactory(): Promise<RfbFactory> {
+  // chargé à la première ouverture du bureau seulement
+  const { default: RFB } = await import("@novnc/novnc");
+  return (target, url) => new RFB(target, url, { shared: true }) as unknown as RfbLike;
+}
+
+export class DesktopPanel {
+  readonly el = h("section", { class: "panel desktop", attrs: { "aria-label": "Bureau graphique", hidden: "" } });
+  private readonly screen = h("div", { class: "desktop-screen", attrs: { "aria-label": "Écran du lab" } });
+  private readonly statusPill = h("span", { class: "pill", text: STATUS_TEXT.arrete });
+  private readonly hint = h("p", {
+    class: "desktop-hint muted small",
+    text: "Lancez rviz2 ou gazebo dans un terminal : leurs fenêtres s'affichent ici.",
+  });
+  private rfb: RfbLike | null = null;
+  private wanted = false;
+  private retryTimer: unknown = null;
+  private readonly backoff = new Backoff(1000, 15_000);
+  private readonly timers: Timers;
+  status: DesktopStatus = "arrete";
+
+  constructor(private readonly options: DesktopOptions) {
+    this.timers = options.timers ?? realTimers;
+    this.el.append(
+      h(
+        "div",
+        { class: "panel-header" },
+        h("h2", { text: "Bureau" }),
+        this.statusPill,
+        h("span", { class: "spacer" }),
+        button("Reconnecter", () => this.reconnect(), { class: "small" }),
+      ),
+      this.hint,
+      this.screen,
+    );
+  }
+
+  get visible(): boolean {
+    return !this.el.hidden;
+  }
+
+  /** Affiche le bureau et s'y connecte (le premier accès démarre l'écran virtuel). */
+  show(): void {
+    this.el.hidden = false;
+    this.wanted = true;
+    if (this.rfb) this.rfb.focus();
+    else if (this.retryTimer === null) void this.connect();
+  }
+
+  /** Masque le panneau ; la connexion reste ouverte pour retrouver les fenêtres telles quelles. */
+  hide(): void {
+    this.el.hidden = true;
+  }
+
+  reconnect(): void {
+    this.closeRfb();
+    this.backoff.reset();
+    this.wanted = true;
+    void this.connect();
+  }
+
+  dispose(): void {
+    this.wanted = false;
+    if (this.retryTimer !== null) this.timers.clearTimeout(this.retryTimer);
+    this.retryTimer = null;
+    this.closeRfb();
+    this.setStatus("arrete");
+  }
+
+  private closeRfb(): void {
+    const rfb = this.rfb;
+    this.rfb = null;
+    if (rfb) {
+      try {
+        rfb.disconnect();
+      } catch {
+        // déjà fermé
+      }
+    }
+  }
+
+  private async connect(): Promise<void> {
+    this.retryTimer = null;
+    this.setStatus(this.status === "arrete" ? "connexion" : "reconnexion");
+    let rfb: RfbLike;
+    try {
+      const factory = this.options.rfb ?? (await noVncFactory());
+      rfb = factory(this.screen, await this.options.url());
+    } catch (e) {
+      console.warn("Bureau : connexion impossible", e);
+      this.scheduleRetry();
+      return;
+    }
+    rfb.scaleViewport = true; // l'écran tient dans le panneau
+    rfb.resizeSession = true; // et le bureau prend la taille du panneau
+    rfb.addEventListener("connect", () => {
+      if (this.rfb !== rfb) return;
+      this.backoff.reset();
+      this.setStatus("connecte");
+    });
+    rfb.addEventListener("disconnect", () => {
+      if (this.rfb !== rfb) return;
+      this.rfb = null;
+      this.scheduleRetry();
+    });
+    this.rfb = rfb;
+  }
+
+  private scheduleRetry(): void {
+    if (!this.wanted) {
+      this.setStatus("arrete");
+      return;
+    }
+    this.setStatus("reconnexion");
+    this.retryTimer = this.timers.setTimeout(() => void this.connect(), this.backoff.next());
+  }
+
+  private setStatus(status: DesktopStatus): void {
+    this.status = status;
+    this.statusPill.textContent = STATUS_TEXT[status];
+    this.statusPill.dataset.status = status;
+  }
+}

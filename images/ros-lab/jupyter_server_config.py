@@ -18,5 +18,12 @@ c.ServerProxy.servers = {
         ],
         "timeout": 60,
         "launcher_entry": {"enabled": False},
-    }
+    },
+    # Bureau graphique (RViz, Gazebo) : Xvnc + openbox, en WebSocket pour noVNC (Lab UI).
+    # Démarré au premier accès ; /user/<nom>/bureau/ est authentifié comme le reste du serveur.
+    "bureau": {
+        "command": ["academy-bureau", "{port}"],
+        "timeout": 30,
+        "launcher_entry": {"enabled": False},
+    },
 }

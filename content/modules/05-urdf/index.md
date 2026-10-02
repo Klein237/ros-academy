@@ -357,16 +357,29 @@ ros2 run tf2_tools view_frames
 
 `tf2_echo` affiche la position de la roulette dans le repère `base_link`. `view_frames` enregistre l'arbre des repères dans `frames_*.pdf` : ouvrez-le depuis l'arborescence des fichiers.
 
-## 8. Sur votre machine : visualiser dans RViz2
+## 8. Visualiser le robot dans RViz2
 
-Le lab n'a pas d'interface graphique ; avec ROS 2 installé chez vous (`ros-humble-desktop`), ajoutez deux nœuds au fichier de lancement :
+Le lab a un bureau graphique : cliquez sur **Bureau (RViz, Gazebo)** dans la barre du haut. Il prend la place de l'éditeur ; les terminaux restent dessous, et les fenêtres lancées depuis un terminal s'y affichent.
 
-```python
-Node(package='joint_state_publisher_gui', executable='joint_state_publisher_gui'),
-Node(package='rviz2', executable='rviz2', output='screen'),
+Dans un terminal, lancez la description du robot ; dans un second terminal, RViz2 :
+
+```bash
+ros2 launch my_robot_description display.launch.py
 ```
 
-Remplacez `joint_state_publisher` par `joint_state_publisher_gui` (des curseurs pour faire tourner les roues). Dans RViz2, ajoutez un *Display* **RobotModel** (il lit `/robot_description`) et un *Display* **TF** pour voir les repères.
+```bash
+rviz2
+```
+
+Dans RViz2 :
+
+- **Fixed Frame** (en haut à gauche) : `base_link` ;
+- **Add** → **RobotModel**, puis *Description Topic* : `/robot_description` ;
+- **Add** → **TF** pour voir les repères de chaque link.
+
+Pour faire tourner les roues avec des **curseurs**, remplacez dans `display.launch.py` le nœud `joint_state_publisher` par `joint_state_publisher_gui` (même nom pour `package` et `executable`), recompilez et relancez : une fenêtre de curseurs s'ouvre sur le bureau.
+
+Le rendu est logiciel (sans carte graphique) : un peu lent, mais suffisant pour une description de robot.
 
 ## 9. Rappel et ouverture
 
