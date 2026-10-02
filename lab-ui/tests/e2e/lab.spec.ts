@@ -192,7 +192,8 @@ test("module Nœud : paquet, nœud écrit dans l'éditeur, build, run et echo @r
   await page.getByRole("button", { name: "Nouveau terminal" }).click();
   await expect(page.locator(".terminals .tab")).toHaveCount(2);
   await expect(activeTerminal(page)).toHaveAttribute("data-status", "open");
-  await run(page, "source ~/ws/install/setup.bash && ros2 topic echo --once /bavardage", "data: Bonjour ROS", 60_000);
+  // avec le type, echo attend que le nœud lancé dans l'autre terminal soit découvert
+  await run(page, "source ~/ws/install/setup.bash && ros2 topic echo --once /bavardage std_msgs/msg/String", "data: Bonjour ROS", 60_000);
 });
 
 test("vue 2D : le robot simulé avance avec la téléopération @ros", async ({ page }) => {
