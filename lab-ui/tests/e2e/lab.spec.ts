@@ -250,6 +250,38 @@ test("bureau graphique : un programme du terminal s'affiche dans le bureau", asy
   expect(errors).toEqual([]);
 });
 
+test("bureau graphique : agrandi, puis dans une fenêtre séparée qui revient à sa fermeture", async ({ page }) => {
+  const name = student();
+  const errors = watchErrors(page);
+  await openLab(page, name);
+  await openDesktop(page);
+  const files = page.locator(".panel.files");
+  const terminals = page.locator(".panel.terminals");
+  await page.getByRole("button", { name: "Agrandir" }).click();
+  await expect(files).toBeHidden();
+  await expect(terminals).toBeHidden();
+  await page.getByRole("button", { name: "Réduire" }).click();
+  await expect(files).toBeVisible();
+  await expect(terminals).toBeVisible();
+  // fenêtre séparée : elle se connecte, le lab lâche sa connexion
+  const [popup] = await Promise.all([
+    page.waitForEvent("popup"),
+    page.getByRole("button", { name: "Fenêtre séparée" }).click(),
+  ]);
+  await expect(popup.locator(".desktop .pill")).toHaveText("connecté", { timeout: 60_000 });
+  await expect(page.locator(".desktop .pill")).toHaveText("dans une fenêtre séparée");
+  await expect(page.locator(".desktop-detached")).toBeVisible();
+  // la fenêtre séparée suit sa taille : l'écran du lab prend les dimensions de la fenêtre
+  await popup.setViewportSize({ width: 900, height: 600 });
+  await expect.poll(() => popup.locator(".desktop-screen canvas").evaluate((c) => (c as HTMLCanvasElement).width), {
+    timeout: 20_000,
+  }).toBeLessThan(1000);
+  await popup.close();
+  await expect(page.locator(".desktop .pill")).toHaveText("connecté", { timeout: 30_000 });
+  await expect(page.locator(".desktop-detached")).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
 test("bureau graphique : RViz2 s'ouvre avec le rendu logiciel @ros @rviz", async ({ page }) => {
   const name = student();
   await openLab(page, name);

@@ -23,3 +23,9 @@ it("?inactivite ne peut que raccourcir le délai", () => {
   expect(readConfig("?inactivite=1").idleStopMs).toBe(IDLE_STOP_MS);
   expect(readConfig("?inactivite=abc").idleStopMs).toBe(IDLE_STOP_MS);
 });
+
+it("?vue=bureau : la fenêtre séparée du bureau", () => {
+  expect(readConfig("").desktopOnly).toBe(false);
+  expect(readConfig("?vue=bureau").desktopOnly).toBe(true);
+  expect(readConfig("?vue=autre").desktopOnly).toBe(false);
+});

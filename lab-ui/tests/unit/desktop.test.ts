@@ -135,4 +135,64 @@ describe("DesktopPanel", () => {
     await vi.advanceTimersByTimeAsync(20_000);
     expect(FakeRfb.all).toHaveLength(2);
   });
+
+  it("fenêtre séparée : lâche la connexion, puis la reprend quand on ramène le bureau", async () => {
+    let reattach = 0;
+    const p = new DesktopPanel({
+      url: async () => "wss://ok",
+      rfb: (target, u) => new FakeRfb(target, u),
+      onDetach: () => {},
+      onReattach: () => (reattach += 1),
+    });
+    p.show();
+    await vi.advanceTimersByTimeAsync(0);
+    const first = last();
+    first.emit("connect");
+    p.setDetached(true);
+    expect(first.disconnected).toBe(true);
+    expect(p.status).toBe("separe");
+    first.emit("disconnect"); // pas de nouvel essai pendant que l'autre fenêtre a le bureau
+    p.hide();
+    p.show();
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(FakeRfb.all).toHaveLength(1);
+    const back = [...p.el.querySelectorAll("button")].find((b) => b.textContent === "Ramener ici")!;
+    back.click();
+    expect(reattach).toBe(1);
+    p.setDetached(false);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(FakeRfb.all).toHaveLength(2);
+    expect(p.status).toBe("connexion");
+  });
+
+  it("détaché pendant l'attente du jeton : aucune connexion ouverte", async () => {
+    let release: (u: string) => void = () => {};
+    const p = new DesktopPanel({
+      url: () => new Promise<string>((res) => (release = res)),
+      rfb: (target, u) => new FakeRfb(target, u),
+    });
+    p.show();
+    await vi.advanceTimersByTimeAsync(0);
+    p.setDetached(true);
+    release("wss://tard");
+    await vi.advanceTimersByTimeAsync(0);
+    expect(FakeRfb.all).toHaveLength(0);
+  });
+
+  it("boutons Agrandir et Fenêtre séparée seulement quand la page les gère", () => {
+    const labels = (p: DesktopPanel) => [...p.el.querySelectorAll("button")].map((b) => b.textContent);
+    expect(labels(panel())).not.toContain("Agrandir");
+    let maximized = 0;
+    const p = new DesktopPanel({
+      url: async () => "wss://ok",
+      rfb: (target, u) => new FakeRfb(target, u),
+      onMaximize: () => (maximized += 1),
+      onDetach: () => {},
+    });
+    expect(labels(p)).toEqual(expect.arrayContaining(["Agrandir", "Fenêtre séparée"]));
+    [...p.el.querySelectorAll("button")].find((b) => b.textContent === "Agrandir")!.click();
+    expect(maximized).toBe(1);
+    p.setMaximized(true);
+    expect(labels(p)).toContain("Réduire");
+  });
 });
