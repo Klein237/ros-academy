@@ -11,4 +11,5 @@ COPY content /srv/seed
 WORKDIR /srv/app
 ENV CONTENT_ROOT=/srv/contenus CONTENT_SEED=/srv/seed PYTHONUNBUFFERED=1
 EXPOSE 8200
-CMD ["uvicorn", "academy_content.app:app_from_env", "--factory", "--host", "0.0.0.0", "--port", "8200", "--proxy-headers", "--forwarded-allow-ips", "*"]
+# Pas de journal d'accès : il contiendrait le jeton de /admin/login?token=…
+CMD ["uvicorn", "academy_content.app:app_from_env", "--factory", "--host", "0.0.0.0", "--port", "8200", "--proxy-headers", "--forwarded-allow-ips", "*", "--no-access-log"]
