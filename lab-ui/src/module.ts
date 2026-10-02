@@ -1,6 +1,8 @@
 /** Installer le module dans le conteneur de l'étudiant, sans jamais écraser son travail. */
 import type { ContentsClient } from "./api/contents";
+import { HttpError } from "./api/hub";
 import type { ModuleClient, ModuleFile } from "./api/module";
+import { sleep } from "./backoff";
 import { joinPath, normalizePath } from "./paths";
 
 type Contents = Pick<ContentsClient, "exists" | "mkdirp" | "writeFile" | "rename">;
@@ -9,13 +11,56 @@ export const labDir = (id: string) => `ws/${id}`;
 export const exerciseDir = (id: string) => `ws/${id}-exercice`;
 export const academyDir = (id: string) => `.academy/${id}`;
 
-/** Copie lab/ dans ~/ws/<id> seulement si ce dossier n'existe pas encore. */
-export async function installLab(contents: Contents, id: string, files: ModuleFile[]): Promise<"installe" | "existant"> {
+/**
+ * Copie lab/ dans ~/ws/<id> seulement si ce dossier n'existe pas encore.
+ * `reprise` : le dossier a été créé par une tentative précédente interrompue ;
+ * on complète alors les fichiers absents, sans réécrire ceux déjà présents.
+ */
+export async function installLab(
+  contents: Contents,
+  id: string,
+  files: ModuleFile[],
+  reprise = false,
+): Promise<"installe" | "existant"> {
   const dir = labDir(id);
-  if (await contents.exists(dir)) return "existant";
+  if (!reprise && (await contents.exists(dir))) return "existant";
   await contents.mkdirp(dir);
-  for (const f of files) await contents.writeFile(joinPath(dir, f.path), f.content);
+  for (const f of files) {
+    const path = joinPath(dir, f.path);
+    if (reprise && (await contents.exists(path))) continue;
+    await contents.writeFile(path, f.content);
+  }
   return "installe";
+}
+
+/** Erreur passagère (réseau, serveur qui démarre) : la requête peut être retentée. */
+export function isTransient(e: unknown): boolean {
+  if (e instanceof HttpError) return e.status === 0 || e.status >= 500;
+  return e instanceof TypeError; // fetch : réseau coupé
+}
+
+/**
+ * installLab avec nouvelles tentatives sur erreur passagère (juste après le démarrage du conteneur).
+ * Si ~/ws/<id> n'existait pas au départ, tout ce qu'il contient vient de nos tentatives :
+ * une nouvelle tentative complète l'installation au lieu de la croire terminée.
+ */
+export async function installLabWithRetry(
+  contents: Contents,
+  id: string,
+  load: () => Promise<ModuleFile[]>,
+  { delays = [500, 1000, 2000, 4000], wait = sleep }: { delays?: number[]; wait?: (ms: number) => Promise<void> } = {},
+): Promise<"installe" | "existant"> {
+  let neuf: boolean | null = null;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      if (neuf === null) neuf = !(await contents.exists(labDir(id)));
+      return await installLab(contents, id, await load(), neuf);
+    } catch (e) {
+      if (attempt >= delays.length || !isTransient(e)) throw e;
+      console.warn(`Installation du module ${id}, tentative ${attempt + 1} échouée :`, e);
+      await wait(delays[attempt]);
+    }
+  }
 }
 
 /**

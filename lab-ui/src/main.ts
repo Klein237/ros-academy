@@ -6,7 +6,7 @@ import { ModuleClient } from "./api/module";
 import { TerminalsClient } from "./api/terminals";
 import { readConfig } from "./config";
 import { ACTIVITY_EVENTS, IdleWatcher } from "./idle";
-import { ensureCourseFile, exerciseDir, installLab, labDir } from "./module";
+import { ensureCourseFile, exerciseDir, installLabWithRetry, labDir } from "./module";
 import { normalizePath, parentOf } from "./paths";
 import { RosbridgeClient } from "./ros/rosbridge";
 import { Session } from "./session";
@@ -81,8 +81,10 @@ async function prepareModule(): Promise<string> {
   if (!moduleClient || !config.moduleId) return "";
   const id = config.moduleId;
   try {
-    await installLab(contents, id, await moduleClient.labFiles());
-  } catch {
+    const client = moduleClient;
+    await installLabWithRetry(contents, id, () => client.labFiles());
+  } catch (e) {
+    console.warn(`Module ${id} non installé :`, e);
     toast(`Le module ${id} n'a pas pu être chargé.`, "error");
     return "";
   }
