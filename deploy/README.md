@@ -55,6 +55,7 @@ curl -sk -X POST -H "Authorization: token $HUB_ADMIN_TOKEN" https://$DOMAIN/user
 
 ## Formations (service Contenus)
 - Le site des formations est servi à la racine (`/`, `/parcours/…`, `/modules/…`). Son contenu vit dans un dépôt Git, dans le volume `contenus-data`, initialisé au premier démarrage avec le parcours « ROS 2 Fondamentaux » du dossier `content/`.
+- Le dossier `content/` n'est copié qu'à cette initialisation : sur un déploiement existant, un module ajouté ensuite au dépôt (par exemple `06-parametres`, `07-tf2`) se crée dans l'éditeur (copier ses fichiers depuis `content/modules/<id>/`), puis s'ajoute au parcours et se publie.
 - **Éditer** : connectez-vous avec une adresse de `ADMIN_EMAILS`, puis « Mon compte » → « Éditer les formations » (la session de l'éditeur dure 12 h). En secours, un lien administrateur valable 5 minutes peut être émis à la main :
   ```bash
   set -a; . deploy/.env; set +a
@@ -71,6 +72,7 @@ curl -sk -X POST -H "Authorization: token $HUB_ADMIN_TOKEN" https://$DOMAIN/user
 - Développement : `cd lab-ui && npm ci && npm test` (tests unitaires), `npm run dev` (serveur Vite), `npm run build`.
 - Tests de bout en bout, contre un déploiement lancé : `set -a; . deploy/.env; set +a; cd lab-ui && npx playwright test --grep-invert @limit`.
 - Robot simulé pour la vue 2D : `academy-diffbot` dans un terminal (`/cmd_vel` → `/odom`).
+- **Bureau graphique** (bouton « Bureau (RViz, Gazebo) ») : écran X virtuel du conteneur (Xvnc + openbox, `academy-bureau`), rendu OpenGL logiciel (llvmpipe), affiché par noVNC à la place de l'éditeur. Il démarre au premier accès, par jupyter-server-proxy (`/user/<nom>/bureau/`, authentifié comme le reste du serveur) ; les programmes lancés dans les terminaux (`DISPLAY=:1`) s'y affichent : `rviz2`, `gazebo`, `joint_state_publisher_gui`. Le flux VNC n'est joignable qu'en local dans le conteneur, à travers ce proxy. Sans carte graphique, RViz consomme une bonne part du vCPU de la formule gratuite ; Gazebo avec son interface (`gzclient`) est lent : préférer `gzserver` (simulation sans interface) et RViz pour visualiser.
 
 ## Mettre à jour l'image étudiant
 Construire `ros-lab:<nouvelle version>`, changer `ROS_LAB_IMAGE` dans `.env`, `docker compose up -d`. Les conteneurs déjà lancés gardent l'ancienne image jusqu'à leur arrêt ; les volumes ne sont pas touchés.

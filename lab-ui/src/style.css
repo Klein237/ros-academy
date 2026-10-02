@@ -264,6 +264,28 @@ button.link {
   min-height: 0;
 }
 
+/* Bureau graphique (noVNC) : à la place de l'éditeur */
+.desktop .panel-header .spacer {
+  flex: 1;
+}
+
+.desktop-hint {
+  margin: 0;
+  padding: 4px 12px 6px;
+}
+
+.desktop-screen {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #1b1f24;
+}
+
+.pill[data-status="connecte"] {
+  color: var(--accent);
+}
+
 .splitter {
   background: var(--line);
   cursor: row-resize;

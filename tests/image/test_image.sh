@@ -30,4 +30,28 @@ odom_x=$(run 'academy-diffbot >/dev/null 2>&1 & sleep 3
   ros2 topic pub -r 10 -t 20 /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.5}}" >/dev/null &
   sleep 1.5; ros2 topic echo --once /odom | awk "/position:/ {p=1} p && /x:/ {print \$2; exit}"')
 awk -v x="$odom_x" 'BEGIN { exit !(x > 0.1) }' || fail "academy-diffbot n'avance pas (x=$odom_x)"
+# bureau graphique : RViz2 et Gazebo installés, écran virtuel démarré comme dans un lab
+# (racine en lecture seule, /tmp en tmpfs, dossier personnel inscriptible comme le volume
+# de l'étudiant), fenêtre RViz créée avec le rendu logiciel
+for pkg in rviz2 gazebo_ros joint_state_publisher_gui; do
+  grep -qx "$pkg" <<<"$(run 'ros2 pkg list')" || fail "$pkg manquant"
+done
+for cmd in academy-bureau Xvnc websockify openbox gzserver; do
+  run "command -v $cmd" >/dev/null || fail "$cmd manquant"
+done
+bureau=$(docker run --rm --read-only --tmpfs /tmp:size=512m --tmpfs /home/etudiant:uid=1000,gid=1000 "$IMG" bash -lc '
+  academy-bureau 6080 >/tmp/bureau.log 2>&1 &
+  for _ in $(seq 1 50); do xdpyinfo >/dev/null 2>&1 && break; sleep 0.2; done
+  xdpyinfo >/dev/null 2>&1 && echo ECRAN-OK
+  rviz2 >/tmp/rviz.log 2>&1 &
+  RVIZ=$!
+  for _ in $(seq 1 60); do xwininfo -root -tree | grep -qi rviz && break; sleep 1; done
+  sleep 5
+  xwininfo -root -tree | grep -qi rviz && kill -0 $RVIZ 2>/dev/null && echo RVIZ-OK || tail -20 /tmp/rviz.log
+  timeout 25 gzserver --verbose >/tmp/gz.log 2>&1 & GZ=$!
+  sleep 15; kill -0 $GZ 2>/dev/null && echo GZSERVER-OK || tail -20 /tmp/gz.log
+  kill $GZ $RVIZ 2>/dev/null || true')
+grep -q ECRAN-OK <<<"$bureau" || fail "écran virtuel non démarré : $bureau"
+grep -q RVIZ-OK <<<"$bureau" || fail "RViz2 ne s'ouvre pas sur le bureau : $bureau"
+grep -q GZSERVER-OK <<<"$bureau" || fail "gzserver ne démarre pas : $bureau"
 echo "ALL IMAGE TESTS PASSED"

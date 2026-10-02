@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { expect, test, type APIRequestContext } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 import {
   activeTerminal,
   admin,
@@ -209,6 +209,55 @@ test("vue 2D : le robot simulé avance avec la téléopération @ros", async ({ 
   await expect.poll(async () => Number(await canvas.getAttribute("data-x"))).toBeGreaterThan(0.2);
   await page.getByRole("button", { name: "Topics actifs" }).click();
   await expect(page.locator(".topic-list")).toContainText("/odom");
+});
+
+/** Couleurs de l'écran du bureau (canvas de noVNC), échantillonnées sur une grille. */
+async function desktopColors(page: Page): Promise<string[]> {
+  return page.locator(".desktop-screen canvas").evaluate((el) => {
+    const canvas = el as HTMLCanvasElement;
+    const ctx = canvas.getContext("2d");
+    if (!ctx || canvas.width === 0) return [];
+    const colors = new Set<string>();
+    for (let gx = 1; gx < 20; gx++) {
+      for (let gy = 1; gy < 20; gy++) {
+        const [r, g, b] = ctx.getImageData(Math.floor((canvas.width * gx) / 20), Math.floor((canvas.height * gy) / 20), 1, 1).data;
+        colors.add(`${r},${g},${b}`);
+      }
+    }
+    return [...colors];
+  });
+}
+
+async function openDesktop(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Bureau (RViz, Gazebo)" }).click();
+  await expect(page.locator(".panel.editor")).toBeHidden(); // le bureau prend la place de l'éditeur
+  await expect(page.locator(".desktop .pill")).toHaveText("connecté", { timeout: 60_000 });
+}
+
+test("bureau graphique : un programme du terminal s'affiche dans le bureau", async ({ page }) => {
+  const name = student();
+  const errors = watchErrors(page);
+  await openLab(page, name);
+  await openDesktop(page);
+  // le terminal dessine sur l'écran du lab (DISPLAY=:1) : le fond du bureau devient rouge
+  await run(page, "xsetroot -solid '#ff0000' && echo FOND-\"\"OK", "FOND-OK");
+  await expect.poll(() => desktopColors(page), { timeout: 20_000 }).toEqual(["255,0,0"]);
+  // retour à l'éditeur, puis au bureau : la même session est gardée
+  await page.getByRole("button", { name: "Bureau (RViz, Gazebo)" }).click();
+  await expect(page.locator(".panel.editor")).toBeVisible();
+  await page.getByRole("button", { name: "Bureau (RViz, Gazebo)" }).click();
+  await expect(page.locator(".desktop .pill")).toHaveText("connecté");
+  expect(errors).toEqual([]);
+});
+
+test("bureau graphique : RViz2 s'ouvre avec le rendu logiciel @ros @rviz", async ({ page }) => {
+  const name = student();
+  await openLab(page, name);
+  await openDesktop(page);
+  await run(page, "xsetroot -solid '#1b1f24'; rviz2 > /tmp/rviz.log 2>&1 &");
+  // une fenêtre RViz dessinée : bien plus de couleurs que le fond uni du bureau
+  await expect.poll(async () => (await desktopColors(page)).length, { timeout: 90_000 }).toBeGreaterThan(8);
+  await run(page, "pgrep -x rviz2 >/dev/null && echo RVIZ-\"\"VIVANT", "RVIZ-VIVANT");
 });
 
 test("serveur plein → écran d'attente avec nouvel essai @limit", async ({ page }) => {
