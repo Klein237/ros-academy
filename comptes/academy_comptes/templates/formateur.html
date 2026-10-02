@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Tableau de bord formateur{% endblock %}
+{% block main_class %}page wide{% endblock %}
+{% macro rate(n, total) -%}
+{%- set pct = (100 * n / total) | round | int if total else 0 -%}
+<span class="rate"><progress class="rate-bar" max="{{ total or 1 }}" value="{{ n }}" aria-hidden="true"></progress><span class="rate-value">{{ n }} / {{ total }} · {{ pct }} %</span></span>
+{%- endmacro %}
+{% macro fr(x, digits=1) -%}{{ ('%.' ~ digits ~ 'f') | format(x) | replace('.', ',') if x is not none else '—' }}{%- endmacro %}
+{% block content %}
+<div class="trainer-head">
+  <h1>Tableau de bord formateur</h1>
+  {% if all_parcours | length > 1 %}
+  <form method="get" class="row">
+    <label class="inline">Parcours
+      <select name="parcours">{% for p in all_parcours %}<option value="{{ p.id }}"{% if parcours and p.id == parcours.id %} selected{% endif %}>{{ p.titre }}</option>{% endfor %}</select>
+    </label>
+    <button class="button" type="submit">Afficher</button>
+  </form>
+  {% endif %}
+</div>
+{% if parcours %}<p class="muted">{{ parcours.titre }} — {{ parcours.modules | length }} modules.</p>{% endif %}
+
+<section class="tiles" aria-label="Chiffres clés">
+  <div class="tile"><span class="tile-value">{{ resume.inscrits }}</span><span class="tile-label">étudiants inscrits</span></div>
+  <div class="tile"><span class="tile-value">{{ resume.actifs }}</span><span class="tile-label">actifs ces 7 derniers jours</span></div>
+  <div class="tile"><span class="tile-value">{{ resume.labs if resume.labs is not none else '—' }}</span><span class="tile-label">labs en cours</span></div>
+  <div class="tile"><span class="tile-value">{{ resume.minutes }}</span><span class="tile-label">minutes de lab ce mois-ci</span></div>
+  <div class="tile"><span class="tile-value">{{ resume.termines }}</span><span class="tile-label">parcours terminés</span></div>
+  <div class="tile"><span class="tile-value">{{ resume.pro }}</span><span class="tile-label">en formule pro</span></div>
+</section>
+
+<section class="card">
+  <h2>Modules</h2>
+  <div class="table-scroll">
+  <table class="results trainer-modules">
+    <thead><tr><th>Module</th><th>Commencé</th><th>Exercice réussi</th><th>Bloqués</th><th>Vérifications avant réussite</th><th>Indices 1 / 2 / 3</th><th>QCM moyen</th><th>Note moyenne</th></tr></thead>
+    <tbody>
+    {% for m in modules %}
+      <tr>
+        <td><a href="/modules/{{ m.module.id }}/">{{ m.module.titre }}</a></td>
+        <td>{{ m.commences }}</td>
+        <td>{{ rate(m.reussis, m.commences) }}</td>
+        <td>{% if m.bloques %}<strong class="warn">{{ m.bloques }}</strong>{% else %}0{% endif %}</td>
+        <td>{{ fr(m.verifications_avant_reussite) }}</td>
+        <td>{{ m.indices | join(' / ') }}</td>
+        <td>{{ fr(m.qcm_moyen) }}{% if m.qcm_moyen is not none %} <span class="muted small">/ 20</span>{% endif %}</td>
+        <td>{{ fr(m.note_moyenne, 2) }}{% if m.note_moyenne is not none %} <span class="muted small">/ 20</span>{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" class="muted">Aucun module publié.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="muted small">« Commencé » : QCM tenté, indice demandé ou exercice vérifié ; « bloqués » : {{ stuck_after }} vérifications ratées ou plus, sans réussite. Les taux sont calculés sur les étudiants qui ont commencé le module.</p>
+</section>
+
+<section class="card">
+  <div class="trainer-head">
+    <h2>Étudiants</h2>
+    <form method="get" class="row" role="search">
+      {% if parcours %}<input type="hidden" name="parcours" value="{{ parcours.id }}">{% endif %}
+      <input type="search" name="q" value="{{ q }}" placeholder="Nom ou adresse" aria-label="Rechercher un étudiant">
+      <button class="button" type="submit">Rechercher</button>
+      <a class="button" href="/compte/formateur/etudiants.csv{% if parcours %}?parcours={{ parcours.id | urlencode }}{% endif %}">Exporter (CSV)</a>
+    </form>
+  </div>
+  {% if q %}<p class="muted small">{{ students | length }} sur {{ total }} étudiants pour « {{ q }} ». <a href="?{% if parcours %}parcours={{ parcours.id | urlencode }}{% endif %}">Tout afficher</a></p>{% endif %}
+  <div class="table-scroll">
+  <table class="results trainer-students">
+    <thead><tr><th>Étudiant</th><th>Formule</th><th>Dernière activité</th><th>Lab ce mois</th><th>Modules terminés</th><th>Note finale</th></tr></thead>
+    <tbody>
+    {% for st in students %}
+      <tr>
+        <td><a href="/compte/formateur/etudiants/{{ st.user.id }}{% if parcours %}?parcours={{ parcours.id | urlencode }}{% endif %}">{{ st.user.nom or st.user.email }}</a>{% if st.user.nom %}<br><span class="muted small">{{ st.user.email }}</span>{% endif %}
+          {% if st.modules | selectattr('bloque') | list %}<br><span class="warn small">bloqué sur {{ st.modules | selectattr('bloque') | map(attribute='module.titre') | join(', ') }}</span>{% endif %}</td>
+        <td>{{ st.user.formule }}</td>
+        <td>{{ st.derniere_activite.strftime('%d/%m/%Y %H:%M') if st.derniere_activite else '—' }}</td>
+        <td>{{ st.minutes_mois }} min</td>
+        <td>{{ rate(st.termines, st.modules | length) }}</td>
+        <td>{% if st.finale is not none %}<strong>{{ fr(st.finale, 2) }}</strong> / 20{% else %}<span class="muted">—</span>{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">Aucun étudiant.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="muted small">Du plus récemment actif au moins actif. Heures en temps universel (UTC).</p>
+</section>
+{% endblock %}

@@ -63,15 +63,21 @@ test("parcours terminé : la note finale pondérée s'affiche sur la page Résul
   const qcm01 = Number(/Note : ([\d,]+) \/ 20/.exec(result ?? "")![1].replace(",", "."));
   const hint = await page.request.post("/api/comptes/exercices/01-initiation/indices/1", { headers: origin });
   expect(hint.ok()).toBe(true);
-  // la réussite est déclarée comme le fait le Lab UI après check.sh (exercice complet dans le lab : test @ros)
-  const done = (id: string) => page.request.post(`/api/comptes/exercices/${id}/reussite`, { headers: origin });
-  expect((await done("01-initiation")).ok()).toBe(true);
+  // le navigateur ne peut pas déclarer une réussite : seule la vérification du serveur l'enregistre
+  const declared = await page.request.post("/api/comptes/exercices/01-initiation/reussite", { headers: origin });
+  expect([404, 405]).toContain(declared.status());
+  // réussites enregistrées directement en base (l'exercice vérifié par le serveur : test @ros du module Nœud)
+  const userId = Number(((await (await page.request.get("/api/comptes/moi")).json()).hub as string).slice(1));
+  const done = (id: string) =>
+    sql(`INSERT INTO exercises (user_id, module, indices, verifications, reussi_le) VALUES (${userId}, '${id}', 0, 1, now())
+         ON CONFLICT (user_id, module) DO UPDATE SET reussi_le = now();`);
+  done("01-initiation");
 
   const notes: Record<string, number> = { "01-initiation": 0.5 * qcm01 + 0.5 * 20 * 0.85 };
   for (const m of modules.slice(1)) {
     const r = await page.request.post(`/api/comptes/qcm/${m.id}`, { data: { reponses: {} }, headers: origin });
     const qcm = (await r.json()).note as number;
-    expect((await done(m.id)).ok()).toBe(true);
+    done(m.id);
     notes[m.id] = 0.5 * qcm + 0.5 * 20;
   }
 
@@ -156,6 +162,35 @@ test("session du lab expirée → « Se reconnecter » rouvre la même page du l
   await waitReady(page);
   await expect(page.locator(".module-panel")).toContainText("Écrire un nœud");
   await expect(page.locator(".account-note")).toBeHidden(); // connecté : progression enregistrée
+});
+
+test("le formateur suit un étudiant dans son tableau de bord ; un étudiant n'y a pas accès", async ({ browser }) => {
+  const trainerEmail = process.env.ADMIN_EMAILS?.split(",")[0]?.trim();
+  test.skip(!trainerEmail, "ADMIN_EMAILS non défini");
+  const student = await browser.newPage({ ignoreHTTPSErrors: true });
+  const email = newEmail();
+  await loginStudent(student, email, "/modules/01-initiation/");
+  const origin = { Origin: new URL(student.url()).origin };
+  await student.request.post("/api/comptes/qcm/01-initiation", { data: { reponses: {} }, headers: origin });
+  await student.request.post("/api/comptes/exercices/01-initiation/indices/1", { headers: origin });
+  expect((await student.goto("/compte/formateur"))?.status()).toBe(403);
+
+  const trainer = await browser.newPage({ ignoreHTTPSErrors: true });
+  await loginStudent(trainer, trainerEmail!, "/compte/");
+  await trainer.getByRole("link", { name: "Tableau de bord formateur" }).click();
+  await expect(trainer.locator("h1")).toHaveText("Tableau de bord formateur");
+  await trainer.getByLabel("Rechercher un étudiant").fill(email);
+  await trainer.getByRole("button", { name: "Rechercher" }).click();
+  await trainer.getByRole("link", { name: email }).click();
+  const row = trainer.getByRole("row", { name: /Initiation/ });
+  await expect(row).toContainText("(1/2)"); // une tentative de QCM
+  await expect(row).toContainText("1 / 3"); // un indice
+  await expect(row).toContainText("en cours");
+  const csv = await trainer.request.get("/compte/formateur/etudiants.csv");
+  expect(csv.headers()["content-type"]).toContain("text/csv");
+  expect(await csv.text()).toContain(email);
+  await student.close();
+  await trainer.close();
 });
 
 test("une adresse administratrice ouvre l'éditeur depuis son compte", async ({ page }) => {

@@ -1,6 +1,6 @@
 /**
  * Service Comptes (même origine, cookie de session) : quota de minutes, file d'attente,
- * indices comptés, réussite de l'exercice et explication.
+ * indices comptés, vérification de l'exercice par le serveur et explication.
  */
 
 export interface Me {
@@ -17,6 +17,15 @@ export interface QueueTicket {
   ticket: string;
   position: number;
   a_vous: boolean;
+}
+
+export interface Verification {
+  /** Exercice réussi (maintenant ou lors d'une vérification précédente). */
+  reussi: boolean;
+  /** Résultat de cette vérification-ci. */
+  verification: boolean;
+  journal: string;
+  indices: number;
 }
 
 export interface ExerciseState {
@@ -75,8 +84,9 @@ export class ComptesClient {
     return (await this.call<{ html: string }>(`/exercices/${encodeURIComponent(moduleId)}/indices/${n}`, "POST")).html;
   }
 
-  async reportSuccess(moduleId: string): Promise<void> {
-    await this.call(`/exercices/${encodeURIComponent(moduleId)}/reussite`, "POST");
+  /** check.sh officiel lancé par le serveur sur le workspace enregistré (compilation comprise). */
+  verify(moduleId: string): Promise<Verification> {
+    return this.call(`/exercices/${encodeURIComponent(moduleId)}/verification`, "POST");
   }
 
   async explanation(moduleId: string): Promise<string> {

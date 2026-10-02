@@ -10,7 +10,7 @@
   <p>Lab : <strong>{{ restantes }} min</strong> restantes ce mois-ci ({{ utilisees }} min utilisées).</p>
   <progress class="meter" max="{{ restantes + utilisees }}" value="{{ utilisees }}" aria-label="Minutes de lab utilisées">{{ utilisees }} min</progress>
   {% endif %}
-  <p class="row"><a class="button primary" href="/compte/lab">Ouvrir le lab</a> <a class="button" href="/compte/resultats">Mes résultats</a>{% if admin %} <a class="button" href="/compte/admin">Éditer les formations</a>{% endif %}</p>
+  <p class="row"><a class="button primary" href="/compte/lab">Ouvrir le lab</a> <a class="button" href="/compte/resultats">Mes résultats</a>{% if admin %} <a class="button" href="/compte/formateur">Tableau de bord formateur</a> <a class="button" href="/compte/admin">Éditer les formations</a>{% endif %}</p>
   <form method="post" action="/deconnexion"><button class="button" type="submit">Se déconnecter</button></form>
 </section>
 {% endblock %}

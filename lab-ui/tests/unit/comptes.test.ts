@@ -20,18 +20,18 @@ it("401 → NoAccount ; autre erreur → ComptesError avec le statut", async () 
   expect((err as ComptesError).status).toBe(403);
 });
 
-it("réussite et file d'attente en POST / DELETE", async () => {
+it("vérification et file d'attente en POST / DELETE", async () => {
   const calls: [string, string][] = [];
   const c = new ComptesClient(async (url, init) => {
     calls.push([init?.method ?? "", url]);
     return json(200, { ticket: "t/1", position: 2, a_vous: false });
   });
-  await c.reportSuccess("02-noeud");
+  await c.verify("02-noeud");
   await c.joinQueue();
   await c.beat("t/1");
   await c.leaveQueue("t/1");
   expect(calls).toEqual([
-    ["POST", "/api/comptes/exercices/02-noeud/reussite"],
+    ["POST", "/api/comptes/exercices/02-noeud/verification"],
     ["POST", "/api/comptes/file"],
     ["POST", "/api/comptes/file/t%2F1"],
     ["DELETE", "/api/comptes/file/t%2F1"],

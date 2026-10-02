@@ -5,21 +5,23 @@ import hmac
 import json
 import logging
 import re
+import threading
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote, urlsplit
 
 import httpx
 import jwt
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from sqlalchemy import select
 
-from . import grading
+from . import formateur, grading
 from .billing import PAYING, BadSignature, StripeClient, StripeError, apply_subscription, format_price, verify_signature
 from .auth import (
     OAUTH_COOKIE,
@@ -364,6 +366,61 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
             raise HTTPException(503, "Stripe injoignable : l'événement sera renvoyé") from None
         return {"recu": True}
 
+    # --- Tableau de bord formateur (adresses ADMIN_EMAILS)
+
+    def require_trainer(user):
+        if user.email not in settings.admin_emails:
+            raise HTTPException(403, "Le tableau de bord est réservé aux formateurs")
+
+    def trainer_data(db, parcours_id):
+        try:
+            all_parcours = contenus.parcours()
+        except Exception:  # noqa: BLE001
+            raise HTTPException(503, "Les parcours sont momentanément indisponibles") from None
+        parcours = next((p for p in all_parcours if p["id"] == parcours_id), all_parcours[0] if all_parcours else None)
+        return all_parcours, parcours, formateur.students(db, parcours, settings.admin_emails, utcnow())
+
+    @app.get("/compte/formateur", response_class=HTMLResponse)
+    def trainer(request: Request, parcours: str = "", q: str = "", user=Depends(current_user), db=Depends(get_db)):
+        if not user:
+            return login_redirect("/compte/formateur")
+        require_trainer(user)
+        all_parcours, current, students = trainer_data(db, parcours)
+        try:
+            labs = sum(1 for name in hub.running_servers() if HUB_NAME_RE.fullmatch(name))
+        except Exception:  # noqa: BLE001 - Hub injoignable : le reste du tableau reste utile
+            labs = None
+        return page(request, "formateur.html", user=user, all_parcours=all_parcours, parcours=current, q=q,
+                    resume=formateur.overview(students, labs, utcnow()),
+                    modules=formateur.module_stats(students, current),
+                    students=sorted((st for st in students if formateur.matches(st, q)),
+                                    key=lambda st: st.derniere_activite or datetime.min, reverse=True),
+                    total=len(students),
+                    stuck_after=formateur.STUCK_AFTER)
+
+    @app.get("/compte/formateur/etudiants/{student_id}", response_class=HTMLResponse)
+    def trainer_student(request: Request, student_id: int, parcours: str = "", user=Depends(current_user),
+                        db=Depends(get_db)):
+        if not user:
+            return login_redirect(f"/compte/formateur/etudiants/{student_id}")
+        require_trainer(user)
+        _, current, students = trainer_data(db, parcours)
+        student = next((st for st in students if st.user.id == student_id), None)
+        if not student:
+            raise HTTPException(404, "Étudiant introuvable")
+        return page(request, "formateur_etudiant.html", user=user, parcours=current, s=student,
+                    restantes=minutes_left(db, student.user, settings), stuck_after=formateur.STUCK_AFTER)
+
+    @app.get("/compte/formateur/etudiants.csv")
+    def trainer_csv(parcours: str = "", user=Depends(current_user), db=Depends(get_db)):
+        if not user:
+            return login_redirect("/compte/formateur")
+        require_trainer(user)
+        _, current, students = trainer_data(db, parcours)
+        name = f"etudiants-{current['id'] if current else 'parcours'}-{utcnow():%Y-%m-%d}.csv"
+        return Response(formateur.to_csv(students, current), media_type="text/csv; charset=utf-8",
+                        headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
     # --- Résultats
 
     def progress(db, user, module):
@@ -453,14 +510,33 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         db.commit()
         return {"n": n, "html": hint["html"], "indices": ex.indices}
 
-    @app.post("/api/comptes/exercices/{module}/reussite")
-    def exercise_success(module: str, user=Depends(require_user), db=Depends(get_db), _=Depends(same_origin)):
+    verifying = set()  # une vérification à la fois par étudiant
+    verifying_lock = threading.Lock()
+
+    @app.post("/api/comptes/exercices/{module}/verification")
+    def exercise_verification(module: str, user=Depends(require_user), db=Depends(get_db), _=Depends(same_origin)):
+        """La réussite n'est enregistrée que si le check.sh officiel réussit hors du conteneur de l'étudiant."""
         check_module(module)
+        with verifying_lock:
+            if user.id in verifying:
+                raise HTTPException(409, "Une vérification est déjà en cours")
+            verifying.add(user.id)
+        try:
+            result = contenus.verify(module, user.hub_name)
+        except UpstreamError as exc:
+            if exc.status == 429:
+                raise HTTPException(429, "Le serveur de vérification est occupé : réessayez dans un instant") from None
+            raise HTTPException(404 if exc.status == 404 else 502, "Vérification indisponible") from None
+        finally:
+            with verifying_lock:
+                verifying.discard(user.id)
         ex = exercise_row(db, user, module)
-        if not ex.reussi_le:
+        ex.verifications = (ex.verifications or 0) + 1
+        if result.get("ok") is True and not ex.reussi_le:
             ex.reussi_le = utcnow()
         db.commit()
-        return {"reussi": True, "indices": ex.indices}
+        return {"reussi": bool(ex.reussi_le), "verification": bool(result.get("ok") is True),
+                "journal": str(result.get("journal", ""))[-4000:], "indices": ex.indices}
 
     @app.get("/api/comptes/exercices/{module}/explication")
     def exercise_explanation(module: str, user=Depends(require_user), db=Depends(get_db)):

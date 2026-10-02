@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ s.user.nom or s.user.email }} · Tableau de bord formateur{% endblock %}
+{% block main_class %}page wide{% endblock %}
+{% macro fr(x, digits=1) -%}{{ ('%.' ~ digits ~ 'f') | format(x) | replace('.', ',') if x is not none else '—' }}{%- endmacro %}
+{% block content %}
+<p><a href="/compte/formateur{% if parcours %}?parcours={{ parcours.id | urlencode }}{% endif %}">← Tableau de bord</a></p>
+<h1>{{ s.user.nom or s.user.email }}</h1>
+<p class="muted">{{ s.user.email }} · formule {{ s.user.formule }} · inscrit le {{ s.user.cree_le.strftime('%d/%m/%Y') }} ·
+  dernière activité {{ s.derniere_activite.strftime('%d/%m/%Y %H:%M') if s.derniere_activite else '—' }} (UTC) ·
+  lab : {{ s.minutes_mois }} min ce mois-ci{% if restantes is not none %}, {{ restantes }} restantes{% endif %}</p>
+
+<section class="tiles" aria-label="Résumé">
+  <div class="tile"><span class="tile-value">{{ s.termines }} / {{ s.modules | length }}</span><span class="tile-label">modules terminés</span></div>
+  <div class="tile"><span class="tile-value">{{ fr(s.finale, 2) }}</span><span class="tile-label">note finale sur 20</span></div>
+</section>
+
+<section class="card">
+  <h2>{{ parcours.titre if parcours else "Modules" }}</h2>
+  <div class="table-scroll">
+  <table class="results">
+    <thead><tr><th>Module</th><th>QCM (tentatives)</th><th>Exercice</th><th>Vérifications</th><th>Indices</th><th>Note du module</th></tr></thead>
+    <tbody>
+    {% for m in s.modules %}
+      <tr>
+        <td>{{ m.module.titre }} <span class="muted small">coef. {{ m.module.coef | round(1) | replace('.0', '') }}</span></td>
+        <td>{% if m.tentatives %}{{ m.tentatives | map('round', 1) | map('string') | map('replace', '.', ',') | join(' puis ') }} <span class="muted small">({{ m.tentatives | length }}/2)</span>{% else %}<span class="muted">pas tenté</span>{% endif %}</td>
+        <td>{% if m.reussi_le %}réussi le {{ m.reussi_le.strftime('%d/%m/%Y') }}{% elif m.bloque %}<strong class="warn">bloqué</strong>{% elif m.commence %}en cours{% else %}<span class="muted">pas commencé</span>{% endif %}</td>
+        <td>{{ m.verifications }}</td>
+        <td>{{ m.indices }} / 3</td>
+        <td>{% if m.grade.termine %}<strong>{{ fr(m.grade.note, 2) }}</strong> / 20{% else %}<span class="muted">—</span>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

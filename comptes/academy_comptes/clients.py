@@ -66,6 +66,11 @@ class ContenusClient:
     def explanation(self, module):
         return self._json(self.http.get(f"{self.base}/api/contenus/modules/{module}/explication", headers=self.headers))
 
+    def verify(self, module, student):
+        """check.sh officiel sur le workspace de l'étudiant (compilation comprise : jusqu'à quelques minutes)."""
+        return self._json(self.http.post(f"{self.base}/api/contenus/modules/{module}/verifier",
+                                         json={"etudiant": student}, headers=self.headers, timeout=600))
+
     def exercise(self, module):
         return self._json(self.http.get(f"{self.base}/api/contenus/modules/{module}/exercice"))
 

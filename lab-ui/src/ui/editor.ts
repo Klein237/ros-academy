@@ -150,6 +150,14 @@ export class EditorPanel {
     toast(`${baseName(entry.path)} enregistré`);
   }
 
+  /** Enregistre tous les fichiers modifiés ; faux si l'un d'eux n'a pas pu l'être. */
+  async saveAll(): Promise<boolean> {
+    for (const entry of [...this.open.values()]) {
+      if (this.docs.isDirty(entry.path)) await this.save(entry);
+    }
+    return this.docs.dirtyPaths().length === 0;
+  }
+
   private close(entry: EditorTab): void {
     if (this.docs.isDirty(entry.path) && !confirm(`${baseName(entry.path)} n'est pas enregistré. Fermer quand même ?`)) {
       return;

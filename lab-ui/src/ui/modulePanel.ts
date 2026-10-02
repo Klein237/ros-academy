@@ -1,4 +1,4 @@
-import { NoAccount, reloginUrl, type ComptesClient } from "../api/comptes";
+import { ComptesError, NoAccount, reloginUrl, type ComptesClient } from "../api/comptes";
 import type { ContentsClient } from "../api/contents";
 import type { ModuleClient } from "../api/module";
 import {
@@ -18,7 +18,9 @@ export interface ModulePanelOptions {
   moduleId: string;
   client: ModuleClient;
   /** Indices comptés, réussite enregistrée, explication après réussite. */
-  comptes: Pick<ComptesClient, "exercise" | "hint" | "reportSuccess" | "explanation">;
+  comptes: Pick<ComptesClient, "exercise" | "hint" | "verify" | "explanation">;
+  /** Enregistre les fichiers modifiés de l'éditeur (la vérification lit le workspace enregistré). */
+  saveAll(): Promise<boolean>;
   contents: ContentsClient;
   terminals: TerminalPanel;
   /** Déplier ce dossier dans l'arborescence (et la rafraîchir). */
@@ -38,6 +40,7 @@ export class ModulePanel {
   private readonly checkButton: HTMLButtonElement;
   private readonly hintButton: HTMLButtonElement;
   private hintsShown = 0;
+  private noAccount = false;
   private hintCount = 3;
   private busy = false;
 
@@ -92,6 +95,7 @@ export class ModulePanel {
   }
 
   private askLogin(): void {
+    this.noAccount = true;
     this.account.replaceChildren(
       "Vous n'êtes pas connecté : vos indices et votre réussite ne seront pas enregistrés. ",
       h("a", { text: "Se connecter", attrs: { href: reloginUrl() } }),
@@ -148,37 +152,63 @@ export class ModulePanel {
     }
   }
 
+  /**
+   * « Vérifier » : le serveur lance le check.sh officiel sur le workspace enregistré, hors de
+   * ce conteneur ; seule cette vérification compte pour la note. Sans compte, check.sh tourne
+   * dans le terminal, à titre indicatif.
+   */
   private async check(): Promise<void> {
     if (this.busy) return;
     const id = this.opts.moduleId;
-    if (!(await this.opts.contents.exists(exerciseDir(id))) || !(await this.opts.contents.exists(`${academyDir(id)}/check.sh`))) {
+    if (!(await this.opts.contents.exists(exerciseDir(id)))) {
       this.show("info", "Commencez d'abord l'exercice", "« Commencer l'exercice » installe le workspace avec la panne.");
       return;
     }
     this.setBusy(true);
-    this.show("info", "Vérification en cours…");
     try {
-      const n = nonce();
-      const { code, output } = await this.opts.terminals.run("Vérification", scriptCommand(id, "check.sh", n),
-        (out) => findExitCode(out, n));
-      const text = tail(cleanOutput(output, n));
-      if (code === 0) {
-        this.show("ok", "Exercice réussi !", text);
-        try {
-          await this.opts.comptes.reportSuccess(id);
-        } catch (e) {
-          if (e instanceof NoAccount) this.askLogin();
-          this.status.append(h("p", { class: "muted small", text: "Réussite non enregistrée : reconnectez-vous puis vérifiez à nouveau." }));
-          return;
-        }
+      if (!(await this.opts.saveAll())) {
+        this.show("ko", "Des fichiers n'ont pas pu être enregistrés", "Enregistrez-les (Ctrl+S) puis vérifiez à nouveau.");
+        return;
+      }
+      if (this.noAccount) return await this.localCheck();
+      this.show("info", "Vérification sur le serveur…",
+        "Votre workspace enregistré est recompilé et testé à part, dans un environnement neuf : comptez jusqu'à une minute.");
+      const r = await this.opts.comptes.verify(id);
+      if (r.verification) {
+        this.show("ok", "Exercice réussi !", tail(r.journal));
         await this.appendExplanation();
       } else {
-        this.show("ko", code === null ? "La vérification n'a pas abouti" : "Pas encore : le problème est toujours là", text);
+        this.show("ko", "Pas encore : le problème est toujours là", tail(r.journal));
       }
-    } catch {
-      this.show("ko", "La vérification n'a pas pu être lancée", "Réessayez dans un instant.");
+    } catch (e) {
+      if (e instanceof NoAccount) {
+        this.askLogin();
+        return await this.localCheck();
+      }
+      const status = e instanceof ComptesError ? e.status : 0;
+      this.show("ko", status === 409 ? "Une vérification est déjà en cours" : status === 429
+        ? "Le serveur de vérification est occupé" : "La vérification n'a pas pu être lancée", "Réessayez dans un instant.");
     } finally {
       this.setBusy(false);
+    }
+  }
+
+  /** Sans compte : check.sh dans le terminal, résultat indicatif et non enregistré. */
+  private async localCheck(): Promise<void> {
+    const id = this.opts.moduleId;
+    if (!(await this.opts.contents.exists(`${academyDir(id)}/check.sh`))) {
+      this.show("info", "Commencez d'abord l'exercice", "« Commencer l'exercice » installe le workspace avec la panne.");
+      return;
+    }
+    this.show("info", "Vérification en cours…");
+    const n = nonce();
+    const { code, output } = await this.opts.terminals.run("Vérification", scriptCommand(id, "check.sh", n),
+      (out) => findExitCode(out, n));
+    const text = tail(cleanOutput(output, n));
+    if (code === 0) {
+      this.show("ok", "Réussi ici, mais non enregistré", `${text}\n\nConnectez-vous : seule la vérification du serveur compte pour la note.`);
+    } else {
+      this.show("ko", code === null ? "La vérification n'a pas abouti" : "Pas encore : le problème est toujours là", text);
     }
   }
 

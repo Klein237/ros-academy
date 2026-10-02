@@ -46,8 +46,8 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: pip install -r contenus/requirements-dev.txt
-      - name: Testeur de modules (conteneur ROS réel)
-        run: cd contenus && ROS_LAB_IMAGE=ros-lab:0.1.0 python -m pytest -v tests/test_testing.py
+      - name: Testeur de modules et vérification des exercices (conteneur ROS réel)
+        run: cd contenus && ROS_LAB_IMAGE=ros-lab:0.1.0 python -m pytest -v tests/test_testing.py tests/test_verification.py
       - name: Modules du parcours (bug présent, solution qui corrige, lab qui compile)
         run: ROS_LAB_IMAGE=ros-lab:0.1.0 python scripts/test_modules.py
 

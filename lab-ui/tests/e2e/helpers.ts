@@ -118,7 +118,8 @@ function comptesLogs(): string {
 
 /** Requête SQL dans la base de Comptes (PSQL remplace la commande). */
 export function sql(query: string): string {
-  const cmd = process.env.PSQL ?? "docker exec -i deploy-postgres-1 psql -U comptes -d comptes -tA";
+  // ON_ERROR_STOP : une requête en erreur fait échouer le test au lieu de passer inaperçue
+  const cmd = `${process.env.PSQL ?? "docker exec -i deploy-postgres-1 psql -U comptes -d comptes -tA"} -v ON_ERROR_STOP=1`;
   return execSync(cmd, { input: query, encoding: "utf8" }).trim();
 }
 

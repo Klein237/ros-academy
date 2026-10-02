@@ -34,8 +34,9 @@ services:
       ROS_LAB_IMAGE: ${ROS_LAB_IMAGE:-ros-lab:0.1.0}
       CONTENT_GIT_REMOTE: ${CONTENT_GIT_REMOTE:-}
       MODULE_TESTS: ${MODULE_TESTS:-docker}
+      VERIFICATIONS_MAX: ${VERIFICATIONS_MAX:-4}   # vérifications d'exercices simultanées
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock   # tests des modules à la publication
+      - /var/run/docker.sock:/var/run/docker.sock   # tests des modules à la publication, vérification des exercices
       - contenus-data:/srv/contenus                 # dépôt Git du contenu
     networks: [public]
 

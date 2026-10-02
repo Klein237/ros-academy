@@ -102,6 +102,7 @@ class Exercise(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     module: Mapped[str] = mapped_column(String(64), primary_key=True)
     indices: Mapped[int] = mapped_column(Integer, default=0)
+    verifications: Mapped[int] = mapped_column(Integer, default=0)  # « Vérifier » lancés (tableau formateur)
     reussi_le: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
