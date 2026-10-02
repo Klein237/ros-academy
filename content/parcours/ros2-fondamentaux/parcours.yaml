@@ -1,0 +1,17 @@
+titre: ROS 2 Fondamentaux
+description: >-
+  Les bases de ROS 2 Humble, en pratique, autour d'un fil rouge : un robot à
+  conduite différentielle que vous enrichissez module après module — nœud,
+  service, action, puis description URDF. Chaque module se termine par une
+  vraie panne à diagnostiquer et un QCM.
+modules:
+  - id: 01-initiation
+    coef: 1
+  - id: 02-noeud
+    coef: 2
+  - id: 03-service
+    coef: 2
+  - id: 04-action
+    coef: 2
+  - id: 05-urdf
+    coef: 1

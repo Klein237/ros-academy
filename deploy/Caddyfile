@@ -28,7 +28,16 @@
 		>X-Content-Type-Options nosniff
 	}
 
-	handle {
+	handle /hub/* {
 		reverse_proxy hub:8000
+	}
+
+	handle /user/* {
+		reverse_proxy hub:8000
+	}
+
+	# Site des formations, API des modules et éditeur d'administration
+	handle {
+		reverse_proxy contenus:8200
 	}
 }

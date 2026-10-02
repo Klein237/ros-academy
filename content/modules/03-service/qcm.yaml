@@ -1,0 +1,42 @@
+questions:
+  - id: synchrone
+    question: Qu'est-ce qui distingue un service d'un topic ?
+    choix:
+      - texte: Le client envoie une requête et attend une réponse unique.
+        correct: true
+      - texte: Le service diffuse des messages en continu à tous ses abonnés.
+      - texte: Un service ne peut transporter que des types de base (float64, string…).
+    explication: Un topic diffuse un flux sans accusé de réception ; un service est un échange requête-réponse.
+  - id: separateur
+    question: Dans un fichier .srv, à quoi sert la ligne --- ?
+    choix:
+      - texte: Elle sépare la requête (au-dessus) de la réponse (en dessous).
+        correct: true
+      - texte: Elle marque la fin du fichier.
+      - texte: Elle sépare deux services définis dans le même fichier.
+    explication: Au-dessus de --- se trouvent les champs de la requête, en dessous ceux de la réponse.
+  - id: package-interface
+    question: Pourquoi le package my_interface est-il de type ament_cmake alors que le nœud est en Python ?
+    choix:
+      - texte: La génération du code des interfaces (C++ et Python) passe par CMake et rosidl.
+        correct: true
+      - texte: Parce que les services ne fonctionnent qu'en C++.
+      - texte: Ce n'est pas obligatoire, ament_python fonctionne aussi.
+    explication: rosidl_generate_interfaces est une fonction CMake ; le code Python des interfaces est généré au passage.
+  - id: obligatoire
+    question: Quels éléments sont nécessaires pour qu'un package génère ses interfaces ?
+    choix:
+      - texte: rosidl_generate_interfaces(...) dans CMakeLists.txt
+        correct: true
+      - texte: <member_of_group>rosidl_interface_packages</member_of_group> dans package.xml
+        correct: true
+      - texte: Une entrée dans entry_points de setup.py
+    explication: CMake génère le code ; package.xml déclare le package comme fournisseur d'interfaces (obligatoire sous Humble).
+  - id: attente
+    question: ros2 service call affiche « waiting for service to become available… » sans fin. Quelle est la cause la plus probable ?
+    choix:
+      - texte: Aucun serveur ne propose ce service sous ce nom (nœud arrêté ou nom différent).
+        correct: true
+      - texte: La requête est trop grosse.
+      - texte: Le type du service est mal écrit dans la commande.
+    explication: Le client attend qu'un serveur apparaisse sous ce nom ; un type inconnu provoque une erreur immédiate, pas une attente.

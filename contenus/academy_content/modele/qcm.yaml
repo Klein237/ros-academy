@@ -1,0 +1,8 @@
+questions:
+  - id: q1
+    question: Écrivez la question ici.
+    choix:
+      - texte: Bonne réponse
+        correct: true
+      - texte: Mauvaise réponse
+    explication: Pourquoi c'est la bonne réponse.

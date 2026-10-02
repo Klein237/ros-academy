@@ -90,6 +90,30 @@ export class ContentsClient {
     });
   }
 
+  /** Crée le dossier et ses parents manquants. */
+  async mkdirp(path: string): Promise<void> {
+    let current = "";
+    for (const part of normalizePath(path).split("/").filter(Boolean)) {
+      current = current ? `${current}/${part}` : part;
+      if (!(await this.exists(current))) await this.createDirectory(current);
+    }
+  }
+
+  /** Écrit un fichier texte, en créant ses dossiers parents. */
+  async writeFile(path: string, content: string): Promise<void> {
+    const parent = normalizePath(path).split("/").slice(0, -1).join("/");
+    if (parent) await this.mkdirp(parent);
+    await this.save(path, content);
+  }
+
+  async rename(from: string, to: string): Promise<void> {
+    await this.call(from, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: normalizePath(to) }),
+    });
+  }
+
   async remove(path: string): Promise<void> {
     await this.call(path, { method: "DELETE" });
   }

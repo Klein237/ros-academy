@@ -139,8 +139,103 @@ code {
   min-height: 0;
 }
 
-.workspace:has(.view2d[hidden]) {
+.workspace:has(.side[hidden]) {
   grid-template-columns: 240px minmax(0, 1fr);
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  border-left: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.side .view2d {
+  border-left: 0;
+  overflow: visible;
+}
+
+.module-panel {
+  border-bottom: 1px solid var(--line);
+  flex: none;
+}
+
+.module-body {
+  padding: 8px 10px 12px;
+}
+
+.module-body h3 {
+  font-size: 13px;
+  margin: 12px 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.module-body h4 {
+  margin: 10px 0 4px;
+  font-size: 13px;
+}
+
+.module-title {
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.exercise-details summary {
+  cursor: pointer;
+  color: var(--accent);
+}
+
+.enonce,
+.hint,
+.explication {
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.enonce pre,
+.hint pre,
+.explication pre,
+.exercise-status pre {
+  background: var(--panel-2);
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  font-size: 12px;
+}
+
+.exercise-actions,
+.hint-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+
+.exercise-status {
+  font-size: 13px;
+}
+
+.exercise-status.ok strong {
+  color: var(--accent);
+}
+
+.exercise-status.ko strong {
+  color: var(--danger);
+}
+
+button.link {
+  border: 0;
+  background: none;
+  color: var(--accent);
+  padding: 0;
+  text-decoration: underline;
 }
 
 .center {
@@ -168,9 +263,7 @@ code {
 }
 
 .view2d {
-  border-left: 1px solid var(--line);
   padding-bottom: 8px;
-  overflow-y: auto;
 }
 
 .panel-header {
@@ -526,7 +619,7 @@ code {
     height: auto;
   }
   .workspace,
-  .workspace:has(.view2d[hidden]) {
+  .workspace:has(.side[hidden]) {
     grid-template-columns: 1fr;
   }
   .files {

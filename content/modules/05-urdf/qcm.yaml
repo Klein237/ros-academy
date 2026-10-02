@@ -1,0 +1,42 @@
+questions:
+  - id: link-joint
+    question: Dans un URDF, que décrit un joint ?
+    choix:
+      - texte: La liaison entre deux links (fixe, rotation, translation) et la position de l'un par rapport à l'autre.
+        correct: true
+      - texte: La forme et la couleur d'une pièce du robot.
+      - texte: Le moteur qui fait tourner une roue.
+    explication: Un link est un corps rigide ; un joint relie un link parent à un link enfant et définit leur mouvement relatif.
+  - id: parties-link
+    question: Quelles sont les trois parties possibles d'un link ?
+    choix:
+      - texte: visual, collision, inertial
+        correct: true
+      - texte: geometry, material, mass
+      - texte: parent, child, origin
+    explication: geometry et material sont dans visual, mass dans inertial ; parent, child et origin appartiennent aux joints.
+  - id: roue
+    question: Quel type de joint convient à une roue motrice ?
+    choix:
+      - texte: continuous
+        correct: true
+      - texte: revolute
+      - texte: fixed
+    explication: Une roue tourne sans limite d'angle (continuous) ; revolute impose des bornes, fixed interdit le mouvement.
+  - id: xacro
+    question: Qu'apporte Xacro par rapport à un URDF écrit à la main ?
+    choix:
+      - texte: Des propriétés pour paramétrer dimensions et masses.
+        correct: true
+      - texte: Des macros pour éviter de répéter des blocs (les deux roues).
+        correct: true
+      - texte: La vérification que chaque joint relie des links existants.
+    explication: Xacro génère du XML ; c'est check_urdf (ou robot_state_publisher) qui vérifie l'arbre des links.
+  - id: rsp
+    question: Quel est le rôle de robot_state_publisher ?
+    choix:
+      - texte: Publier la description sur /robot_description et les transformations TF entre les links.
+        correct: true
+      - texte: Afficher le robot en 3D.
+      - texte: Faire tourner les roues du robot.
+    explication: RViz affiche le robot à partir de /robot_description et des TF calculés par robot_state_publisher.

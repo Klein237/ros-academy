@@ -40,15 +40,20 @@ export class FileTree {
 
   /** Charge la racine et déplie le dossier de départ. */
   async load(): Promise<void> {
+    await this.reveal(this.opts.root);
+  }
+
+  /** Recharge l'arborescence et déplie un dossier (création d'un exercice, réinitialisation…). */
+  async reveal(path: string): Promise<void> {
     await this.loadDir(this.dirs.get("")!);
-    let path = "";
-    for (const part of this.opts.root.split("/").filter(Boolean)) {
-      path = joinPath(path, part);
-      const node = this.dirs.get(path);
+    let current = "";
+    for (const part of path.split("/").filter(Boolean)) {
+      current = joinPath(current, part);
+      const node = this.dirs.get(current);
       if (!node) break;
       await this.expand(node);
     }
-    this.selectedDir = this.dirs.has(this.opts.root) ? this.opts.root : "";
+    if (this.dirs.has(path)) this.selectedDir = path;
   }
 
   private async loadDir(node: DirNode): Promise<void> {

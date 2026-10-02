@@ -15,6 +15,21 @@ services:
       - hub-data:/srv/hub/data
     networks: [public, ros-lab-net]
 
+  contenus:
+    build:
+      context: ..
+      dockerfile: contenus/Dockerfile
+    restart: unless-stopped
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?}
+      ROS_LAB_IMAGE: ${ROS_LAB_IMAGE:-ros-lab:0.1.0}
+      CONTENT_GIT_REMOTE: ${CONTENT_GIT_REMOTE:-}
+      MODULE_TESTS: ${MODULE_TESTS:-docker}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock   # tests des modules à la publication
+      - contenus-data:/srv/contenus                 # dépôt Git du contenu
+    networks: [public]
+
   caddy:
     build: ../lab-ui   # Caddy + Lab UI construit (servi sous /lab/)
     restart: unless-stopped
@@ -34,4 +49,5 @@ networks:
 
 volumes:
   hub-data: {}
+  contenus-data: {}
   caddy-data: {}

@@ -6,6 +6,8 @@ import { button, h, toast } from "./dom";
 
 interface Tab {
   id: number;
+  title: string;
+  listeners: Set<(data: string) => void>;
   term: Terminal;
   fit: FitAddon;
   conn: TerminalConnection;
@@ -57,8 +59,46 @@ export class TerminalPanel {
     this.attach(name);
   }
 
-  private attach(name: string): void {
+  /**
+   * Lance une commande dans un nouveau terminal (visible, pour que l'étudiant voie la sortie)
+   * et attend le marqueur de fin ; `exitCode` lit le code de sortie dans la sortie.
+   */
+  async run(
+    title: string,
+    command: string,
+    exitCode: (output: string) => number | null,
+    timeoutMs = 15 * 60_000,
+  ): Promise<{ code: number | null; output: string }> {
+    // Un onglet par usage (« Exercice », « Vérification ») : réutilisé s'il est encore ouvert.
+    let tab = this.open.find((t) => t.title === title && t.conn.status !== "closed");
+    if (tab) this.show(tab);
+    else tab = this.attach(await this.opts.client.create(""), title);
+    const entry = tab;
+    let output = "";
+    return new Promise((resolve) => {
+      const done = (code: number | null) => {
+        entry.listeners.delete(listen);
+        clearTimeout(timer);
+        resolve({ code, output });
+      };
+      const listen = (data: string) => {
+        output += data;
+        const code = exitCode(output);
+        if (code !== null) done(code);
+      };
+      const timer = setTimeout(() => done(null), timeoutMs);
+      entry.listeners.add(listen);
+      const send = () => {
+        if (entry.conn.status === "open") entry.conn.send(`${command}\r`);
+        else setTimeout(send, 200);
+      };
+      send();
+    });
+  }
+
+  private attach(name: string, title?: string): Tab {
     const id = ++this.seq;
+    const label0 = title ?? `Terminal ${id}`;
     const term = new Terminal({
       cursorBlink: true,
       fontFamily: '"JetBrains Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace',
@@ -71,7 +111,7 @@ export class TerminalPanel {
     const host = h("div", { class: "terminal-host", dataset: { terminal: String(id) } });
     this.body.append(host);
     term.open(host);
-    const label = h("span", { text: `Terminal ${id}` });
+    const label = h("span", { text: label0 });
     const tab = h(
       "div",
       { class: "tab", attrs: { role: "tab" }, on: { click: () => this.show(entry) } },
@@ -83,12 +123,15 @@ export class TerminalPanel {
       name,
       client: this.opts.client,
       cwd: this.opts.cwd,
-      onData: (data) => term.write(data),
+      onData: (data) => {
+        term.write(data);
+        for (const l of entry.listeners) l(data);
+      },
       onStatus: (status) => this.status(entry, status),
       onReplaced: () => term.write("\r\n\x1b[33m[ancien terminal fermé, nouveau terminal ouvert]\x1b[0m\r\n"),
       isServerAlive: this.opts.isServerAlive,
     });
-    const entry: Tab = { id, term, fit, conn, host, tab, label };
+    const entry: Tab = { id, title: label0, listeners: new Set(), term, fit, conn, host, tab, label };
     term.onData((data) => {
       conn.send(data);
       if (data.includes("\r")) this.opts.onCommand?.();
@@ -97,13 +140,13 @@ export class TerminalPanel {
     this.open.push(entry);
     this.show(entry);
     void conn.connect();
+    return entry;
   }
 
   private status(tab: Tab, status: ConnectionStatus): void {
     tab.tab.dataset.status = status;
     tab.host.dataset.status = status;
-    if (status === "reconnecting") tab.label.textContent = `Terminal ${tab.id} · reconnexion…`;
-    else tab.label.textContent = `Terminal ${tab.id}`;
+    tab.label.textContent = status === "reconnecting" ? `${tab.title} · reconnexion…` : tab.title;
   }
 
   private show(tab: Tab): void {

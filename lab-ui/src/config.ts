@@ -6,7 +6,13 @@ export const FULL_RETRY_MS = 15_000;
 export const START_TIMEOUT_MS = 150_000;
 export const MAX_TEXT_FILE_BYTES = 1024 * 1024;
 
+export const MODULE_ID_RE = /^[0-9]{2}-[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 export interface LabConfig {
+  /** Module du parcours ouvert dans le lab (?module=02-noeud). */
+  moduleId: string | null;
+  /** Ouvrir directement l'exercice du module (?exercice=1). */
+  exercice: boolean;
   /** Fichier à ouvrir au démarrage (« Ouvrir dans le lab » du site). */
   openPath: string | null;
   /** Dossier de départ de l'arborescence et des terminaux. */
@@ -31,7 +37,10 @@ export function readConfig(search: string): LabConfig {
   const idleStopMs =
     Number.isFinite(seconds) && seconds >= 10 ? Math.min(IDLE_STOP_MS, seconds * 1000) : IDLE_STOP_MS;
   const idleWarnMs = idleStopMs - Math.min(IDLE_WARN_BEFORE_MS, idleStopMs / 4);
+  const moduleId = params.get("module");
   return {
+    moduleId: moduleId && MODULE_ID_RE.test(moduleId) ? moduleId : null,
+    exercice: params.get("exercice") === "1",
     openPath: safePath(params.get("open")),
     folder: safePath(params.get("dossier")) ?? "",
     idleStopMs,

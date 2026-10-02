@@ -20,6 +20,10 @@ run 'cd /tmp && mkdir -p ws/src && cd ws/src \
      && ros2 pkg create --build-type ament_python py_pkg >/dev/null \
      && ros2 pkg create --build-type ament_cmake cpp_pkg >/dev/null \
      && cd .. && colcon build >/dev/null' || fail "colcon build Python + C++ échoue"
+for pkg in xacro joint_state_publisher robot_state_publisher tf2_tools action_tutorials_py demo_nodes_py; do
+  grep -qx "$pkg" <<<"$(run 'ros2 pkg list')" || fail "$pkg manquant"
+done
+run 'command -v check_urdf' >/dev/null || fail "check_urdf manquant"
 run 'command -v academy-diffbot' >/dev/null || fail "academy-diffbot manquant"
 # le robot simulé avance quand il reçoit une commande
 odom_x=$(run 'academy-diffbot >/dev/null 2>&1 & sleep 3

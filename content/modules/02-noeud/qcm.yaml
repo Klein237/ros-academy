@@ -1,0 +1,42 @@
+questions:
+  - id: spin
+    question: Que se passe-t-il si un nœud Python crée ses abonnements mais n'appelle jamais rclpy.spin() ?
+    choix:
+      - texte: Les callbacks d'abonnement et de timer ne sont jamais appelés.
+        correct: true
+      - texte: ROS 2 appelle les callbacks dans un thread séparé automatiquement.
+      - texte: Le nœud n'apparaît pas dans ros2 node list.
+    explication: spin() rend la main à l'exécuteur, qui distribue les messages et les timers aux callbacks. Sans lui, le nœud existe mais ne traite rien.
+  - id: nom-relatif
+    question: Un nœud sans espace de noms appelle create_publisher(Odometry, 'odom', 10). Sur quel topic publie-t-il ?
+    choix:
+      - texte: /odom
+        correct: true
+      - texte: /diff_drive_node/odom
+      - texte: odom (sans slash), différent de /odom
+    explication: Un nom relatif est résolu dans l'espace de noms du nœud ; sans espace de noms, odom devient /odom.
+  - id: entry-point
+    question: Dans un package ament_python, qu'est-ce qui permet à ros2 run my_pkg diff_drive_node de trouver le nœud ?
+    choix:
+      - texte: La ligne diff_drive_node = my_pkg.diff_drive_node:main dans entry_points de setup.py.
+        correct: true
+      - texte: Le nom de la classe DiffDriveNode.
+      - texte: La balise <depend>rclpy</depend> dans package.xml.
+    explication: entry_points crée l'exécutable diff_drive_node, installé dans lib/my_pkg, là où ros2 run le cherche.
+  - id: diagnostic
+    question: Quelles commandes montrent qu'un nœud est abonné au mauvais topic ?
+    choix:
+      - texte: ros2 node info /diff_drive_node
+        correct: true
+      - texte: ros2 topic info /cmd_vel (nombre d'abonnés)
+        correct: true
+      - texte: ros2 pkg executables my_pkg
+    explication: node info liste les topics souscrits par le nœud ; topic info compte les abonnés réels d'un topic.
+  - id: theta
+    question: Le robot avance à v = 0,5 m/s avec θ = 90°. Comment évolue sa position ?
+    choix:
+      - texte: y augmente, x ne change pas.
+        correct: true
+      - texte: x augmente, y ne change pas.
+      - texte: x et y augmentent tous les deux.
+    explication: x += v·cos(θ)·dt et y += v·sin(θ)·dt ; avec θ = 90°, cos θ = 0 et sin θ = 1.

@@ -1,0 +1,45 @@
+{% extends "admin/base.html" %}
+{% block body_class %}admin{% endblock %}
+{% block content %}
+<div id="admin" data-page="tableau">
+<h1>Formations</h1>
+{% if not tests_enabled %}<p class="alert">Les tests des modules sont désactivés (MODULE_TESTS=off) : une publication ne vérifie que le format. À n'utiliser qu'en développement.</p>{% endif %}
+
+<section class="card" id="publication">
+  <h2>Publication</h2>
+  <p id="pub-etat" class="muted">Chargement…</p>
+  <p><button type="button" class="button primary" id="pub-lancer" disabled>Publier le brouillon</button></p>
+  <p class="muted small">Publier vérifie le format de toutes les formations, puis teste chaque module modifié dans un conteneur ROS (le bug de l'exercice est présent, la solution le corrige, le lab guidé compile). Les étudiants ne voient la nouvelle version que si tout passe.</p>
+  <div id="pub-rapports"></div>
+</section>
+
+<section class="card">
+  <h2>Modules</h2>
+  <table class="list" id="modules">
+    <thead><tr><th>Module</th><th>Titre</th><th>État</th><th></th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <form id="nouveau-module" class="inline-form">
+    <h3>Nouveau module</h3>
+    <label>Identifiant <input name="id" required pattern="[0-9]{2}-[a-z0-9]+(-[a-z0-9]+)*" placeholder="06-parametres" spellcheck="false"></label>
+    <label>Titre <input name="titre" required placeholder="Les paramètres"></label>
+    <button class="button" type="submit">Créer à partir du modèle</button>
+    <p class="form-error" role="alert" hidden></p>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Parcours</h2>
+  <ul id="parcours" class="plain"></ul>
+</section>
+
+<section class="card">
+  <h2>Historique</h2>
+  <p class="muted small">Chaque enregistrement est une version. Restaurer crée une nouvelle version identique à l'ancienne : rien n'est perdu.</p>
+  <table class="list" id="historique">
+    <thead><tr><th>Date</th><th>Modification</th><th></th></tr></thead>
+    <tbody></tbody>
+  </table>
+</section>
+</div>
+{% endblock %}

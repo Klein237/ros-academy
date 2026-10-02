@@ -9,6 +9,7 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       python3-pip python3-colcon-common-extensions build-essential \
       ros-humble-rosbridge-suite ros-humble-demo-nodes-py ros-humble-demo-nodes-cpp \
+      ros-humble-action-tutorials-py ros-humble-xacro ros-humble-joint-state-publisher \
       nano vim-tiny less \
  && SUDO_FORCE_REMOVE=yes apt-get purge -y --auto-remove sudo \
  && rm -rf /var/lib/apt/lists/*
