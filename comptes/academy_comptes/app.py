@@ -1,6 +1,7 @@
 """Service Comptes : connexion, accès au lab, quotas, progression, notes."""
 
 import asyncio
+import hmac
 import logging
 import re
 import time
@@ -31,10 +32,10 @@ from .auth import (
     safe_next,
     user_for_email,
 )
-from .clients import ContenusClient, HubClient, UpstreamError
-from .db import Base, Exercise, QcmAttempt, QueueTicket, make_engine, make_sessionmaker, utcnow
+from .clients import INTERNAL_HEADER, ContenusClient, HubClient, UpstreamError, comptes_token
+from .db import Base, Exercise, QcmAttempt, QueueTicket, User, make_engine, make_sessionmaker, utcnow
 from .mail import send_login_link
-from .quotas import join_queue, leave_queue, minutes_left, minutes_used, queue_position, record_minute
+from .quotas import HUB_NAME_RE, join_queue, leave_queue, minutes_left, minutes_used, queue_position, record_minute
 from .settings import Settings
 
 log = logging.getLogger("comptes")
@@ -335,8 +336,8 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         ex = db.get(Exercise, (user.id, module))
         return {"indices": ex.indices if ex else 0, "reussi": bool(ex and ex.reussi_le)}
 
-    @app.get("/api/comptes/exercices/{module}/indices/{n}")
-    def exercise_hint(module: str, n: int, user=Depends(require_user), db=Depends(get_db)):
+    @app.post("/api/comptes/exercices/{module}/indices/{n}")
+    def exercise_hint(module: str, n: int, user=Depends(require_user), db=Depends(get_db), _=Depends(same_origin)):
         check_module(module)
         ex = exercise_row(db, user, module)
         if not 1 <= n <= grading.MAX_HINTS or n > ex.indices + 1:
@@ -369,6 +370,20 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
             return contenus.explanation(module)
         except UpstreamError:
             raise HTTPException(502, "Explication indisponible") from None
+
+    # --- Route interne : le Hub demande avant chaque démarrage si le quota le permet
+
+    hub_secret = comptes_token(settings.jwt_secret)
+
+    @app.get("/api/comptes/interne/lab/{name}")
+    def internal_lab(name: str, request: Request, db=Depends(get_db)):
+        if not hmac.compare_digest(request.headers.get(INTERNAL_HEADER, ""), hub_secret):
+            raise HTTPException(403, "Route interne")
+        m = HUB_NAME_RE.fullmatch(name)
+        user = db.get(User, int(m.group(1))) if m else None
+        if not user:
+            raise HTTPException(404, "Compte inconnu")
+        return {"autorise": minutes_left(db, user, settings) != 0}
 
     # --- File d'attente
 
@@ -411,4 +426,5 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
 
 def app_from_env():
     logging.basicConfig(level=logging.INFO)
+    logging.getLogger("httpx").setLevel(logging.WARNING)  # une ligne par requête au Hub, chaque minute
     return create_app(Settings.from_env())

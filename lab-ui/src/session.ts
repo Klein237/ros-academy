@@ -1,3 +1,4 @@
+import type { ComptesClient, QueueTicket } from "./api/comptes";
 import { FULL_RETRY_MS, START_TIMEOUT_MS } from "./config";
 import { HttpError, NotLoggedIn, type HubClient, type ServerStatus } from "./api/hub";
 import { realTimers, sleep, type Timers } from "./backoff";
@@ -6,18 +7,22 @@ export type SessionState =
   | { kind: "auth" }
   | { kind: "noauth" }
   | { kind: "starting"; progress: number; message: string }
-  | { kind: "full"; retryInMs: number }
+  | { kind: "full"; retryInMs: number; position?: number }
+  | { kind: "quota" }
   | { kind: "ready" }
   | { kind: "failed"; message: string }
   | { kind: "stopped"; reason: "idle" | "external" | "user" };
 
 type HubLike = Pick<HubClient, "refreshToken" | "start" | "progress" | "server" | "stop">;
+/** Service Comptes : quota de minutes et file d'attente (facultatif : lab ouvert sans compte). */
+type AccountLike = Pick<ComptesClient, "me" | "joinQueue" | "beat" | "leaveQueue">;
 
 export interface SessionOptions {
   fullRetryMs?: number;
   startTimeoutMs?: number;
   pollMs?: number;
   timers?: Timers;
+  account?: AccountLike;
 }
 
 /** Démarrage du conteneur de l'étudiant, vu comme une suite d'états affichables. */
@@ -29,6 +34,8 @@ export class Session {
   private readonly startTimeoutMs: number;
   private readonly pollMs: number;
   private readonly timers: Timers;
+  private readonly account: AccountLike | null;
+  private ticket: QueueTicket | null = null;
 
   constructor(
     private readonly hub: HubLike,
@@ -38,6 +45,7 @@ export class Session {
     this.startTimeoutMs = opts.startTimeoutMs ?? START_TIMEOUT_MS;
     this.pollMs = opts.pollMs ?? 1000;
     this.timers = opts.timers ?? realTimers;
+    this.account = opts.account ?? null;
   }
 
   onChange(cb: (s: SessionState) => void): void {
@@ -64,6 +72,7 @@ export class Session {
   async launch(): Promise<void> {
     this.timers.clearTimeout(this.retryTimer);
     this.set({ kind: "starting", progress: 0, message: "Demande d'un environnement ROS…" });
+    if (await this.quotaExhausted()) return this.set({ kind: "quota" });
     try {
       // une coupure pendant la demande ne dit rien du démarrage, qui continue côté Hub :
       // l'état réel est lu ensuite par waitReady (qui redemande le démarrage si besoin)
@@ -88,15 +97,66 @@ export class Session {
       await this.waitReady();
     } catch (e) {
       if (e instanceof NotLoggedIn) return this.set({ kind: "noauth" });
+      // le Hub refuse le démarrage d'un étudiant dont le quota est épuisé
+      if (await this.quotaExhausted()) return this.set({ kind: "quota" });
       console.warn("Démarrage du lab en échec", e);
       this.set({ kind: "failed", message: "Le conteneur n'a pas pu démarrer." });
     }
   }
 
-  /** Serveur plein : nouvel essai automatique. */
-  private waitForRoom(): void {
-    this.set({ kind: "full", retryInMs: this.fullRetryMs });
-    this.retryTimer = this.timers.setTimeout(() => void this.launch(), this.fullRetryMs);
+  /** Vrai seulement si Comptes répond que les minutes du mois sont épuisées. */
+  private async quotaExhausted(): Promise<boolean> {
+    if (!this.account) return false;
+    try {
+      return (await this.account.me()).minutes_restantes === 0;
+    } catch {
+      return false; // pas de compte ou Comptes injoignable : le Hub tranche
+    }
+  }
+
+  /**
+   * Serveur plein : l'étudiant prend un ticket dans la file de Comptes et le garde par
+   * un battement ; le démarrage n'est retenté que lorsque son tour est arrivé.
+   * Sans Comptes, nouvel essai à intervalle fixe.
+   */
+  private async waitForRoom(): Promise<void> {
+    if (this.account) {
+      try {
+        this.ticket = this.ticket ? await this.beatOrRejoin(this.ticket) : await this.account.joinQueue();
+      } catch {
+        this.ticket = null;
+      }
+    }
+    this.set({ kind: "full", retryInMs: this.fullRetryMs, ...(this.ticket ? { position: this.ticket.position } : {}) });
+    this.retryTimer = this.timers.setTimeout(() => void this.onQueueTick(), this.fullRetryMs);
+  }
+
+  private async onQueueTick(): Promise<void> {
+    if (this.state.kind !== "full") return;
+    if (!this.ticket || !this.account) return this.launch();
+    try {
+      this.ticket = await this.beatOrRejoin(this.ticket);
+    } catch {
+      return this.launch(); // Comptes injoignable : on essaie quand même
+    }
+    if (this.ticket.a_vous) return this.launch();
+    this.set({ kind: "full", retryInMs: this.fullRetryMs, position: this.ticket.position });
+    this.retryTimer = this.timers.setTimeout(() => void this.onQueueTick(), this.fullRetryMs);
+  }
+
+  private async beatOrRejoin(ticket: QueueTicket): Promise<QueueTicket> {
+    try {
+      return await this.account!.beat(ticket.ticket);
+    } catch {
+      return this.account!.joinQueue(); // ticket expiré (onglet en veille) : nouvelle place
+    }
+  }
+
+  /** Démarré : on rend sa place dans la file. */
+  private leaveQueue(): void {
+    const ticket = this.ticket;
+    this.ticket = null;
+    if (ticket && this.account) void this.account.leaveQueue(ticket.ticket).catch(() => undefined);
   }
 
   private async waitReady(): Promise<void> {
@@ -110,7 +170,10 @@ export class Session {
         await sleep(this.pollMs, this.timers); // proxy ou réseau momentanément indisponible
         continue;
       }
-      if (server?.ready) return this.set({ kind: "ready" });
+      if (server?.ready) {
+        this.leaveQueue();
+        return this.set({ kind: "ready" });
+      }
       if (!server) {
         // un ancien conteneur finissait de s'arrêter : on redemande le démarrage
         if ((await this.hub.start()) === "full") return this.waitForRoom();
@@ -130,7 +193,8 @@ export class Session {
       return true; // réseau coupé : on ne conclut rien
     }
     if (server?.ready) return true;
-    this.set({ kind: "stopped", reason: "external" });
+    // arrêté par Comptes au passage à zéro du quota, ou par le Hub
+    this.set((await this.quotaExhausted()) ? { kind: "quota" } : { kind: "stopped", reason: "external" });
     return false;
   }
 

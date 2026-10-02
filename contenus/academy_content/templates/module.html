@@ -12,7 +12,7 @@
     {% if module.en_tete.resume %}<p class="lead">{{ module.en_tete.resume }}</p>{% endif %}
     {% if module.en_tete.duree %}<p class="muted small">Durée : {{ module.en_tete.duree }}</p>{% endif %}
   </div>
-  <a class="button primary" href="/lab/?module={{ module.id | urlencode }}">Ouvrir le lab</a>
+  <a class="button primary" href="{{ lab_link(module.id) }}">Ouvrir le lab</a>
 </header>
 <nav class="toc" aria-label="Sections du module">
   <a href="#cours">1. Cours et lab guidé</a>
@@ -27,13 +27,15 @@
 <section id="exercice" class="card exercise">
   <h2>Exercice : situation réelle</h2>
   {{ enonce_html | safe }}
-  <p><a class="button primary" href="/lab/?module={{ module.id | urlencode }}&amp;exercice=1">Ouvrir l'exercice dans le lab</a></p>
+  <p><a class="button primary" href="{{ lab_link(module.id, exercice=1) }}">Ouvrir l'exercice dans le lab</a></p>
   <p class="muted small">Dans le lab : « Commencer l'exercice » installe le workspace avec la panne, « Vérifier » contrôle votre correction. Trois indices sont disponibles ; chacun retire 15 % de la note de l'exercice.</p>
 </section>
 
 <section id="qcm" class="card">
   <h2>QCM</h2>
+  <p class="muted small">Deux tentatives ; la meilleure note est retenue. Elle compte pour la moitié de la note du module.</p>
   <form class="qcm" data-module="{{ module.id }}">
+    <p class="qcm-status" role="status" hidden></p>
     {% for q in qcm %}
     <fieldset class="question" data-question="{{ q.id }}">
       <legend>{{ loop.index }}. {{ q.question }}{% if q.multiple %} <span class="muted small">(plusieurs réponses)</span>{% endif %}</legend>

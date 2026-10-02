@@ -14,9 +14,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: pip install -r hub/requirements-dev.txt -r contenus/requirements-dev.txt
+      - run: pip install -r hub/requirements-dev.txt -r contenus/requirements-dev.txt -r comptes/requirements-dev.txt
       - run: cd hub && python -m pytest -v
       - run: cd contenus && python -m pytest -v
+      - run: cd comptes && python -m pytest -v
 
   lab-ui:
     runs-on: ubuntu-22.04
@@ -74,12 +75,14 @@ jobs:
             echo "JWT_SECRET=$(openssl rand -hex 32)"
             echo "JUPYTERHUB_CRYPT_KEY=$(openssl rand -hex 32)"
             echo "HUB_ADMIN_TOKEN=$(openssl rand -hex 32)"
+            echo "POSTGRES_PASSWORD=$(openssl rand -hex 32)"
+            echo "ADMIN_EMAILS=admin-e2e@exemple.fr"
           } > deploy/.env
       - run: cd deploy && docker compose up -d --build
       - run: scripts/wait_for_hub.sh
       - name: Site des formations prêt
         run: |
-          for _ in $(seq 1 30); do curl -ksf https://localhost/ >/dev/null && exit 0; sleep 2; done
+          for _ in $(seq 1 30); do curl -ksf https://localhost/ >/dev/null && curl -ksf https://localhost/connexion >/dev/null && exit 0; sleep 2; done
           exit 1
       - name: Suite principale
         run: |
@@ -93,7 +96,7 @@ jobs:
       - name: Capacité
         run: |
           set -a; . deploy/.env; set +a
-          (cd deploy && ACTIVE_SERVER_LIMIT=2 docker compose up -d hub)
+          (cd deploy && ACTIVE_SERVER_LIMIT=2 docker compose up -d hub comptes)
           scripts/wait_for_hub.sh
           (cd tests/integration && python -m pytest -v -m limit)
           cd lab-ui && npx playwright test --grep @limit
@@ -115,4 +118,5 @@ jobs:
           docker logs hub
           docker logs deploy-caddy-1 || true
           docker logs deploy-contenus-1 || true
+          docker logs deploy-comptes-1 2>&1 | sed -E 's#/connexion/email/[^ ]+#/connexion/email/…#' || true
           for c in $(docker ps -aq --filter name=jupyter-); do docker logs "$c"; done

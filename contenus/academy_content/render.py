@@ -23,6 +23,12 @@ LANG_LABELS = {
 SAFE_REL_RE = re.compile(r"^(?!/)(?!.*(?:^|/)\.\.?(?:/|$))[A-Za-z0-9_./+-]{1,255}$")
 
 
+def lab_link(module_id, **params):
+    """Lien vers le lab, en passant par Comptes (connexion, quota, jeton du Hub)."""
+    query = "&".join(f"{k}={quote(str(v), safe='/')}" for k, v in {"module": module_id, **params}.items())
+    return "/compte/lab?suite=" + quote(f"/lab/?{query}", safe="/")
+
+
 def parse_info(info):
     """« python fichier=src/a.py » → ("python", {"fichier": "src/a.py"})."""
     try:
@@ -94,7 +100,7 @@ def render_cours(markdown, module_id):
         head = [f'<span class="code-lang">{html.escape(label)}</span>']
         if path:
             head.append(f'<code class="code-file">{html.escape(path)}</code>')
-            href = f"/lab/?module={quote(module_id)}&open={quote(f'ws/{module_id}/{path}')}"
+            href = lab_link(module_id, open=f"ws/{module_id}/{path}")
             head.append(f'<a class="code-open" href="{html.escape(href)}">Ouvrir dans le lab</a>')
         head.append('<button type="button" class="code-copy">Copier</button>')
         body = (

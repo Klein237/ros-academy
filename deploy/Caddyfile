@@ -28,12 +28,40 @@
 		>X-Content-Type-Options nosniff
 	}
 
+	# Le cookie de session de Comptes ne part jamais vers le Hub ni vers les serveurs
+	# étudiants (un étudiant contrôle le serveur qui reçoit les requêtes /user/<nom>/).
 	handle /hub/* {
-		reverse_proxy hub:8000
+		reverse_proxy hub:8000 {
+			header_up Cookie "(^|;\s*)academy_session=[^;]*" ""
+		}
 	}
 
 	handle /user/* {
-		reverse_proxy hub:8000
+		reverse_proxy hub:8000 {
+			header_up Cookie "(^|;\s*)academy_session=[^;]*" ""
+		}
+	}
+
+	# Routes internes : correction du QCM, indices, explication (Contenus) et quota
+	# demandé par le Hub (Comptes). Le navigateur passe par Comptes, qui applique les règles.
+	@interne {
+		path_regexp ^/api/(comptes/interne/|contenus/modules/[^/]+/(indices/|explication))
+	}
+	@qcm_interne {
+		method POST
+		path_regexp ^/api/contenus/modules/[^/]+/qcm
+	}
+	handle @interne {
+		respond 404
+	}
+	handle @qcm_interne {
+		respond 404
+	}
+
+	# Connexion, compte, accès au lab, progression et notes
+	@comptes path /connexion /connexion/* /deconnexion /compte /compte/* /api/comptes/* /static/comptes/*
+	handle @comptes {
+		reverse_proxy comptes:8300
 	}
 
 	# Site des formations, API des modules et éditeur d'administration

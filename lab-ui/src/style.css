@@ -120,8 +120,11 @@ code {
   flex: 1;
 }
 
-.banner {
+.banners {
   grid-row: 2;
+}
+
+.banner {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -129,6 +132,22 @@ code {
   background: #3b3220;
   color: var(--warn);
   border-bottom: 1px solid #5a4a26;
+}
+
+.banner[hidden] {
+  display: none;
+}
+
+.banner a {
+  color: inherit;
+}
+
+.account-note {
+  color: var(--warn);
+}
+
+.account-note a {
+  color: inherit;
 }
 
 /* --- Espace de travail */

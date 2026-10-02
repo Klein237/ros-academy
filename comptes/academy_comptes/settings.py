@@ -60,7 +60,7 @@ class Settings:
             smtp_port=int(env("SMTP_PORT", "587")),
             smtp_user=env("SMTP_USER", ""),
             smtp_password=env("SMTP_PASSWORD", ""),
-            smtp_from=env("SMTP_FROM", f"ROS Academy <no-reply@{domain}>"),
+            smtp_from=env("SMTP_FROM") or f"ROS Academy <no-reply@{domain}>",
             github_client_id=env("GITHUB_CLIENT_ID", ""),
             github_client_secret=env("GITHUB_CLIENT_SECRET", ""),
             google_client_id=env("GOOGLE_CLIENT_ID", ""),

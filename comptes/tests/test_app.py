@@ -276,11 +276,15 @@ def test_qcm_two_attempts_best_kept(client, env):
 
 def test_hints_are_counted_in_order(client, env):
     login(client, env)
-    assert client.get("/api/comptes/exercices/01-a/indices/2").status_code == 400
-    assert client.get("/api/comptes/exercices/01-a/indices/1").json()["indices"] == 1
-    assert client.get("/api/comptes/exercices/01-a/indices/1").json()["indices"] == 1  # relu : pas recompté
-    assert client.get("/api/comptes/exercices/01-a/indices/2").json()["html"] == "<p>indice 2 de 01-a</p>"
-    assert client.get("/api/comptes/exercices/01-a/indices/4").status_code == 400
+    # écriture (pénalité) : pas de GET, et l'origine est vérifiée (lien ou formulaire d'un autre site)
+    assert client.get("/api/comptes/exercices/01-a/indices/1").status_code == 405
+    assert client.post("/api/comptes/exercices/01-a/indices/1").status_code == 403
+    assert client.post("/api/comptes/exercices/01-a/indices/1", headers={"Origin": "https://evil.example"}).status_code == 403
+    assert client.post("/api/comptes/exercices/01-a/indices/2", headers=ORIGIN).status_code == 400
+    assert client.post("/api/comptes/exercices/01-a/indices/1", headers=ORIGIN).json()["indices"] == 1
+    assert client.post("/api/comptes/exercices/01-a/indices/1", headers=ORIGIN).json()["indices"] == 1  # relu : pas recompté
+    assert client.post("/api/comptes/exercices/01-a/indices/2", headers=ORIGIN).json()["html"] == "<p>indice 2 de 01-a</p>"
+    assert client.post("/api/comptes/exercices/01-a/indices/4", headers=ORIGIN).status_code == 400
     assert client.get("/api/comptes/exercices/01-a").json() == {"indices": 2, "reussi": False}
 
 
@@ -291,7 +295,7 @@ def test_explanation_only_after_success(client, env):
     assert client.post("/api/comptes/exercices/01-a/reussite", headers=ORIGIN).json()["reussi"] is True
     assert client.get("/api/comptes/exercices/01-a/explication").json()["html"] == "<p>la cause</p>"
     # un indice lu après la réussite ne pénalise pas
-    client.get("/api/comptes/exercices/01-a/indices/1")
+    client.post("/api/comptes/exercices/01-a/indices/1", headers=ORIGIN)
     assert client.get("/api/comptes/exercices/01-a").json()["indices"] == 0
 
 
@@ -302,7 +306,7 @@ def test_results_page_and_final_grade(client, env):
     client.post("/api/comptes/qcm/01-a", json={"reponses": {"q1": [0], "q2": [1]}}, headers=ORIGIN)  # 20
     client.post("/api/comptes/exercices/01-a/reussite", headers=ORIGIN)  # 20 → module 20
     client.post("/api/comptes/qcm/02-b", json={"reponses": {"q1": [0]}}, headers=ORIGIN)  # 10
-    client.get("/api/comptes/exercices/02-b/indices/1")
+    client.post("/api/comptes/exercices/02-b/indices/1", headers=ORIGIN)
     client.post("/api/comptes/exercices/02-b/reussite", headers=ORIGIN)  # 17 → module 13.5
     page = client.get("/compte/resultats").text
     expected = (20 * 1 + 13.5 * 3) / 4  # 15.125 → 15,12 ou 15,13
@@ -349,3 +353,22 @@ def test_pages_render(client, env):
     page = client.get("/compte/").text
     assert "600 min" in page and "Se déconnecter" in page
     assert "default-src 'self'" in client.get("/compte/").headers["content-security-policy"]
+
+
+# --- Route interne du Hub (quota avant démarrage)
+
+def test_hub_asks_quota_with_the_derived_secret(client, env):
+    from academy_comptes.clients import comptes_token
+    login(client, env)
+    url = "/api/comptes/interne/lab/u1"
+    for headers in ({}, {"X-Academy-Interne": "faux"}, {"X-Academy-Interne": comptes_token("autre" * 8)}):
+        assert client.get(url, headers=headers).status_code == 403
+    ok = {"X-Academy-Interne": comptes_token(SECRET)}
+    assert client.get(url, headers=ok).json() == {"autorise": True}
+    assert client.get("/api/comptes/interne/lab/u99", headers=ok).status_code == 404
+    assert client.get("/api/comptes/interne/lab/admin", headers=ok).status_code == 404
+    with db(client) as s:
+        start = utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        s.add_all([UsageTick(user_id=1, minute=start + timedelta(minutes=i)) for i in range(600)])
+        s.commit()
+    assert client.get(url, headers=ok).json() == {"autorise": False}

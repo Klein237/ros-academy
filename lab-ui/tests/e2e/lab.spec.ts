@@ -58,7 +58,7 @@ test("écran d'attente puis terminal ROS fonctionnel", async ({ page }) => {
 test("lien invalide ou session absente → retour au cours", async ({ page }) => {
   await page.goto("/lab/");
   await expect(page.locator(".overlay")).toHaveAttribute("data-state", "noauth");
-  await expect(page.getByText("Rouvrez le lab depuis la page du cours")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Se reconnecter" })).toHaveAttribute("href", "/compte/lab?suite=%2Flab%2F");
 });
 
 test("créer un fichier dans l'éditeur, l'enregistrer, le lire dans le terminal", async ({ page, context }) => {
@@ -127,8 +127,8 @@ test("conteneur arrêté pendant la session → Relancer, fichiers conservés", 
 test("inactivité : avertissement puis arrêt du lab", async ({ page }) => {
   const name = student();
   await openLab(page, name, "?inactivite=20");
-  await expect(page.locator(".banner")).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator(".banner")).toContainText("le lab s'arrêtera");
+  await expect(page.locator(".idle-banner")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(".idle-banner")).toContainText("le lab s'arrêtera");
   await expect(page.locator(".overlay")).toHaveAttribute("data-state", "stopped", { timeout: 30_000 });
   await expect(page.getByText("inactivité")).toBeVisible();
   await expect

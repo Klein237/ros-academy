@@ -1,4 +1,7 @@
+import hashlib
+import hmac
 import time
+from urllib.parse import parse_qs, urlsplit
 
 import jwt
 import pytest
@@ -12,6 +15,7 @@ from conftest import make_module, make_parcours
 SECRET = "s" * 40
 HOST = "testserver"
 ORIGIN = {"Origin": f"http://{HOST}"}
+INTERNE = {"X-Academy-Interne": hmac.new(SECRET.encode(), b"contenus-interne", hashlib.sha256).hexdigest()}
 
 
 def token(role="admin", aud="ros-academy-admin", ttl=300, secret=SECRET):
@@ -60,7 +64,9 @@ def test_public_pages(client):
         assert "default-src 'self'" in r.headers["Content-Security-Policy"]
     page = client.get("/modules/01-demo/").text
     assert "Ouvrir dans le lab" in page
-    assert "/lab/?module=01-demo&amp;open=ws/01-demo/src/p/p/n.py" in page
+    assert "/compte/lab?suite=/lab/%3Fmodule%3D01-demo%26open%3Dws/01-demo/src/p/p/n.py" in page
+    assert 'href="/compte/lab?suite=/lab/%3Fmodule%3D01-demo%26exercice%3D1"' in page
+    assert 'href="/compte/"' in page  # lien « Mon compte »
     assert 'class="code-tabs"' in page  # python + cpp consécutifs
     assert "Quelle commande compile un workspace ?" in page
 
@@ -83,6 +89,7 @@ def test_answers_never_reach_the_browser(client):
 
 def test_qcm_correction(client):
     url = "/api/contenus/modules/01-demo/qcm"
+    client.headers.update(INTERNE)
     full = client.post(url, json={"reponses": {"q1": [0], "q2": [0, 1]}}).json()
     assert full["note"] == 20 and full["justes"] == 2
     assert full["questions"][0]["explication"].startswith("colcon")
@@ -99,11 +106,32 @@ def test_exercise_api_hides_solution_and_explanation(client):
     assert "setup.sh" in paths and "check.sh" in paths
     assert not [p for p in paths if p.startswith("solution") or "explication" in p or "indices" in p]
     assert data["indices"] == 3
-    assert "Regardez setup.py" in client.get("/api/contenus/modules/01-demo/indices/1").json()["html"]
-    assert client.get("/api/contenus/modules/01-demo/indices/4").status_code == 404
+    hint = "/api/contenus/modules/01-demo/indices/1"
+    assert "Regardez setup.py" in client.get(hint, headers=INTERNE).json()["html"]
+    assert client.get("/api/contenus/modules/01-demo/indices/4", headers=INTERNE).status_code == 404
     assert client.get("/api/contenus/modules/01-demo/lab").json()["files"][0]["path"] == "README.md"
     files = client.get("/api/contenus/modules/01-demo/cours-fichiers").json()["files"]
     assert files == [{"path": "src/p/p/n.py", "content": "print(1)\n"}]
+
+
+@pytest.mark.parametrize("method,path", [
+    ("POST", "/api/contenus/modules/01-demo/qcm"),
+    ("GET", "/api/contenus/modules/01-demo/indices/1"),
+    ("GET", "/api/contenus/modules/01-demo/explication"),
+])
+def test_internal_routes_require_the_shared_secret(client, method, path):
+    body = {"json": {"reponses": {"q1": [0]}}} if method == "POST" else {}
+    for headers in ({}, {"X-Academy-Interne": "faux"}, {"X-Academy-Interne": INTERNE["X-Academy-Interne"][:-1]}):
+        r = client.request(method, path, headers=headers, **body)
+        assert r.status_code == 403, headers
+        assert "Regardez" not in r.text and "colcon" not in r.text and "manquait" not in r.text
+    assert client.request(method, path, headers=INTERNE, **body).status_code == 200
+
+
+def test_parcours_api_lists_modules_and_coefficients(client):
+    data = client.get("/api/contenus/parcours").json()["parcours"]
+    assert data[0]["id"] == "demo"
+    assert [(m["id"], m["coef"]) for m in data[0]["modules"]] == [("01-demo", 1)]
 
 
 def test_unknown_and_draft_only_modules_are_404(client, store, tmp_path):
@@ -118,7 +146,8 @@ def test_unknown_and_draft_only_modules_are_404(client, store, tmp_path):
 # --- Administration : accès
 
 def test_admin_requires_login(client):
-    assert client.get("/admin/").status_code == 401
+    r = client.get("/admin/", follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/compte/admin"  # connexion via Comptes
     assert client.get("/admin/api/etat").json() == {"erreur": "Connexion requise"}
 
 

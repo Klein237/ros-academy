@@ -13,6 +13,11 @@ def internal_token(secret):
     return hmac.new(secret.encode(), b"contenus-interne", hashlib.sha256).hexdigest()
 
 
+def comptes_token(secret):
+    """Secret dérivé que le Hub présente à la route interne de Comptes (quota avant démarrage)."""
+    return hmac.new(secret.encode(), b"comptes-interne", hashlib.sha256).hexdigest()
+
+
 class UpstreamError(Exception):
     def __init__(self, status, message=""):
         self.status = status
