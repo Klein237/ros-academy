@@ -238,3 +238,8 @@ def test_history_and_restore(admin):
     assert commits[1]["publie"] is True
     admin.post("/admin/api/historique/restaurer", headers=ORIGIN, json={"sha": commits[1]["sha"]})
     assert "Démo" in admin.get("/admin/api/modules/01-demo/fichier?chemin=index.md").json()["contenu"]
+
+
+def test_author_guide(admin, client):
+    r = admin.get("/admin/guide/")
+    assert r.status_code == 200 and "Guide de rédaction des formations" in r.text

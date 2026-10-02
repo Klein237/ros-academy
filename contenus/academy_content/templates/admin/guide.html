@@ -1,0 +1,7 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Guide de rédaction{% endblock %}
+{% block body_class %}admin{% endblock %}
+{% block main_class %}page{% endblock %}
+{% block content %}
+<article class="cours">{{ guide_html | safe }}</article>
+{% endblock %}

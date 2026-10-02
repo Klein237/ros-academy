@@ -1,0 +1,7 @@
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/node_modules
+lab-ui/dist
+deploy/.env
+.git

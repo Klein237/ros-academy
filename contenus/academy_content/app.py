@@ -282,6 +282,11 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
     def admin_home(request: Request, admin=Depends(admin_user)):
         return page(request, "admin/tableau.html", admin=admin, tests_enabled=tests_enabled)
 
+    @app.get("/admin/guide/", response_class=HTMLResponse)
+    def admin_guide(request: Request, admin=Depends(admin_user)):
+        guide = render_markdown((HERE / "guide.md").read_text(encoding="utf-8"))
+        return page(request, "admin/guide.html", admin=admin, guide_html=guide)
+
     @app.get("/admin/modules/{module_id}/", response_class=HTMLResponse)
     def admin_module(request: Request, module_id: str, admin=Depends(admin_user)):
         if module_id not in store.module_ids():
