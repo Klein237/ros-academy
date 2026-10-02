@@ -1,16 +1,19 @@
 import "./style.css";
 import { ContentsClient } from "./api/contents";
 import { HubClient } from "./api/hub";
+import { ModuleClient } from "./api/module";
 import { TerminalsClient } from "./api/terminals";
 import { readConfig } from "./config";
 import { ACTIVITY_EVENTS, IdleWatcher } from "./idle";
+import { ensureCourseFile, exerciseDir, installLab, labDir } from "./module";
 import { normalizePath, parentOf } from "./paths";
 import { RosbridgeClient } from "./ros/rosbridge";
 import { Session } from "./session";
 import { IdleBanner } from "./ui/banner";
-import { button, h } from "./ui/dom";
+import { button, h, toast } from "./ui/dom";
 import { EditorPanel } from "./ui/editor";
 import { FileTree } from "./ui/files";
+import { ModulePanel } from "./ui/modulePanel";
 import { TerminalPanel } from "./ui/terminals";
 import { View2D } from "./ui/view2d";
 import { WaitingScreen } from "./ui/waiting";
@@ -20,6 +23,7 @@ const hub = new HubClient();
 const session = new Session(hub);
 const contents = new ContentsClient(hub);
 const terminalsClient = new TerminalsClient(hub);
+const moduleClient = config.moduleId ? new ModuleClient(config.moduleId) : null;
 
 const app = document.getElementById("app")!;
 const waiting = new WaitingScreen(() => void session.launch());
@@ -62,15 +66,44 @@ let openedFromUrl = false;
 
 function toggle2d(): void {
   const view = workspace.querySelector<HTMLElement>(".view2d");
-  if (!view) return;
+  const side = workspace.querySelector<HTMLElement>(".side");
+  if (!view || !side) return;
   view.hidden = !view.hidden;
+  side.hidden = view.hidden && !side.querySelector(".module-panel");
   show2d.setAttribute("aria-pressed", String(!view.hidden));
+}
+
+/** Module du parcours : copie lab/ si besoin ; renvoie le dossier de départ. */
+async function prepareModule(): Promise<string> {
+  if (!moduleClient || !config.moduleId) return "";
+  const id = config.moduleId;
+  try {
+    await installLab(contents, id, await moduleClient.labFiles());
+  } catch {
+    toast(`Le module ${id} n'a pas pu être chargé.`, "error");
+    return "";
+  }
+  if (config.exercice && (await contents.exists(exerciseDir(id)).catch(() => false))) return exerciseDir(id);
+  return labDir(id);
+}
+
+/** « Ouvrir dans le lab » : crée le fichier depuis le cours s'il n'existe pas encore. */
+async function openFromCourse(editor: EditorPanel, path: string): Promise<void> {
+  if (moduleClient && config.moduleId) {
+    try {
+      await ensureCourseFile(contents, config.moduleId, path, await moduleClient.courseFiles());
+    } catch {
+      // le fichier sera signalé absent par l'éditeur
+    }
+  }
+  await editor.openFile(path);
 }
 
 async function startWorkspace(): Promise<void> {
   teardown();
   user.textContent = hub.user;
-  const cwd = config.folder && (await contents.exists(config.folder).catch(() => false)) ? config.folder : "";
+  const moduleFolder = await prepareModule();
+  const cwd = config.folder && (await contents.exists(config.folder).catch(() => false)) ? config.folder : moduleFolder;
   const editor = new EditorPanel(contents);
   let refreshTimer: number | null = null;
   const files = new FileTree({
@@ -94,10 +127,24 @@ async function startWorkspace(): Promise<void> {
     onStatus: (status) => view.setStatus(status),
   });
   const view = new View2D(ros);
+  const side = h("div", { class: "side" });
+  if (moduleClient && config.moduleId) {
+    const panel = new ModulePanel({
+      moduleId: config.moduleId,
+      client: moduleClient,
+      contents,
+      terminals,
+      reveal: (path) => files.reveal(path),
+      openExercise: config.exercice,
+    });
+    side.append(panel.el);
+    panel.start().catch(() => toast("Le module n'a pas pu être chargé.", "error"));
+  }
+  side.append(view.el);
   workspace.replaceChildren(
     files.el,
     h("div", { class: "center" }, editor.el, h("div", { class: "splitter", attrs: { "aria-hidden": "true" } }), terminals.el),
-    view.el,
+    side,
   );
   setupSplitter(workspace.querySelector(".center")!);
   current = { terminals, ros, view, editor };
@@ -107,7 +154,7 @@ async function startWorkspace(): Promise<void> {
   view.start();
   if (config.openPath && !openedFromUrl) {
     openedFromUrl = true;
-    await editor.openFile(config.openPath);
+    await openFromCourse(editor, config.openPath);
   } else {
     terminals.focus();
   }
@@ -157,7 +204,7 @@ window.addEventListener("message", (ev) => {
   if (data.type === "rosacademy:activity") idle.activity();
   if (data.type === "rosacademy:open" && typeof data.path === "string" && current) {
     try {
-      void current.editor.openFile(normalizePath(data.path));
+      void openFromCourse(current.editor, normalizePath(data.path));
     } catch {
       // chemin refusé (..)
     }
