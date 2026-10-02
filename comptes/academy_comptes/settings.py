@@ -3,6 +3,7 @@
 import os
 import re
 from dataclasses import dataclass, field
+from urllib.parse import urlsplit
 
 ORIGIN_RE = re.compile(r"^https?://[A-Za-z0-9.-]+(:\d{1,5})?$")
 # Pages de Stripe vers lesquelles « S'abonner » et « Gérer mon abonnement » redirigent
@@ -42,6 +43,8 @@ class Settings:
     smtp_user: str = ""
     smtp_password: str = ""
     smtp_from: str = "ROS Academy <no-reply@localhost>"
+    # Test en local : afficher le lien de connexion à l'écran (jamais en ligne, voir show_login_link)
+    login_link_on_screen: bool = False
     github_client_id: str = ""
     github_client_secret: str = ""
     google_client_id: str = ""
@@ -65,6 +68,18 @@ class Settings:
         return bool(self.google_client_id and self.google_client_secret)
 
     @property
+    def local_only(self):
+        return urlsplit(self.public_url).hostname in {"localhost", "127.0.0.1", "::1"}
+
+    @property
+    def show_login_link(self):
+        """Lien de connexion affiché à l'écran : demandé, sans SMTP, et sur une adresse locale seulement.
+
+        En ligne, n'importe qui pourrait ouvrir la session de n'importe quelle adresse.
+        """
+        return self.login_link_on_screen and not self.smtp_host and self.local_only
+
+    @property
     def billing_enabled(self):
         """Abonnement pro proposé seulement quand Stripe est entièrement configuré."""
         return bool(self.stripe_secret_key and self.stripe_webhook_secret and self.stripe_price_id)
@@ -86,6 +101,7 @@ class Settings:
             smtp_user=env("SMTP_USER", ""),
             smtp_password=env("SMTP_PASSWORD", ""),
             smtp_from=env("SMTP_FROM") or f"ROS Academy <no-reply@{domain}>",
+            login_link_on_screen=env("CONNEXION_LIEN_A_L_ECRAN", "0") == "1",
             github_client_id=env("GITHUB_CLIENT_ID", ""),
             github_client_secret=env("GITHUB_CLIENT_SECRET", ""),
             google_client_id=env("GOOGLE_CLIENT_ID", ""),
