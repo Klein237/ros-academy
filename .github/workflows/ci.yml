@@ -92,7 +92,14 @@ jobs:
         working-directory: lab-ui
         run: |
           set -a; . ../deploy/.env; set +a
-          npx playwright test --grep-invert @limit
+          npx playwright test --grep-invert "@limit|@stripe"
+      - name: Abonnement pro (Stripe simulé)
+        run: |
+          set -a; . deploy/.env; set +a
+          (cd deploy && docker compose -f docker-compose.yml -f docker-compose.stripe-simule.yml up -d --build comptes fake-stripe)
+          for _ in $(seq 1 30); do curl -sf -H "Authorization: Bearer sk_test_simule" http://localhost:12111/v1/prices/price_pro_test >/dev/null && curl -ksf https://localhost/connexion >/dev/null && break; sleep 2; done
+          cd lab-ui && npx playwright test --grep @stripe
+          cd ../deploy && docker compose up -d comptes   # retour à Comptes sans Stripe pour la suite
       - name: Capacité
         run: |
           set -a; . deploy/.env; set +a
@@ -118,5 +125,6 @@ jobs:
           docker logs hub
           docker logs deploy-caddy-1 || true
           docker logs deploy-contenus-1 || true
+          docker logs deploy-fake-stripe-1 || true
           docker logs deploy-comptes-1 2>&1 | sed -E 's#/connexion/email/[^ ]+#/connexion/email/…#' || true
           for c in $(docker ps -aq --filter name=jupyter-); do docker logs "$c"; done

@@ -28,6 +28,7 @@ Formule `pro` : lab sans limite de minutes, conteneur 2 vCPU / 4 Go. Proposée s
 - Stripe fait foi : chaque événement est vérifié (signature), puis l'abonnement est relu auprès de Stripe. `active`, `trialing` et `past_due` (paiement en cours de relance) donnent la formule pro ; une résiliation prend effet à la fin de la période payée.
 - La nouvelle formule s'applique au conteneur à la prochaine ouverture du lab.
 - Avant d'ouvrir les paiements au public : TVA (Stripe Tax) et conditions générales de vente.
+- **Tests sans compte Stripe** : `deploy/docker-compose.stripe-simule.yml` ajoute un faux Stripe (`comptes/tests/fake_stripe.py` : API, page de paiement, portail client, webhooks signés) et y branche Comptes (`STRIPE_API_BASE`, `STRIPE_REDIRECT_ORIGINS`, à ne jamais définir en production). `docker compose -f docker-compose.yml -f docker-compose.stripe-simule.yml up -d comptes fake-stripe`, puis `cd lab-ui && npx playwright test --grep @stripe`.
 
 ## Tester un accès étudiant sans compte (diagnostic)
 Le parcours normal passe par `/connexion`. Pour tester le Hub seul, un jeton peut être émis à la main :
