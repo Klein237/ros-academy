@@ -18,6 +18,17 @@ export function mint(sub: string, plan = "free", ttl = 300): string {
   return `${header}.${payload}.${signature}`;
 }
 
+/** Lien de connexion à l'éditeur (rôle admin). */
+export function mintAdmin(ttl = 300): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error("JWT_SECRET manquant");
+  const now = Math.floor(Date.now() / 1000);
+  const header = b64url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+  const payload = b64url(JSON.stringify({ sub: "admin-e2e", role: "admin", aud: "ros-academy-admin", iat: now, exp: now + ttl }));
+  const signature = createHmac("sha256", secret).update(`${header}.${payload}`).digest("base64url");
+  return `${header}.${payload}.${signature}`;
+}
+
 export function newStudent(): string {
   return `e2e${randomBytes(4).toString("hex")}`;
 }
