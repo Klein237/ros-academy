@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { HttpError } from "../../src/api/hub";
 import { readConfig } from "../../src/config";
 import {
   cleanOutput,
@@ -6,6 +7,8 @@ import {
   findExitCode,
   installExerciseFiles,
   installLab,
+  installLabWithRetry,
+  isTransient,
   resetLab,
   scriptCommand,
 } from "../../src/module";
@@ -59,6 +62,75 @@ describe("installLab", () => {
     expect(await installLab(fs, "02-noeud", LAB)).toBe("existant");
     expect(fs.files.get("ws/02-noeud/src/my_pkg/setup.py")).toBe("mon travail\n");
     expect(fs.files.has("ws/02-noeud/src/my_pkg/package.xml")).toBe(false);
+  });
+});
+
+describe("installLabWithRetry", () => {
+  const noWait = { wait: async () => {} };
+
+  /** Écritures qui échouent `failures` fois (la n-ième écriture de la tentative). */
+  function flaky(fs: FakeContents, failures: number, error: unknown, at = 1) {
+    const write = fs.writeFile.bind(fs);
+    let count = 0;
+    fs.writeFile = async (p: string, c: string) => {
+      count += 1;
+      if (failures > 0 && count === at) {
+        failures -= 1;
+        count = 0;
+        throw error;
+      }
+      return write(p, c);
+    };
+  }
+
+  it("complète une installation interrompue par une erreur passagère", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fs = new FakeContents();
+    flaky(fs, 1, new HttpError(502, "PUT : 502"), 2); // setup.py écrit, package.xml échoue
+    expect(await installLabWithRetry(fs, "02-noeud", async () => LAB, noWait)).toBe("installe");
+    expect(fs.files.get("ws/02-noeud/src/my_pkg/setup.py")).toBe("setup()\n");
+    expect(fs.files.get("ws/02-noeud/src/my_pkg/package.xml")).toBe("<package/>\n");
+  });
+
+  it("retente le chargement des fichiers du module", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fs = new FakeContents();
+    const load = vi.fn().mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValue(LAB);
+    const delays: number[] = [];
+    const wait = async (ms: number) => void delays.push(ms);
+    expect(await installLabWithRetry(fs, "02-noeud", load, { delays: [10, 20], wait })).toBe("installe");
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(delays).toEqual([10]);
+  });
+
+  it("ne réécrit pas le travail de l'étudiant lors d'une reprise", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fs = new FakeContents();
+    await fs.writeFile("ws/02-noeud/src/my_pkg/setup.py", "mon travail\n");
+    const load = vi.fn().mockRejectedValueOnce(new HttpError(503, "503")).mockResolvedValue(LAB);
+    expect(await installLabWithRetry(fs, "02-noeud", load, noWait)).toBe("existant");
+    expect(fs.files.get("ws/02-noeud/src/my_pkg/setup.py")).toBe("mon travail\n");
+    expect(fs.files.has("ws/02-noeud/src/my_pkg/package.xml")).toBe(false);
+  });
+
+  it("abandonne après la dernière tentative ou sur une erreur définitive", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const down = vi.fn().mockRejectedValue(new HttpError(0, "injoignable"));
+    await expect(installLabWithRetry(new FakeContents(), "02-noeud", down, { delays: [1, 1], ...noWait })).rejects.toThrow(
+      "injoignable",
+    );
+    expect(down).toHaveBeenCalledTimes(3);
+    const refused = vi.fn().mockRejectedValue(new HttpError(403, "refusé"));
+    await expect(installLabWithRetry(new FakeContents(), "02-noeud", refused, noWait)).rejects.toThrow("refusé");
+    expect(refused).toHaveBeenCalledTimes(1);
+  });
+
+  it("isTransient", () => {
+    expect(isTransient(new HttpError(0, ""))).toBe(true);
+    expect(isTransient(new HttpError(500, ""))).toBe(true);
+    expect(isTransient(new HttpError(404, ""))).toBe(false);
+    expect(isTransient(new TypeError("Failed to fetch"))).toBe(true);
+    expect(isTransient(new Error("autre"))).toBe(false);
   });
 });
 
