@@ -53,7 +53,7 @@ test("parcours terminé : la note finale pondérée s'affiche sur la page Résul
   const origin = { Origin: new URL(page.url()).origin };
   const parcours = (await (await page.request.get("/api/contenus/parcours")).json()).parcours[0];
   const modules: { id: string; coef: number }[] = parcours.modules;
-  expect(modules.map((m) => m.id)).toEqual(["01-initiation", "02-noeud", "03-service", "04-action", "05-urdf", "06-parametres", "07-tf2"]);
+  expect(modules.map((m) => m.id)).toEqual(["01-initiation", "02-noeud", "03-service", "04-action", "05-urdf", "06-parametres", "07-tf2", "08-gazebo"]);
 
   // module 01 : QCM sur le site, un indice, exercice réussi
   await page.locator("fieldset[data-question] input").first().check();

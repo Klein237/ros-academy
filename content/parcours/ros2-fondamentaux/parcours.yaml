@@ -2,9 +2,9 @@ titre: ROS 2 Fondamentaux
 description: >-
   Les bases de ROS 2 Humble, en pratique, autour d'un fil rouge : un robot à
   conduite différentielle que vous enrichissez module après module — nœud,
-  service, action, description URDF, paramètres et fichiers launch, puis
-  repères TF2. Chaque module se termine par une vraie panne à diagnostiquer
-  et un QCM.
+  service, action, description URDF, paramètres et fichiers launch, repères
+  TF2, puis simulation dans Gazebo. Chaque module se termine par une vraie
+  panne à diagnostiquer et un QCM.
 modules:
   - id: 01-initiation
     coef: 1
@@ -19,4 +19,6 @@ modules:
   - id: 06-parametres
     coef: 2
   - id: 07-tf2
+    coef: 2
+  - id: 08-gazebo
     coef: 2

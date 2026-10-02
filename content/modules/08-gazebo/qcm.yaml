@@ -1,0 +1,49 @@
+questions:
+  - id: role
+    question: Quelle est la différence entre Gazebo et RViz2 ?
+    choix:
+      - texte: Gazebo simule la physique et les capteurs ; RViz2 affiche ce que ROS sait (TF, modèle, mesures).
+        correct: true
+      - texte: Ce sont deux interfaces du même simulateur, l'une en 3D, l'autre en 2D.
+      - texte: RViz2 simule le robot, Gazebo n'est qu'un éditeur de mondes.
+    explication: On utilise les deux ensemble — Gazebo produit /odom et /scan, RViz2 les dessine.
+  - id: inertie
+    question: Que se passe-t-il dans Gazebo pour un link sans balise inertial ?
+    choix:
+      - texte: Gazebo l'ignore (il n'a pas de masse) ; avec une inertie absurde, le robot tremble ou s'envole.
+        correct: true
+      - texte: Gazebo lui donne une masse de 1 kg par défaut, sans conséquence.
+      - texte: Rien, l'inertie ne sert qu'à RViz2.
+    explication: La physique a besoin d'une masse et d'une matrice d'inertie réalistes pour chaque link mobile.
+  - id: frottement
+    question: Pourquoi met-on mu1 = mu2 = 0 sur la roulette libre ?
+    choix:
+      - texte: Pour qu'elle glisse sans freiner le robot dans les virages ; seules les roues motrices adhèrent.
+        correct: true
+      - texte: Pour qu'elle ne soit pas affichée dans Gazebo.
+      - texte: Pour que le laser ne la détecte pas.
+    explication: Une roulette simulée par une sphère fixe frotterait au sol ; sans frottement, elle ne fait que porter le robot.
+  - id: plugin
+    question: Quel élément publie /odom et la TF odom → base_link du robot simulé ?
+    choix:
+      - texte: Le plugin gazebo_ros_diff_drive, qui pilote aussi les roues à partir de /cmd_vel.
+        correct: true
+      - texte: robot_state_publisher, à partir de l'URDF.
+      - texte: spawn_entity.py, au moment où le robot apparaît.
+    explication: robot_state_publisher publie les TF internes au robot (roues, laser) ; la position du robot dans le monde vient du plugin.
+  - id: simtime
+    question: À quoi sert use_sim_time avec Gazebo ?
+    choix:
+      - texte: À utiliser l'horloge de la simulation (/clock), pour que les horodatages des nœuds et des capteurs concordent.
+        correct: true
+      - texte: À accélérer la simulation.
+      - texte: À enregistrer la simulation pour la rejouer.
+    explication: Sans lui, un nœud horodate à l'heure réelle des données mesurées à l'heure simulée, et TF refuse les transformations.
+  - id: monde
+    question: Pourquoi le monde de la salle décrit-il lui-même son sol au lieu d'utiliser model://ground_plane ?
+    choix:
+      - texte: Un modèle absent est téléchargé depuis Internet, que le lab n'a pas ; un monde autonome démarre partout.
+        correct: true
+      - texte: Parce que model://ground_plane ne fonctionne qu'avec l'interface graphique.
+      - texte: Pour que le sol soit invisible au laser.
+    explication: Gazebo cherche les modèles manquants dans sa base en ligne, ce qui bloque ou échoue sans réseau.
