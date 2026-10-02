@@ -96,6 +96,10 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
     http = http or httpx.Client(timeout=15)
     templates = Jinja2Templates(directory=str(HERE / "templates"))
     templates.env.globals["billing"] = settings.billing_enabled
+    if settings.show_login_link:
+        log.warning("Liens de connexion affichés à l'écran (CONNEXION_LIEN_A_L_ECRAN=1) : test en local seulement")
+    elif settings.login_link_on_screen:
+        log.warning("CONNEXION_LIEN_A_L_ECRAN ignoré : seulement sans SMTP et sur une adresse locale (DOMAIN=localhost)")
     if settings.billing_enabled:
         stripe = stripe or StripeClient(settings.stripe_secret_key, base=settings.stripe_api_base)
     page_csp = csp(settings.stripe_redirect_origins if settings.billing_enabled else ())
@@ -200,6 +204,12 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
             log.exception("Envoi du lien de connexion impossible")
             return page(request, "message.html", 502, titre="Envoi impossible",
                         message="Le lien de connexion n'a pas pu être envoyé. Réessayez dans un instant.")
+        if settings.show_login_link:
+            return page(request, "message.html", titre="Test en local : votre lien de connexion",
+                        message=f"Aucun serveur d'e-mail n'est configuré : voici le lien qui aurait été envoyé à "
+                                f"{email} (valable 15 minutes). Cette page n'existe que sur une adresse locale "
+                                "(CONNEXION_LIEN_A_L_ECRAN=1).",
+                        lien=link, lien_texte="Se connecter")
         return page(request, "message.html", titre="Vérifiez votre boîte de réception",
                     message=f"Un lien de connexion a été envoyé à {email}. Il est valable 15 minutes.")
 
