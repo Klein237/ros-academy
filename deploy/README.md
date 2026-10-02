@@ -28,6 +28,7 @@ Formule `pro` : lab sans limite de minutes, conteneur 2 vCPU / 4 Go. Proposée s
 - Stripe fait foi : chaque événement est vérifié (signature), puis l'abonnement est relu auprès de Stripe. `active`, `trialing` et `past_due` (paiement en cours de relance) donnent la formule pro ; une résiliation prend effet à la fin de la période payée.
 - La nouvelle formule s'applique au conteneur à la prochaine ouverture du lab.
 - Avant d'ouvrir les paiements au public : TVA (Stripe Tax) et conditions générales de vente.
+- **Tests sans compte Stripe** : `deploy/docker-compose.stripe-simule.yml` ajoute un faux Stripe (`comptes/tests/fake_stripe.py` : API, page de paiement, portail client, webhooks signés) et y branche Comptes (`STRIPE_API_BASE`, `STRIPE_REDIRECT_ORIGINS`, à ne jamais définir en production). `docker compose -f docker-compose.yml -f docker-compose.stripe-simule.yml up -d comptes fake-stripe`, puis `cd lab-ui && npx playwright test --grep @stripe`.
 
 ## Tester un accès étudiant sans compte (diagnostic)
 Le parcours normal passe par `/connexion`. Pour tester le Hub seul, un jeton peut être émis à la main :
@@ -71,6 +72,23 @@ curl -sk -X POST -H "Authorization: token $HUB_ADMIN_TOKEN" https://$DOMAIN/user
 ## Mettre à jour l'image étudiant
 Construire `ros-lab:<nouvelle version>`, changer `ROS_LAB_IMAGE` dans `.env`, `docker compose up -d`. Les conteneurs déjà lancés gardent l'ancienne image jusqu'à leur arrêt ; les volumes ne sont pas touchés.
 
+## Journaux et alertes
+- **Journaux** : `https://<domaine>/admin/journaux/` (lien « Journaux » de l'éditeur ; même session que l'éditeur, administrateur seulement). Grafana affiche le tableau de bord « Plateforme » : volume par service, erreurs de la dernière heure, alertes de la veille, recherche dans tous les journaux et dans ceux des labs des étudiants (étiquettes `service`, `conteneur`, `etudiant`). Loki les garde 30 jours (volume `loki-data`), y compris ceux des conteneurs étudiants arrêtés.
+- Exemples de recherche (Explore, source Loki) : `{service="comptes"} |= "Quota épuisé"`, `{service="lab", etudiant="u42"}`, `{service="hub"} |~ "(?i)error"`.
+- **Alertes** : le service `veille` vérifie toutes les 15 s le CPU (moyenne sur 5 min), la mémoire et le disque de l'hôte, ainsi que Hub, Comptes, Contenus et Loki (alerte après 3 échecs de suite). E-mail aux `ADMIN_EMAILS` par le SMTP de Comptes à l'entrée en alerte, rappel toutes les 6 h, message au retour à la normale (5 points sous le seuil). Seuils : `VEILLE_SEUIL_CPU`, `VEILLE_SEUIL_MEMOIRE`, `VEILLE_SEUIL_DISQUE` (80 %). Sans SMTP, les alertes ne sont que dans les journaux.
+- Les journaux Docker de chaque conteneur sont limités en taille sur le disque (l'historique est dans Loki).
+
+## Test de charge
+Avant chaque ouverture de session ou d'atelier (spec : 30 à 40 sessions simultanées), sur le serveur :
+```bash
+set -a; . deploy/.env; set +a
+pip install requests websocket-client PyJWT
+python scripts/charge.py --sessions 35 --limite $ACTIVE_SERVER_LIMIT --duree 300
+```
+Le script ouvre les sessions en même temps (pire cas), lance `ros2 topic list` dans chacune, simule une activité (une commande par session toutes les 30 s), vérifie qu'une session de plus est refusée (HTTP 429 : file d'attente), puis nettoie tout. Il échoue si une session ne fonctionne pas ou si le 95e centile de démarrage dépasse `--max-demarrage` (120 s). Suivre en parallèle le tableau de bord « Plateforme » et les alertes de la veille.
+
+Mesure de référence (2 octobre 2026, machine de 4 vCPU / 16 Go, plus petite que le serveur visé) : 35 sessions sur 35 fonctionnelles, démarrage simultané en 66 s (médiane) et 70 s (max), 35 % de mémoire utilisée, 36ᵉ session refusée. La CI rejoue une version réduite (8 sessions).
+
 ## Diagnostic
 - `docker logs hub` : connexions refusées (`Connexion par jeton refusée`), démarrages, arrêts pour inactivité, démarrages refusés pour quota.
 - `docker compose logs comptes` : liens de connexion (sans SMTP), arrêts pour quota (`Quota épuisé : serveur de u… arrêté`), erreurs d'envoi d'e-mail. Pas de journal d'accès : il contiendrait les liens de connexion.
@@ -86,5 +104,7 @@ Construire `ros-lab:<nouvelle version>`, changer `ROS_LAB_IMAGE` dans `.env`, `d
 - Tous les conteneurs étudiants partagent le réseau `ros-lab-net` : ils peuvent atteindre les ports des autres, protégés par l'authentification par jeton Jupyter mais non isolés au niveau réseau.
 - La limite de 1 Go par volume n'est pas encore appliquée (nécessite des quotas de projet XFS sur l'hôte).
 - Sur certaines versions de Docker, un réseau `internal` laisse quand même les conteneurs joindre l'hôte via l'adresse de la passerelle du bridge : les services de l'hôte écoutant sur 0.0.0.0 (sshd, bases de données, supervision) peuvent alors être atteints depuis le code des étudiants. L'opérateur doit lier ces services à des interfaces précises, ou ajouter une règle de pare-feu rejetant le trafic venant du sous-réseau `ros-lab-net` vers l'hôte. Exemple : trouver le bridge avec `docker network inspect ros-lab-net -f '{{.Id}}'` (le bridge s'appelle `br-` suivi des 12 premiers caractères de l'identifiant), puis `iptables -I INPUT -i <bridge> -j DROP`.
+- Alloy (collecte des journaux) monte la socket Docker : comme le Hub et Contenus, sa compromission équivaut à un accès root à l'hôte. Il n'est joignable par aucun autre conteneur (réseau `journaux`, interne, sans port).
+- Alloy découvre un nouveau conteneur en quelques secondes : les journaux d'un lab arrêté moins de ~10 s après son démarrage peuvent manquer.
 - Le Hub s'exécute en root avec accès à la socket Docker (inhérent à DockerSpawner) : sa compromission équivaut à un accès root à l'hôte.
 - La couche inscriptible du conteneur et le swap ne sont pas limités en taille : un étudiant peut remplir le disque de l'hôte.

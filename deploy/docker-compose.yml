@@ -1,8 +1,15 @@
+# Journaux Docker limités en taille sur le disque ; l'historique complet est dans Loki (30 jours).
+x-logging: &logging
+  logging:
+    driver: json-file
+    options: { max-size: "20m", max-file: "5" }
+
 services:
   hub:
     build: ../hub
     container_name: hub
     restart: unless-stopped
+    <<: *logging
     environment:
       JWT_SECRET: ${JWT_SECRET:?}
       JUPYTERHUB_CRYPT_KEY: ${JUPYTERHUB_CRYPT_KEY:?}
@@ -21,6 +28,7 @@ services:
       context: ..
       dockerfile: contenus/Dockerfile
     restart: unless-stopped
+    <<: *logging
     environment:
       JWT_SECRET: ${JWT_SECRET:?}
       ROS_LAB_IMAGE: ${ROS_LAB_IMAGE:-ros-lab:0.1.0}
@@ -34,6 +42,7 @@ services:
   comptes:
     build: ../comptes
     restart: unless-stopped
+    <<: *logging
     depends_on:
       postgres: { condition: service_healthy }
     environment:
@@ -60,6 +69,7 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    <<: *logging
     environment:
       POSTGRES_USER: comptes
       POSTGRES_DB: comptes
@@ -73,9 +83,84 @@ services:
       - postgres-data:/var/lib/postgresql/data
     networks: [data]
 
+  loki:
+    image: grafana/loki:3.5.5
+    restart: unless-stopped
+    <<: *logging
+    command: ["-config.file=/etc/loki/loki.yaml"]
+    volumes:
+      - ./journaux/loki.yaml:/etc/loki/loki.yaml:ro
+      - loki-data:/loki
+    networks: [journaux]
+
+  alloy:
+    image: grafana/alloy:v1.10.2
+    restart: unless-stopped
+    <<: *logging
+    command: ["run", "--disable-reporting", "--storage.path=/var/lib/alloy/data", "/etc/alloy/config.alloy"]
+    volumes:
+      - ./journaux/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro   # lecture des journaux des conteneurs
+      - alloy-data:/var/lib/alloy/data
+    networks: [journaux]
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    restart: unless-stopped
+    <<: *logging
+    environment:
+      GF_SERVER_ROOT_URL: https://${DOMAIN:-localhost}/admin/journaux/
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      # identité posée par Caddy après vérification de la session d'administrateur (Contenus)
+      GF_AUTH_PROXY_ENABLED: "true"
+      GF_AUTH_PROXY_HEADER_NAME: X-Academy-Admin
+      GF_AUTH_PROXY_HEADER_PROPERTY: username
+      GF_AUTH_PROXY_AUTO_SIGN_UP: "true"
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_AUTH_BASIC_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_USERS_AUTO_ASSIGN_ORG_ROLE: Admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?}
+      GF_SECURITY_COOKIE_SECURE: "true"
+      GF_SECURITY_DISABLE_GRAVATAR: "true"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
+      GF_PLUGINS_PUBLIC_KEY_RETRIEVAL_DISABLED: "true"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/plateforme.json
+    volumes:
+      - ./journaux/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./journaux/grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    networks: [public, journaux]
+
+  veille:
+    build: ../veille
+    restart: unless-stopped
+    <<: *logging
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      VEILLE_SEUIL_CPU: ${VEILLE_SEUIL_CPU:-80}
+      VEILLE_SEUIL_MEMOIRE: ${VEILLE_SEUIL_MEMOIRE:-80}
+      VEILLE_SEUIL_DISQUE: ${VEILLE_SEUIL_DISQUE:-80}
+      VEILLE_SERVICES: hub=http://hub:8000/hub/api,comptes=http://comptes:8300/connexion,contenus=http://contenus:8200/,loki=http://loki:3100/ready
+    volumes:
+      - /proc:/host/proc:ro   # CPU et mémoire de l'hôte
+      - /:/host/root:ro       # occupation du disque de l'hôte
+    networks: [public, journaux]
+
   caddy:
     build: ../lab-ui   # Caddy + Lab UI construit (servi sous /lab/)
     restart: unless-stopped
+    <<: *logging
     ports: ["80:80", "443:443"]
     environment:
       DOMAIN: ${DOMAIN:-localhost}
@@ -88,6 +173,8 @@ networks:
   public: {}
   data:
     internal: true   # base de données joignable par Comptes seulement
+  journaux:
+    internal: true   # Loki n'est joignable que par Alloy, Grafana et la veille
   ros-lab-net:
     name: ros-lab-net
     internal: true   # pas de sortie Internet pour les conteneurs étudiants
@@ -97,3 +184,6 @@ volumes:
   contenus-data: {}
   caddy-data: {}
   postgres-data: {}
+  loki-data: {}
+  alloy-data: {}
+  grafana-data: {}

@@ -1,6 +1,5 @@
-import { execSync } from "node:child_process";
 import { expect, test, type APIRequestContext } from "@playwright/test";
-import { admin, cleanup, loginStudent, mint, newEmail, openLabViaAccount, sql, waitReady } from "./helpers";
+import { admin, cleanup, containerLimits, loginStudent, mint, newEmail, openLabViaAccount, sql, waitReady } from "./helpers";
 
 let api: APIRequestContext;
 const students: string[] = [];
@@ -47,6 +46,40 @@ test("le QCM du site demande une connexion, puis compte 2 tentatives au plus", a
   await expect(row).toContainText("(2/2)");
   await expect(row).toContainText("à faire"); // exercice pas encore réussi
   await expect(page.getByText("Note finale : disponible quand")).toBeVisible();
+});
+
+test("parcours terminé : la note finale pondérée s'affiche sur la page Résultats", async ({ page }) => {
+  await loginStudent(page, newEmail(), "/modules/01-initiation/");
+  const origin = { Origin: new URL(page.url()).origin };
+  const parcours = (await (await page.request.get("/api/contenus/parcours")).json()).parcours[0];
+  const modules: { id: string; coef: number }[] = parcours.modules;
+  expect(modules.map((m) => m.id)).toEqual(["01-initiation", "02-noeud", "03-service", "04-action", "05-urdf"]);
+
+  // module 01 : QCM sur le site, un indice, exercice réussi
+  await page.locator("fieldset[data-question] input").first().check();
+  await page.getByRole("button", { name: "Valider mes réponses" }).click();
+  await expect(page.locator(".qcm-result")).toContainText("/ 20");
+  const result = await page.locator(".qcm-result").textContent();
+  const qcm01 = Number(/Note : ([\d,]+) \/ 20/.exec(result ?? "")![1].replace(",", "."));
+  const hint = await page.request.post("/api/comptes/exercices/01-initiation/indices/1", { headers: origin });
+  expect(hint.ok()).toBe(true);
+  // la réussite est déclarée comme le fait le Lab UI après check.sh (exercice complet dans le lab : test @ros)
+  const done = (id: string) => page.request.post(`/api/comptes/exercices/${id}/reussite`, { headers: origin });
+  expect((await done("01-initiation")).ok()).toBe(true);
+
+  const notes: Record<string, number> = { "01-initiation": 0.5 * qcm01 + 0.5 * 20 * 0.85 };
+  for (const m of modules.slice(1)) {
+    const r = await page.request.post(`/api/comptes/qcm/${m.id}`, { data: { reponses: {} }, headers: origin });
+    const qcm = (await r.json()).note as number;
+    expect((await done(m.id)).ok()).toBe(true);
+    notes[m.id] = 0.5 * qcm + 0.5 * 20;
+  }
+
+  await page.goto("/compte/resultats");
+  const total = modules.reduce((acc, m) => acc + m.coef, 0);
+  const finale = modules.reduce((acc, m) => acc + m.coef * Math.round(notes[m.id] * 100) / 100, 0) / total;
+  await expect(page.locator(".final-grade")).toHaveText(`Note finale : ${finale.toFixed(2).replace(".", ",")} / 20`);
+  await expect(page.getByRole("row", { name: /Initiation/ })).toContainText("réussi (1 indice) · 17,0");
 });
 
 test("routes internes injoignables depuis l'extérieur", async ({ request }) => {
@@ -110,15 +143,7 @@ test("formule pro : lab sans quota, conteneur 2 vCPU / 4 Go", async ({ page }) =
   useMinutes(name, 600); // ne compte pas en pro
   expect((await (await page.request.get("/api/comptes/moi")).json()).minutes_restantes).toBeNull();
   await openLabViaAccount(page);
-  const fmt = "{{.HostConfig.NanoCpus}} {{.HostConfig.CpuQuota}} {{.HostConfig.CpuPeriod}} {{.HostConfig.Memory}} {{.HostConfig.PidsLimit}}";
-  const [nano, quota, period, memory, pids] = execSync(`docker inspect -f '${fmt}' jupyter-${name}`, { encoding: "utf8" })
-    .trim()
-    .split(" ")
-    .map(Number);
-  // DockerSpawner traduit cpu_limit en CpuQuota / CpuPeriod
-  expect(nano ? nano / 1e9 : quota / period).toBe(2);
-  expect(memory).toBe(4 * 1024 ** 3);
-  expect(pids).toBe(512);
+  expect(containerLimits(name)).toEqual({ cpus: 2, memory: 4 * 1024 ** 3, pids: 512 });
 });
 
 test("session du lab expirée → « Se reconnecter » rouvre la même page du lab", async ({ page }) => {

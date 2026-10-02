@@ -1,7 +1,21 @@
 """Configuration du service Comptes, lue dans l'environnement."""
 
 import os
+import re
 from dataclasses import dataclass, field
+
+ORIGIN_RE = re.compile(r"^https?://[A-Za-z0-9.-]+(:\d{1,5})?$")
+# Pages de Stripe vers lesquelles « S'abonner » et « Gérer mon abonnement » redirigent
+STRIPE_REDIRECT_ORIGINS = ("https://checkout.stripe.com", "https://billing.stripe.com")
+
+
+def _origins(value):
+    origins = tuple(o for o in re.split(r"[\s,]+", value or "") if o)
+    bad = [o for o in origins if not ORIGIN_RE.fullmatch(o)]
+    if bad:
+        raise SystemExit(f"STRIPE_REDIRECT_ORIGINS : origine invalide {bad[0]!r} (attendu https://hôte[:port])")
+    return origins or STRIPE_REDIRECT_ORIGINS
+
 
 # Formule → minutes de lab par mois civil (None : sans limite).
 PLAN_MINUTES = {"free": 600, "pro": None}
@@ -35,6 +49,8 @@ class Settings:
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
     stripe_price_id: str = ""
+    stripe_api_base: str = "https://api.stripe.com/v1"
+    stripe_redirect_origins: tuple = STRIPE_REDIRECT_ORIGINS
     admin_emails: frozenset = field(default_factory=frozenset)
     cookie_secure: bool = True
     plan_minutes: dict = field(default_factory=lambda: dict(PLAN_MINUTES))
@@ -76,6 +92,9 @@ class Settings:
             stripe_secret_key=env("STRIPE_SECRET_KEY", ""),
             stripe_webhook_secret=env("STRIPE_WEBHOOK_SECRET", ""),
             stripe_price_id=env("STRIPE_PRICE_ID", ""),
+            # tests de bout en bout seulement (Stripe simulé)
+            stripe_api_base=env("STRIPE_API_BASE") or "https://api.stripe.com/v1",
+            stripe_redirect_origins=_origins(env("STRIPE_REDIRECT_ORIGINS", "")),
             admin_emails=frozenset(e.strip().lower() for e in env("ADMIN_EMAILS", "").split(",") if e.strip()),
             cookie_secure=env("COOKIE_SECURE", "1") != "0",
         )

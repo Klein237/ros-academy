@@ -181,6 +181,19 @@ def test_admin_writes_need_same_origin(admin):
     assert admin.put(url, json=body, headers=ORIGIN).status_code == 200
 
 
+def test_verify_endpoint_for_the_logs_proxy(client):
+    r = client.get("/admin/api/verifier", follow_redirects=False)
+    assert r.status_code == 302 and r.headers["location"] == "/compte/admin"
+    assert "x-academy-admin" not in r.headers
+    client.cookies.set("academy_admin", "faux", path="/admin")
+    assert client.get("/admin/api/verifier", follow_redirects=False).status_code == 302
+    client.cookies.clear()
+    client.get("/admin/login", params={"token": token()}, follow_redirects=False)
+    r = client.get("/admin/api/verifier", follow_redirects=False)
+    assert r.status_code == 204 and r.headers["x-academy-admin"] == "klein"
+    assert 'href="/admin/journaux/"' in client.get("/admin/").text
+
+
 def test_forged_session_cookie_is_refused(client):
     client.cookies.set("academy_admin", "faux", path="/admin")
     assert client.get("/admin/api/etat").status_code == 401

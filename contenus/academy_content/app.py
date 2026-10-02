@@ -9,7 +9,7 @@ from pathlib import Path
 
 import yaml
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, ValidationError
@@ -275,6 +275,14 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
         if not same_origin(request.headers.get("origin"), request.headers.get("host")):
             raise HTTPException(403, "Requête refusée (origine inconnue)")
         return admin
+
+    @app.get("/admin/api/verifier")
+    def admin_verify(request: Request):
+        """Pour Caddy (forward_auth) : la requête vient-elle de l'administrateur ? (journaux, Grafana)"""
+        admin = sessions.read(request.cookies.get(COOKIE_NAME))
+        if not admin:
+            return RedirectResponse("/compte/admin", status_code=302)
+        return Response(status_code=204, headers={"X-Academy-Admin": admin})
 
     @app.get("/admin/login")
     def admin_login(request: Request, token: str = ""):

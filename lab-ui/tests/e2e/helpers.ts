@@ -148,3 +148,23 @@ export async function openLabViaAccount(page: Page, query = ""): Promise<void> {
   await expect(page).toHaveURL(/\/lab\//);
   await waitReady(page);
 }
+
+/** Limites du conteneur de l'étudiant (DockerSpawner traduit cpu_limit en CpuQuota / CpuPeriod). */
+export function containerLimits(name: string): { cpus: number; memory: number; pids: number } {
+  const fmt = "{{.HostConfig.NanoCpus}} {{.HostConfig.CpuQuota}} {{.HostConfig.CpuPeriod}} {{.HostConfig.Memory}} {{.HostConfig.PidsLimit}}";
+  const [nano, quota, period, memory, pids] = execSync(`docker inspect -f '${fmt}' jupyter-${name}`, { encoding: "utf8" })
+    .trim()
+    .split(" ")
+    .map(Number);
+  return { cpus: nano ? nano / 1e9 : quota / period, memory, pids };
+}
+
+/** Arrête le serveur de l'étudiant et attend qu'il ait disparu (le compte est gardé). */
+export async function stopServer(api: APIRequestContext, name: string): Promise<void> {
+  await api.delete(`/hub/api/users/${name}/server`);
+  await expect
+    .poll(async () => Object.keys((await (await api.get(`/hub/api/users/${name}`)).json()).servers ?? {}).length, {
+      timeout: 60_000,
+    })
+    .toBe(0);
+}

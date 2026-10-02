@@ -45,6 +45,8 @@ c.DockerSpawner.extra_host_config = {
     "cap_drop": ["ALL"],
     "security_opt": ["no-new-privileges"],
     "init": True,  # tini en PID 1 : récolte les processus zombies
+    # journal Docker limité en taille ; Alloy l'envoie à Loki pendant que le conteneur tourne
+    "log_config": {"type": "json-file", "config": {"max-size": "10m", "max-file": "2"}},
 }
 c.Spawner.auth_state_hook = apply_limits
 comptes_url = env("COMPTES_URL", "")

@@ -1,0 +1,27 @@
+# Tests de bout en bout de l'abonnement pro, sans compte Stripe (jamais en production) :
+#   docker compose -f docker-compose.yml -f docker-compose.stripe-simule.yml up -d comptes fake-stripe
+# Le faux Stripe (comptes/tests/fake_stripe.py) sert l'API, la page de paiement et le portail
+# client, et envoie à Comptes des webhooks signés comme Stripe.
+services:
+  comptes:
+    environment:
+      STRIPE_SECRET_KEY: sk_test_simule
+      STRIPE_WEBHOOK_SECRET: whsec_simule
+      STRIPE_PRICE_ID: price_pro_test
+      STRIPE_API_BASE: http://fake-stripe:12111/v1
+      STRIPE_REDIRECT_ORIGINS: http://localhost:12111
+
+  fake-stripe:
+    build: ../comptes   # même image que Comptes (FastAPI, httpx) ; le faux Stripe est monté
+    command: ["uvicorn", "--app-dir", "/srv/fake", "fake_stripe:create_app_from_env", "--factory",
+              "--host", "0.0.0.0", "--port", "12111", "--no-access-log"]
+    environment:
+      FAKE_STRIPE_KEY: sk_test_simule
+      FAKE_STRIPE_WEBHOOK_SECRET: whsec_simule
+      FAKE_STRIPE_WEBHOOK_URL: http://comptes:8300/api/comptes/stripe/webhook
+      FAKE_STRIPE_PUBLIC_URL: http://localhost:12111   # pages vues par le navigateur des tests
+      FAKE_STRIPE_PRICE: price_pro_test
+    volumes:
+      - ../comptes/tests/fake_stripe.py:/srv/fake/fake_stripe.py:ro
+    ports: ["127.0.0.1:12111:12111"]
+    networks: [public]

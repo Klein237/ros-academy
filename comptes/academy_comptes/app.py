@@ -44,8 +44,11 @@ log = logging.getLogger("comptes")
 HERE = Path(__file__).parent
 MODULE_ID_RE = re.compile(r"^[0-9]{2}-[a-z0-9]+(?:-[a-z0-9]+)*$")
 LAB_TOKEN_TTL = 300
-CSP = ("default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; "
-       "connect-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'self'; object-src 'none'")
+def csp(form_targets=()):
+    # form-action s'applique aussi à la redirection qui suit un formulaire (« S'abonner » → Stripe)
+    form = " ".join(("'self'", *form_targets))
+    return ("default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; "
+            f"connect-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action {form}; object-src 'none'")
 
 
 class QcmBody(BaseModel):
@@ -81,7 +84,8 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
     templates = Jinja2Templates(directory=str(HERE / "templates"))
     templates.env.globals["billing"] = settings.billing_enabled
     if settings.billing_enabled:
-        stripe = stripe or StripeClient(settings.stripe_secret_key)
+        stripe = stripe or StripeClient(settings.stripe_secret_key, base=settings.stripe_api_base)
+    page_csp = csp(settings.stripe_redirect_origins if settings.billing_enabled else ())
     state = {"actifs": 0, "releve": 0.0, "prix": None, "prix_lu": 0.0}
 
     def tick():
@@ -114,7 +118,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
     @app.middleware("http")
     async def headers(request: Request, call_next):
         response = await call_next(request)
-        response.headers.setdefault("Content-Security-Policy", CSP)
+        response.headers.setdefault("Content-Security-Policy", page_csp)
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("Referrer-Policy", "same-origin")
         response.headers["Cache-Control"] = "no-store"
