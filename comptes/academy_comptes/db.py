@@ -9,6 +9,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    Text,
     UniqueConstraint,
     create_engine,
     event,
@@ -70,6 +71,24 @@ class LoginToken(Base):
     cree_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     expire_le: Mapped[datetime] = mapped_column(DateTime)
     utilise_le: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class Certificate(Base):
+    """Certificat de fin de parcours : figé à l'émission (nom, note, modules)."""
+
+    __tablename__ = "certificates"
+    __table_args__ = (UniqueConstraint("user_id", "parcours_id"),)
+    code: Mapped[str] = mapped_column(String(16), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    parcours_id: Mapped[str] = mapped_column(String(64))
+    parcours_titre: Mapped[str] = mapped_column(String(200))
+    nom: Mapped[str] = mapped_column(String(80))
+    note: Mapped[float] = mapped_column(Float)
+    mention: Mapped[str] = mapped_column(String(20), default="")
+    modules_json: Mapped[str] = mapped_column(Text)  # [{titre, coef, note}]
+    emis_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    revoque_le: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    revoque_motif: Mapped[str] = mapped_column(String(200), default="")
 
 
 class StripeEvent(Base):

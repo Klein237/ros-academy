@@ -21,7 +21,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from sqlalchemy import select
 
-from . import formateur, grading
+from . import certificats, formateur, grading
 from .billing import PAYING, BadSignature, StripeClient, StripeError, apply_subscription, format_price, verify_signature
 from .auth import (
     OAUTH_COOKIE,
@@ -37,7 +37,18 @@ from .auth import (
     user_for_email,
 )
 from .clients import INTERNAL_HEADER, ContenusClient, HubClient, UpstreamError, comptes_token
-from .db import Base, Exercise, QcmAttempt, QueueTicket, StripeEvent, User, make_engine, make_sessionmaker, utcnow
+from .db import (
+    Base,
+    Certificate,
+    Exercise,
+    QcmAttempt,
+    QueueTicket,
+    StripeEvent,
+    User,
+    make_engine,
+    make_sessionmaker,
+    utcnow,
+)
 from .mail import send_login_link
 from .quotas import HUB_NAME_RE, join_queue, leave_queue, minutes_left, minutes_used, queue_position, record_minute
 from .settings import Settings
@@ -408,7 +419,9 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         student = next((st for st in students if st.user.id == student_id), None)
         if not student:
             raise HTTPException(404, "Étudiant introuvable")
-        return page(request, "formateur_etudiant.html", user=user, parcours=current, s=student,
+        certs = list(db.scalars(select(Certificate).where(Certificate.user_id == student.user.id)))
+        return page(request, "formateur_etudiant.html", user=user, parcours=current, s=student, certificats=certs,
+                    numero=certificats.format_code,
                     restantes=minutes_left(db, student.user, settings), stuck_after=formateur.STUCK_AFTER)
 
     @app.get("/compte/formateur/etudiants.csv")
@@ -429,14 +442,24 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         ex = db.get(Exercise, (user.id, module))
         return notes, ex
 
-    @app.get("/compte/resultats", response_class=HTMLResponse)
-    def resultats(request: Request, user=Depends(current_user), db=Depends(get_db)):
-        if not user:
-            return login_redirect("/compte/resultats")
+    def all_parcours():
         try:
-            parcours = contenus.parcours()
+            return contenus.parcours()
         except Exception:  # noqa: BLE001
             raise HTTPException(503, "Les parcours sont momentanément indisponibles") from None
+
+    def certificate_eligibility(db, user, p):
+        state = {}
+        for m in p["modules"]:
+            notes, ex = progress(db, user, m["id"])
+            state[m["id"]] = (notes, bool(ex and ex.reussi_le), ex.indices if ex else 0)
+        return certificats.eligibility(p, state, settings.certificat_note_min)
+
+    @app.get("/compte/resultats", response_class=HTMLResponse)
+    def resultats(request: Request, erreur: str = "", user=Depends(current_user), db=Depends(get_db)):
+        if not user:
+            return login_redirect("/compte/resultats")
+        parcours = all_parcours()
         out = []
         for p in parcours:
             rows, weighted = [], []
@@ -447,8 +470,63 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
                 rows.append({"module": m, "grade": g, "tentatives": len(notes),
                              "indices": ex.indices if ex else 0, "reussi": bool(ex and ex.reussi_le)})
             out.append({"parcours": p, "modules": rows, "finale": grading.final_grade(weighted),
-                        "termines": sum(1 for _, g in weighted if g.termine)})
-        return page(request, "resultats.html", user=user, resultats=out)
+                        "termines": sum(1 for _, g in weighted if g.termine),
+                        "certificat": certificats.existing(db, user.id, p["id"]),
+                        "eligible": certificate_eligibility(db, user, p)})
+        return page(request, "resultats.html", user=user, resultats=out, note_min=settings.certificat_note_min,
+                    erreur=erreur[:300])
+
+    # --- Certificats
+
+    @app.post("/compte/certificats")
+    def certificate_issue(parcours: str = Form(...), nom: str = Form(""), user=Depends(require_user),
+                          db=Depends(get_db), _=Depends(same_origin)):
+        p = next((x for x in all_parcours() if x["id"] == parcours), None)
+        if not p:
+            raise HTTPException(404, "Parcours introuvable")
+        try:
+            cert = certificats.issue(db, user, p, certificate_eligibility(db, user, p), nom)
+        except certificats.CertificateError as exc:
+            return RedirectResponse(f"/compte/resultats?erreur={quote(str(exc), safe='')}#certificat", status_code=303)
+        log.info("Certificat %s délivré à u%s (%s, %.2f)", cert.code, user.id, p["id"], cert.note)
+        return RedirectResponse(f"/certificats/{cert.code}", status_code=303)
+
+    def certificate_or_404(db, raw):
+        code = certificats.normalize_code(raw)
+        cert = db.get(Certificate, code) if code else None
+        if not cert:
+            raise HTTPException(404, "Aucun certificat ne porte ce numéro")
+        return cert
+
+    @app.get("/certificats/{code}.pdf")
+    def certificate_pdf(code: str, db=Depends(get_db)):
+        cert = certificate_or_404(db, code)
+        if cert.revoque_le:
+            raise HTTPException(410, "Ce certificat a été révoqué")
+        pdf = certificats.render_pdf(cert, f"{settings.public_url}/certificats/{cert.code}")
+        return Response(pdf, media_type="application/pdf", headers={
+            "Content-Disposition": f'inline; filename="certificat-ros-academy-{cert.code}.pdf"'})
+
+    @app.get("/certificats/{code}", response_class=HTMLResponse)
+    def certificate_page(request: Request, code: str, user=Depends(current_user), db=Depends(get_db)):
+        cert = certificate_or_404(db, code)
+        if code != cert.code:
+            return RedirectResponse(f"/certificats/{cert.code}", status_code=301)  # forme imprimée ABCD-EFGH-…
+        return page(request, "certificat.html", cert=cert, modules=certificats.modules(cert),
+                    numero=certificats.format_code(cert.code), date=certificats.date_fr(cert.emis_le),
+                    revoque=certificats.date_fr(cert.revoque_le) if cert.revoque_le else None,
+                    proprietaire=bool(user and user.id == cert.user_id), fr=certificats.fr)
+
+    @app.post("/compte/formateur/certificats/{code}/revoquer")
+    def certificate_revoke(code: str, motif: str = Form(""), user=Depends(require_user), db=Depends(get_db),
+                           _=Depends(same_origin)):
+        require_trainer(user)
+        cert = certificate_or_404(db, code)
+        if not cert.revoque_le:
+            cert.revoque_le, cert.revoque_motif = utcnow(), " ".join(motif.split())[:200]
+            db.commit()
+            log.warning("Certificat %s révoqué par %s : %s", cert.code, user.email, cert.revoque_motif)
+        return RedirectResponse(f"/compte/formateur/etudiants/{cert.user_id}", status_code=303)
 
     # --- API (Lab UI et pages du site)
 

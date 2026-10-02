@@ -33,3 +33,8 @@ table.results td { font-variant-numeric: tabular-nums; vertical-align: top; }
 .rate-bar::-moz-progress-bar { background: var(--accent); border-radius: 4px; }
 .inline { flex-direction: row; align-items: center; gap: 8px; }
 select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+.certificate-box { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 12px; }
+.verdict { padding: 10px 12px; border-radius: var(--radius); border: 1px solid currentColor; }
+.verdict.ok { color: var(--ok); }
+.verdict.ko { color: var(--ko); }
+.cert-row { justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); }

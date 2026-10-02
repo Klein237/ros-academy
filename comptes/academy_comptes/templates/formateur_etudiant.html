@@ -34,4 +34,21 @@
   </table>
   </div>
 </section>
+<section class="card">
+  <h2>Certificats</h2>
+  {% for c in certificats %}
+  <div class="row cert-row">
+    <p><a href="/certificats/{{ c.code }}">n° {{ numero(c.code) }}</a> — {{ c.parcours_titre }}, {{ '%.2f' | format(c.note) | replace('.', ',') }} / 20, délivré le {{ c.emis_le.strftime('%d/%m/%Y') }} au nom de « {{ c.nom }} »
+    {% if c.revoque_le %}<br><strong class="warn">révoqué le {{ c.revoque_le.strftime('%d/%m/%Y') }}</strong>{% if c.revoque_motif %} : {{ c.revoque_motif }}{% endif %}{% endif %}</p>
+    {% if not c.revoque_le %}
+    <form method="post" action="/compte/formateur/certificats/{{ c.code }}/revoquer" class="row">
+      <input name="motif" maxlength="200" placeholder="Motif (fraude, erreur…)" aria-label="Motif de la révocation">
+      <button class="button" type="submit">Révoquer</button>
+    </form>
+    {% endif %}
+  </div>
+  {% else %}
+  <p class="muted">Aucun certificat.</p>
+  {% endfor %}
+</section>
 {% endblock %}
