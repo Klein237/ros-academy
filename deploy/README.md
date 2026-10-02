@@ -16,6 +16,7 @@
 - **Progression** : QCM (2 tentatives, la meilleure est gardée), indices (−15 % chacun) et réussite des exercices sont enregistrés dans Postgres (volume `postgres-data`) ; notes sur `/compte/resultats`. Les corrections, indices et explications ne sortent de Contenus que par Comptes : Caddy bloque ces routes internes et Contenus exige un secret dérivé de `JWT_SECRET`.
 - **Serveur plein** : le Lab UI prend un ticket dans la file de Comptes et affiche la position ; le démarrage est retenté quand le tour arrive.
 - **Administration** : une adresse de `ADMIN_EMAILS` connectée ouvre l'éditeur depuis « Mon compte » (`/compte/admin`).
+- **Tableau de bord formateur** (`/compte/formateur`, adresses de `ADMIN_EMAILS`, lien dans « Mon compte ») : chiffres clés (inscrits, actifs sur 7 jours, labs en cours, minutes du mois, parcours terminés, abonnés pro) ; par module : étudiants qui l'ont commencé, exercice réussi, « bloqués » (3 vérifications ratées ou plus), vérifications avant réussite, indices demandés, QCM et note moyens ; liste des étudiants (recherche, du plus récemment actif) avec fiche détaillée ; export CSV pour un tableur (`;`, UTF-8).
 - Changer la formule d'un étudiant : `docker compose exec postgres psql -U comptes -d comptes -c "UPDATE users SET formule='pro' WHERE email='…'"`.
 - Sauvegarde : `docker compose exec postgres pg_dump -U comptes comptes > comptes.sql`.
 

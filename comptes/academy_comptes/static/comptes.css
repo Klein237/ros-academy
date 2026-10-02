@@ -16,3 +16,20 @@ table.results th, table.results td { text-align: left; padding: 6px 8px; border-
 .price { font-size: 1.4rem; font-weight: 600; }
 .notice { border-color: var(--accent); }
 .warn { color: var(--ko); }
+.page.wide { max-width: 1200px; }
+.trainer-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.tile-value { font-size: 1.8rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tile-label { color: var(--muted); font-size: 0.9rem; }
+.table-scroll { overflow-x: auto; }
+.table-scroll table.results { display: table; }
+table.results td { font-variant-numeric: tabular-nums; vertical-align: top; }
+.rate { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+/* <progress> : pas de style en ligne (CSP) ; une seule teinte, la valeur est écrite à côté */
+.rate-bar { appearance: none; width: 80px; height: 8px; border: 0; border-radius: 4px; background: var(--line); overflow: hidden; }
+.rate-bar::-webkit-progress-bar { background: var(--line); border-radius: 4px; }
+.rate-bar::-webkit-progress-value { background: var(--accent); border-radius: 4px; }
+.rate-bar::-moz-progress-bar { background: var(--accent); border-radius: 4px; }
+.inline { flex-direction: row; align-items: center; gap: 8px; }
+select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }

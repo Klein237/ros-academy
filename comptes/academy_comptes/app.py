@@ -8,19 +8,20 @@ import re
 import threading
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote, urlsplit
 
 import httpx
 import jwt
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from sqlalchemy import select
 
-from . import grading
+from . import formateur, grading
 from .billing import PAYING, BadSignature, StripeClient, StripeError, apply_subscription, format_price, verify_signature
 from .auth import (
     OAUTH_COOKIE,
@@ -365,6 +366,61 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
             raise HTTPException(503, "Stripe injoignable : l'événement sera renvoyé") from None
         return {"recu": True}
 
+    # --- Tableau de bord formateur (adresses ADMIN_EMAILS)
+
+    def require_trainer(user):
+        if user.email not in settings.admin_emails:
+            raise HTTPException(403, "Le tableau de bord est réservé aux formateurs")
+
+    def trainer_data(db, parcours_id):
+        try:
+            all_parcours = contenus.parcours()
+        except Exception:  # noqa: BLE001
+            raise HTTPException(503, "Les parcours sont momentanément indisponibles") from None
+        parcours = next((p for p in all_parcours if p["id"] == parcours_id), all_parcours[0] if all_parcours else None)
+        return all_parcours, parcours, formateur.students(db, parcours, settings.admin_emails, utcnow())
+
+    @app.get("/compte/formateur", response_class=HTMLResponse)
+    def trainer(request: Request, parcours: str = "", q: str = "", user=Depends(current_user), db=Depends(get_db)):
+        if not user:
+            return login_redirect("/compte/formateur")
+        require_trainer(user)
+        all_parcours, current, students = trainer_data(db, parcours)
+        try:
+            labs = sum(1 for name in hub.running_servers() if HUB_NAME_RE.fullmatch(name))
+        except Exception:  # noqa: BLE001 - Hub injoignable : le reste du tableau reste utile
+            labs = None
+        return page(request, "formateur.html", user=user, all_parcours=all_parcours, parcours=current, q=q,
+                    resume=formateur.overview(students, labs, utcnow()),
+                    modules=formateur.module_stats(students, current),
+                    students=sorted((st for st in students if formateur.matches(st, q)),
+                                    key=lambda st: st.derniere_activite or datetime.min, reverse=True),
+                    total=len(students),
+                    stuck_after=formateur.STUCK_AFTER)
+
+    @app.get("/compte/formateur/etudiants/{student_id}", response_class=HTMLResponse)
+    def trainer_student(request: Request, student_id: int, parcours: str = "", user=Depends(current_user),
+                        db=Depends(get_db)):
+        if not user:
+            return login_redirect(f"/compte/formateur/etudiants/{student_id}")
+        require_trainer(user)
+        _, current, students = trainer_data(db, parcours)
+        student = next((st for st in students if st.user.id == student_id), None)
+        if not student:
+            raise HTTPException(404, "Étudiant introuvable")
+        return page(request, "formateur_etudiant.html", user=user, parcours=current, s=student,
+                    restantes=minutes_left(db, student.user, settings), stuck_after=formateur.STUCK_AFTER)
+
+    @app.get("/compte/formateur/etudiants.csv")
+    def trainer_csv(parcours: str = "", user=Depends(current_user), db=Depends(get_db)):
+        if not user:
+            return login_redirect("/compte/formateur")
+        require_trainer(user)
+        _, current, students = trainer_data(db, parcours)
+        name = f"etudiants-{current['id'] if current else 'parcours'}-{utcnow():%Y-%m-%d}.csv"
+        return Response(formateur.to_csv(students, current), media_type="text/csv; charset=utf-8",
+                        headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
     # --- Résultats
 
     def progress(db, user, module):
@@ -475,6 +531,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
             with verifying_lock:
                 verifying.discard(user.id)
         ex = exercise_row(db, user, module)
+        ex.verifications = (ex.verifications or 0) + 1
         if result.get("ok") is True and not ex.reussi_le:
             ex.reussi_le = utcnow()
         db.commit()

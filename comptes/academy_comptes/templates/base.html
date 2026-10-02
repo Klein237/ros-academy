@@ -13,7 +13,7 @@
     <a class="brand" href="/">ROS Academy</a>
     <nav><a href="/">Parcours</a><a href="/compte/resultats">Résultats</a><a href="/compte/">Mon compte</a></nav>
   </header>
-  <main class="page narrow">
+  <main class="{% block main_class %}page narrow{% endblock %}">
     {% block content %}{% endblock %}
   </main>
   <footer class="site-footer">Formation ROS 2 en français, sur un vrai ROS 2 Humble dans votre navigateur.</footer>
