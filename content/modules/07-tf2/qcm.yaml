@@ -1,0 +1,49 @@
+questions:
+  - id: pourquoi
+    question: Le laser voit un obstacle à 1 m devant lui. De quoi a-t-on besoin pour connaître sa position dans la pièce ?
+    choix:
+      - texte: De la position du laser sur le robot et de la position du robot dans la pièce, chaînées par TF2.
+        correct: true
+      - texte: Seulement de la position du robot publiée sur /odom.
+      - texte: D'un second capteur qui mesure l'obstacle dans le repère de la pièce.
+    explication: TF2 compose les transformations odom → base_link (mobile) et base_link → laser (fixe).
+  - id: arbre
+    question: Pourquoi les repères de TF2 forment-ils un arbre ?
+    choix:
+      - texte: Chaque repère a un seul parent, ce qui rend unique le chemin entre deux repères.
+        correct: true
+      - texte: Pour que chaque repère puisse avoir plusieurs parents selon le capteur utilisé.
+      - texte: C'est une simple convention d'affichage de RViz.
+    explication: Deux parents pour un même repère donneraient deux transformations contradictoires ; TF2 l'interdit.
+  - id: statique
+    question: Comment publier la position du laser, fixé sur le robot ?
+    choix:
+      - texte: Une fois, sur /tf_static, par exemple avec static_transform_publisher.
+        correct: true
+      - texte: À chaque mise à jour, sur /tf, comme la position du robot.
+      - texte: Dans le message /odom, champ child_frame_id.
+    explication: Une transformation statique est publiée une seule fois et gardée par tous les nœuds qui écoutent.
+  - id: quaternion
+    question: Quel quaternion (x, y, z, w) décrit une rotation de 90° (π/2) autour de z ?
+    choix:
+      - texte: (0, 0, 0.707, 0.707)
+        correct: true
+      - texte: (0, 0, 1, 0)
+      - texte: (0, 0, 1.571, 1)
+    explication: z = sin(θ/2) et w = cos(θ/2) ; (0, 0, 1, 0) est un demi-tour (180°).
+  - id: parent
+    question: Dans le TransformStamped publié par diff_drive_node, que contiennent header.frame_id et child_frame_id ?
+    choix:
+      - texte: Le repère parent (odom) et le repère enfant (base_link).
+        correct: true
+      - texte: Le repère enfant (base_link) et le repère parent (odom).
+      - texte: Le nom du nœud qui publie et le nom du robot.
+    explication: La transformation donne la position de l'enfant dans le repère du parent.
+  - id: exception
+    question: Pourquoi obstacle_locator attrape-t-il TransformException ?
+    choix:
+      - texte: Au démarrage, ou si un nœud s'arrête, la transformation demandée n'est pas encore disponible dans le buffer.
+        correct: true
+      - texte: Parce que tf_buffer.transform échoue toujours au premier appel, par conception.
+      - texte: Pour ignorer les obstacles trop lointains.
+    explication: Le buffer se remplit en écoutant /tf et /tf_static ; un nœud robuste prévoit l'absence de transformation.

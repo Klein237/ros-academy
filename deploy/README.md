@@ -55,6 +55,7 @@ curl -sk -X POST -H "Authorization: token $HUB_ADMIN_TOKEN" https://$DOMAIN/user
 
 ## Formations (service Contenus)
 - Le site des formations est servi à la racine (`/`, `/parcours/…`, `/modules/…`). Son contenu vit dans un dépôt Git, dans le volume `contenus-data`, initialisé au premier démarrage avec le parcours « ROS 2 Fondamentaux » du dossier `content/`.
+- Le dossier `content/` n'est copié qu'à cette initialisation : sur un déploiement existant, un module ajouté ensuite au dépôt (par exemple `06-parametres`, `07-tf2`) se crée dans l'éditeur (copier ses fichiers depuis `content/modules/<id>/`), puis s'ajoute au parcours et se publie.
 - **Éditer** : connectez-vous avec une adresse de `ADMIN_EMAILS`, puis « Mon compte » → « Éditer les formations » (la session de l'éditeur dure 12 h). En secours, un lien administrateur valable 5 minutes peut être émis à la main :
   ```bash
   set -a; . deploy/.env; set +a

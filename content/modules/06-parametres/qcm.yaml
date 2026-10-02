@@ -1,0 +1,49 @@
+questions:
+  - id: declarer
+    question: Pourquoi un nœud doit-il déclarer ses paramètres avec declare_parameter ?
+    choix:
+      - texte: Pour fixer leur nom, leur type et leur valeur par défaut ; un paramètre non déclaré est refusé.
+        correct: true
+      - texte: Pour les rendre visibles par les autres nœuds, qui peuvent les lire comme des topics.
+      - texte: Ce n'est pas obligatoire, la déclaration ne sert qu'à la documentation.
+    explication: Par défaut, un nœud rclpy refuse les paramètres qu'il n'a pas déclarés ; la valeur par défaut fixe le type.
+  - id: type
+    question: max_linear_speed est déclaré avec la valeur par défaut 0.5. Que donne ros2 param set /diff_drive_node max_linear_speed 1 ?
+    choix:
+      - texte: Un refus, car 1 est un entier et le paramètre est un double.
+        correct: true
+      - texte: La valeur 1.0, convertie automatiquement.
+      - texte: La valeur 1, et le type du paramètre devient entier.
+    explication: Les types des paramètres sont stricts. Il faut écrire 1.0.
+  - id: yaml
+    question: Dans un fichier de paramètres, à quoi correspond la clé de premier niveau (au-dessus de ros__parameters) ?
+    choix:
+      - texte: Au nom du nœud auquel s'appliquent les valeurs (ou /** pour tous les nœuds).
+        correct: true
+      - texte: Au nom du package qui contient le nœud.
+      - texte: Au nom du fichier launch qui charge le fichier.
+    explication: Un nom qui ne correspond à aucun nœud lancé est ignoré sans message d'erreur.
+  - id: callback
+    question: À quoi sert add_on_set_parameters_callback ?
+    choix:
+      - texte: À valider une nouvelle valeur avant de l'accepter, et à l'appliquer dans le nœud.
+        correct: true
+      - texte: À être prévenu quand un autre nœud lit un paramètre.
+      - texte: À recharger le fichier YAML quand il est modifié sur le disque.
+    explication: "La fonction reçoit les nouveaux paramètres et renvoie SetParametersResult(successful=False, reason=…) pour les refuser."
+  - id: installer
+    question: ros2 launch my_pkg robot.launch.py répond « file 'robot.launch.py' was not found in the share directory ». Que manque-t-il probablement ?
+    choix:
+      - texte: L'installation du dossier launch/ dans data_files de setup.py, puis un nouveau colcon build.
+        correct: true
+      - texte: Les droits d'exécution sur robot.launch.py.
+      - texte: Une dépendance <depend>launch</depend> dans package.xml.
+    explication: ros2 launch cherche dans share/my_pkg/launch du workspace installé, que setup.py doit remplir.
+  - id: ordre
+    question: "Le Node du launch reçoit parameters=[fichier_yaml, {'max_linear_speed': 0.4}] et le fichier contient max_linear_speed 0.3. Quelle valeur le nœud reçoit-il ?"
+    choix:
+      - texte: 0.4, car les valeurs les plus à droite de la liste l'emportent.
+        correct: true
+      - texte: 0.3, car le fichier est prioritaire sur les valeurs écrites dans le launch.
+      - texte: Le lancement échoue car le paramètre est défini deux fois.
+    explication: Les sources sont appliquées dans l'ordre de la liste ; la dernière fixe la valeur.
