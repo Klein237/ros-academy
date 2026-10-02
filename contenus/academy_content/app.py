@@ -29,6 +29,7 @@ from .model import (
 )
 from .render import code_files, lab_link, render_cours, render_markdown
 from .store import ContentStore, StoreError
+from .verification import Busy, InvalidStudent
 
 log = logging.getLogger("contenus")
 HERE = Path(__file__).parent
@@ -138,11 +139,15 @@ class PreviewBody(BaseModel):
     markdown: str
 
 
+class VerifyBody(BaseModel):
+    etudiant: str
+
+
 class RestoreBody(BaseModel):
     sha: str
 
 
-def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tests_enabled=True):
+def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tests_enabled=True, verifier=None):
     app = FastAPI(title="Contenus ROS Academy", docs_url=None, redoc_url=None, openapi_url=None)
     templates = Jinja2Templates(directory=str(HERE / "templates"))
     templates.env.globals["lab_link"] = lab_link
@@ -253,6 +258,19 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
     def api_explanation(module_id: str):
         m = _module_or_404(published(), module_id)
         return {"html": render_markdown(m.exercice.explication)}
+
+    @app.post("/api/contenus/modules/{module_id}/verifier", dependencies=[Depends(internal)])
+    def api_verify(module_id: str, body: VerifyBody):
+        """check.sh officiel sur le workspace de l'étudiant, hors de son conteneur (appelé par Comptes)."""
+        _module_or_404(published(), module_id)
+        if verifier is None:
+            raise HTTPException(503, "Vérification indisponible")
+        try:
+            return verifier(published() / "modules" / module_id, module_id, body.etudiant).as_dict()
+        except InvalidStudent:
+            raise HTTPException(400, "Étudiant invalide") from None
+        except Busy:
+            raise HTTPException(429, "Le serveur de vérification est occupé : réessayez dans un instant") from None
 
     @app.get("/api/contenus/modules/{module_id}/qcm")
     def api_qcm(module_id: str):
@@ -495,5 +513,12 @@ def app_from_env():
 
         def runner(module_dir):
             return Rapport(module=module_dir.name, ok=True, journal="tests désactivés (MODULE_TESTS=off)")
+    from .verification import make_slots, verify_exercise
+
+    slots = make_slots(int(os.environ.get("VERIFICATIONS_MAX", "4")))
+
+    def verifier(module_dir, module_id, student):
+        return verify_exercise(module_dir, module_id, student, image=image, slots=slots)
+
     return create_app(store, runner, secret, cookie_secure=os.environ.get("COOKIE_SECURE", "1") != "0",
-                      tests_enabled=tests_enabled)
+                      tests_enabled=tests_enabled, verifier=verifier)

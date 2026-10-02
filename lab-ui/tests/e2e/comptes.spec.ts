@@ -63,15 +63,21 @@ test("parcours terminé : la note finale pondérée s'affiche sur la page Résul
   const qcm01 = Number(/Note : ([\d,]+) \/ 20/.exec(result ?? "")![1].replace(",", "."));
   const hint = await page.request.post("/api/comptes/exercices/01-initiation/indices/1", { headers: origin });
   expect(hint.ok()).toBe(true);
-  // la réussite est déclarée comme le fait le Lab UI après check.sh (exercice complet dans le lab : test @ros)
-  const done = (id: string) => page.request.post(`/api/comptes/exercices/${id}/reussite`, { headers: origin });
-  expect((await done("01-initiation")).ok()).toBe(true);
+  // le navigateur ne peut pas déclarer une réussite : seule la vérification du serveur l'enregistre
+  const declared = await page.request.post("/api/comptes/exercices/01-initiation/reussite", { headers: origin });
+  expect([404, 405]).toContain(declared.status());
+  // réussites enregistrées directement en base (l'exercice vérifié par le serveur : test @ros du module Nœud)
+  const userId = Number(((await (await page.request.get("/api/comptes/moi")).json()).hub as string).slice(1));
+  const done = (id: string) =>
+    sql(`INSERT INTO exercises (user_id, module, indices, reussi_le) VALUES (${userId}, '${id}', 0, now())
+         ON CONFLICT (user_id, module) DO UPDATE SET reussi_le = now();`);
+  done("01-initiation");
 
   const notes: Record<string, number> = { "01-initiation": 0.5 * qcm01 + 0.5 * 20 * 0.85 };
   for (const m of modules.slice(1)) {
     const r = await page.request.post(`/api/comptes/qcm/${m.id}`, { data: { reponses: {} }, headers: origin });
     const qcm = (await r.json()).note as number;
-    expect((await done(m.id)).ok()).toBe(true);
+    done(m.id);
     notes[m.id] = 0.5 * qcm + 0.5 * 20;
   }
 

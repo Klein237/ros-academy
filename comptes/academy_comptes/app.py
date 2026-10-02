@@ -5,6 +5,7 @@ import hmac
 import json
 import logging
 import re
+import threading
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -453,14 +454,32 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         db.commit()
         return {"n": n, "html": hint["html"], "indices": ex.indices}
 
-    @app.post("/api/comptes/exercices/{module}/reussite")
-    def exercise_success(module: str, user=Depends(require_user), db=Depends(get_db), _=Depends(same_origin)):
+    verifying = set()  # une vérification à la fois par étudiant
+    verifying_lock = threading.Lock()
+
+    @app.post("/api/comptes/exercices/{module}/verification")
+    def exercise_verification(module: str, user=Depends(require_user), db=Depends(get_db), _=Depends(same_origin)):
+        """La réussite n'est enregistrée que si le check.sh officiel réussit hors du conteneur de l'étudiant."""
         check_module(module)
+        with verifying_lock:
+            if user.id in verifying:
+                raise HTTPException(409, "Une vérification est déjà en cours")
+            verifying.add(user.id)
+        try:
+            result = contenus.verify(module, user.hub_name)
+        except UpstreamError as exc:
+            if exc.status == 429:
+                raise HTTPException(429, "Le serveur de vérification est occupé : réessayez dans un instant") from None
+            raise HTTPException(404 if exc.status == 404 else 502, "Vérification indisponible") from None
+        finally:
+            with verifying_lock:
+                verifying.discard(user.id)
         ex = exercise_row(db, user, module)
-        if not ex.reussi_le:
+        if result.get("ok") is True and not ex.reussi_le:
             ex.reussi_le = utcnow()
         db.commit()
-        return {"reussi": True, "indices": ex.indices}
+        return {"reussi": bool(ex.reussi_le), "verification": bool(result.get("ok") is True),
+                "journal": str(result.get("journal", ""))[-4000:], "indices": ex.indices}
 
     @app.get("/api/comptes/exercices/{module}/explication")
     def exercise_explanation(module: str, user=Depends(require_user), db=Depends(get_db)):

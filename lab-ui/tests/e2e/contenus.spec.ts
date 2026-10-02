@@ -80,18 +80,26 @@ test("module Nœud : l'exercice se fait entièrement dans le lab @ros", async ({
   await expect(page.locator('.tree-row[data-path="ws/02-noeud-exercice"]')).toBeVisible();
 
   await panel.getByRole("button", { name: "Vérifier" }).click();
-  await expect(panel.locator(".exercise-status")).toContainText("Pas encore", { timeout: 120_000 });
+  await expect(panel.locator(".exercise-status")).toContainText("Pas encore", { timeout: 180_000 });
   await expect(panel.locator(".exercise-status")).toContainText("Le robot n'avance pas");
 
   await panel.getByRole("button", { name: "Indice 1" }).click();
   await expect(panel.locator(".hint")).toContainText("ros2 node info");
+
+  // tricher sur check.sh ne sert à rien : le serveur lance le check.sh publié, hors du conteneur
+  await page.locator(".terminals .tab").first().click();
+  await expect(activeTerminal(page)).toHaveAttribute("data-status", "open");
+  await run(page, `printf '#!/bin/bash\\nexit 0\\n' > ~/.academy/02-noeud/check.sh && echo triche-""ok`, "triche-ok");
+  await panel.getByRole("button", { name: "Vérifier" }).click();
+  await expect(panel.locator(".exercise-status")).toContainText("Pas encore", { timeout: 180_000 });
+  await expect(panel.locator(".exercise-status")).toContainText("Le robot n'avance pas");
 
   // la correction, comme un étudiant la ferait dans un terminal
   await page.locator(".terminals .tab").first().click();
   await expect(activeTerminal(page)).toHaveAttribute("data-status", "open");
   await run(page, `sed -i 's/cmd_vell/cmd_vel/' ~/ws/02-noeud-exercice/src/my_pkg/my_pkg/diff_drive_node.py && echo corrige-""ok`, "corrige-ok");
   await panel.getByRole("button", { name: "Vérifier" }).click();
-  await expect(panel.locator(".exercise-status")).toContainText("Exercice réussi", { timeout: 120_000 });
+  await expect(panel.locator(".exercise-status")).toContainText("Exercice réussi", { timeout: 180_000 });
   await expect(panel.locator(".explication")).toContainText("cmd_vell");
 
   // réussite et indice enregistrés : retrouvés en rouvrant le lab, comptés dans les résultats

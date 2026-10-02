@@ -136,6 +136,7 @@ async function startWorkspace(): Promise<void> {
       moduleId: config.moduleId,
       client: moduleClient,
       comptes,
+      saveAll: () => editor.saveAll(),
       contents,
       terminals,
       reveal: (path) => files.reveal(path),

@@ -46,6 +46,17 @@ class FakeContenus:
     def explanation(self, module):
         return {"html": "<p>la cause</p>"}
 
+    # verify : résultat du check.sh officiel, par (module, étudiant) ; échec par défaut
+    verdicts = {}
+    verified = []
+
+    def verify(self, module, student):
+        self.verified.append((module, student))
+        verdict = self.verdicts.get((module, student), {"ok": False, "code": 1, "journal": "Le robot n'avance pas."})
+        if isinstance(verdict, Exception):
+            raise verdict
+        return verdict
+
     def parcours(self):
         return [{"id": "ros2", "titre": "ROS 2 Fondamentaux", "modules": [
             {"id": "01-a", "titre": "Module A", "coef": 1}, {"id": "02-b", "titre": "Module B", "coef": 3}]}]
@@ -78,13 +89,14 @@ def env(tmp_path, monkeypatch):
                         google_client_secret="gsec", admin_emails=frozenset({"admin@exemple.fr"}),
                         active_server_limit=2)
     hub, contenus = FakeHub(), FakeContenus()
+    contenus.verdicts, contenus.verified = {}, []
 
     def make(transport=None):
         app = appmod.create_app(settings, hub=hub, contenus=contenus,
                                 http=httpx.Client(transport=transport or oauth_transport()), background=False)
         return TestClient(app, base_url=BASE)
 
-    return {"settings": settings, "hub": hub, "sent": sent, "make": make}
+    return {"settings": settings, "hub": hub, "contenus": contenus, "sent": sent, "make": make}
 
 
 @pytest.fixture
@@ -288,11 +300,68 @@ def test_hints_are_counted_in_order(client, env):
     assert client.get("/api/comptes/exercices/01-a").json() == {"indices": 2, "reussi": False}
 
 
+def succeed(env, module, student="u1"):
+    env["contenus"].verdicts[(module, student)] = {"ok": True, "code": 0, "journal": "Le robot avance."}
+
+
+def test_success_only_from_the_official_check(client, env):
+    login(client, env)
+    url = "/api/comptes/exercices/01-a/verification"
+    # la réussite déclarée par le navigateur n'existe plus
+    assert client.post("/api/comptes/exercices/01-a/reussite", headers=ORIGIN).status_code in (404, 405)
+    assert client.post(url).status_code == 403  # sans Origin
+    r = client.post(url, headers=ORIGIN).json()
+    assert r == {"reussi": False, "verification": False, "journal": "Le robot n'avance pas.", "indices": 0}
+    assert env["contenus"].verified == [("01-a", "u1")]  # vérifié pour le compte connecté, jamais un autre
+    succeed(env, "01-a")
+    assert client.post(url, headers=ORIGIN).json()["reussi"] is True
+    # une vérification ratée plus tard ne retire pas une réussite enregistrée
+    env["contenus"].verdicts.clear()
+    assert client.post(url, headers=ORIGIN).json() == {
+        "reussi": True, "verification": False, "journal": "Le robot n'avance pas.", "indices": 0}
+
+
+def test_verification_errors(client, env):
+    login(client, env)
+    url = "/api/comptes/exercices/01-a/verification"
+    env["contenus"].verdicts[("01-a", "u1")] = UpstreamError(429)
+    assert client.post(url, headers=ORIGIN).status_code == 429
+    env["contenus"].verdicts[("01-a", "u1")] = UpstreamError(500)
+    assert client.post(url, headers=ORIGIN).status_code == 502
+    env["contenus"].verdicts[("01-a", "u1")] = {"ok": "oui", "journal": "x"}  # réponse inattendue : pas une réussite
+    assert client.post(url, headers=ORIGIN).json()["reussi"] is False
+    assert client.post("/api/comptes/exercices/..%2Fx/verification", headers=ORIGIN).status_code == 404
+    assert client.post(url, headers={"Origin": "https://evil.example"}).status_code == 403
+
+
+def test_one_verification_at_a_time_per_student(client, env):
+    import threading
+    started, release = threading.Event(), threading.Event()
+
+    def slow(module, student):
+        started.set()
+        release.wait(5)
+        return {"ok": True, "code": 0, "journal": "ok"}
+
+    login(client, env)
+    env["contenus"].verify = slow
+    url = "/api/comptes/exercices/01-a/verification"
+    first = {}
+    t = threading.Thread(target=lambda: first.update(r=client.post(url, headers=ORIGIN)))
+    t.start()
+    assert started.wait(5)
+    assert client.post(url, headers=ORIGIN).status_code == 409
+    release.set()
+    t.join(5)
+    assert first["r"].json()["reussi"] is True
+    assert client.post(url, headers=ORIGIN).status_code == 200  # de nouveau possible
+
+
 def test_explanation_only_after_success(client, env):
     login(client, env)
     assert client.get("/api/comptes/exercices/01-a/explication").status_code == 403
-    assert client.post("/api/comptes/exercices/01-a/reussite").status_code == 403  # sans Origin
-    assert client.post("/api/comptes/exercices/01-a/reussite", headers=ORIGIN).json()["reussi"] is True
+    succeed(env, "01-a")
+    assert client.post("/api/comptes/exercices/01-a/verification", headers=ORIGIN).json()["reussi"] is True
     assert client.get("/api/comptes/exercices/01-a/explication").json()["html"] == "<p>la cause</p>"
     # un indice lu après la réussite ne pénalise pas
     client.post("/api/comptes/exercices/01-a/indices/1", headers=ORIGIN)
@@ -304,10 +373,12 @@ def test_results_page_and_final_grade(client, env):
     page = client.get("/compte/resultats").text
     assert "disponible quand les 2 modules seront terminés" in page
     client.post("/api/comptes/qcm/01-a", json={"reponses": {"q1": [0], "q2": [1]}}, headers=ORIGIN)  # 20
-    client.post("/api/comptes/exercices/01-a/reussite", headers=ORIGIN)  # 20 → module 20
+    succeed(env, "01-a")
+    succeed(env, "02-b")
+    client.post("/api/comptes/exercices/01-a/verification", headers=ORIGIN)  # 20 → module 20
     client.post("/api/comptes/qcm/02-b", json={"reponses": {"q1": [0]}}, headers=ORIGIN)  # 10
     client.post("/api/comptes/exercices/02-b/indices/1", headers=ORIGIN)
-    client.post("/api/comptes/exercices/02-b/reussite", headers=ORIGIN)  # 17 → module 13.5
+    client.post("/api/comptes/exercices/02-b/verification", headers=ORIGIN)  # 17 → module 13.5
     page = client.get("/compte/resultats").text
     expected = (20 * 1 + 13.5 * 3) / 4  # 15.125 → 15,12 ou 15,13
     assert re.search(r"Note finale : <strong>15,1[23] / 20</strong>", page), expected
