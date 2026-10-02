@@ -15,7 +15,8 @@ grep -qx rclcpp <<<"$(run 'ros2 pkg list')" || fail "rclcpp manquant"
 grep -qx rosbridge_server <<<"$(run 'ros2 pkg list')" || fail "rosbridge_server manquant"
 run 'command -v colcon' >/dev/null || fail "colcon manquant"
 grep -q '^5\.2\.1' <<<"$(run 'jupyterhub-singleuser --version')" || fail "jupyterhub-singleuser 5.2.1 manquant"
-run 'python3 -c "import jupyter_server_proxy"' || fail "jupyter-server-proxy manquant"
+run '/opt/jupyter/bin/python -c "import jupyter_server_proxy"' || fail "jupyter-server-proxy manquant"
+if run 'python3 -c "import jupyter_server"' 2>/dev/null; then fail "Jupyter mélangé au Python de ROS"; fi
 run 'cd /tmp && mkdir -p ws/src && cd ws/src \
      && ros2 pkg create --build-type ament_python py_pkg >/dev/null \
      && ros2 pkg create --build-type ament_cmake cpp_pkg >/dev/null \
