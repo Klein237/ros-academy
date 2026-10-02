@@ -1,0 +1,39 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}{{ module_id }}{% endblock %}
+{% block body_class %}admin editor-page{% endblock %}
+{% block content %}
+<div id="admin" data-page="editeur" data-module="{{ module_id }}">
+<div class="editor-head">
+  <h1>{{ module_id }}</h1>
+  <a class="button" href="/admin/apercu/modules/{{ module_id }}/" target="_blank" rel="noopener">Aperçu de la page</a>
+  <button type="button" class="button" id="supprimer-module">Supprimer le module</button>
+</div>
+<ul id="erreurs" class="errors" hidden></ul>
+<div class="editor-layout">
+  <aside class="files-panel">
+    <h2>Fichiers</h2>
+    <ul id="fichiers" class="file-list"></ul>
+    <form id="nouveau-fichier" class="stack">
+      <label>Nouveau fichier <input name="chemin" placeholder="lab/src/mon_pkg/package.xml" spellcheck="false" required></label>
+      <button class="button" type="submit">Créer</button>
+    </form>
+    <p class="muted small">Structure : <code>index.md</code> (cours), <code>qcm.yaml</code>, <code>lab/</code> (workspace de départ), <code>exercice/</code> (énoncé, scripts, départ, solution, indices, explication), <code>lab_test.sh</code> (facultatif).</p>
+  </aside>
+  <section class="edit-panel">
+    <div class="edit-toolbar">
+      <strong id="chemin">Choisissez un fichier</strong>
+      <span id="etat-fichier" class="muted small" role="status"></span>
+      <span class="spacer"></span>
+      <button type="button" class="button" id="supprimer-fichier" disabled>Supprimer</button>
+      <button type="button" class="button primary" id="enregistrer" disabled>Enregistrer (Ctrl+S)</button>
+    </div>
+    <textarea id="contenu" spellcheck="false" wrap="off" disabled aria-label="Contenu du fichier"></textarea>
+    <div id="qcm-editor" hidden></div>
+  </section>
+  <section class="preview-panel">
+    <h2>Aperçu</h2>
+    <div id="apercu" class="cours"><p class="muted">L'aperçu s'affiche pour les fichiers Markdown.</p></div>
+  </section>
+</div>
+</div>
+{% endblock %}

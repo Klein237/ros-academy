@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ titre }} · ROS Academy{% endblock %}
+{% block content %}
+<section class="error">
+  <h1>{{ titre }}</h1>
+  <p>{{ message }}</p>
+  <p><a class="button" href="/">Retour aux parcours</a></p>
+</section>
+{% endblock %}

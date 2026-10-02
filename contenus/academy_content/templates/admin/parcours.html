@@ -1,0 +1,20 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Parcours {{ parcours_id }}{% endblock %}
+{% block body_class %}admin{% endblock %}
+{% block content %}
+<div id="admin" data-page="parcours" data-parcours="{{ parcours_id }}">
+<h1>Parcours <code>{{ parcours_id }}</code></h1>
+<form id="parcours-form" class="card stack">
+  <label>Titre <input name="titre" required maxlength="120"></label>
+  <label>Description <textarea name="description" rows="4" maxlength="2000"></textarea></label>
+  <h2>Modules, dans l'ordre</h2>
+  <table class="list" id="parcours-modules">
+    <thead><tr><th>Module</th><th>Coefficient</th><th></th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <p class="inline-form"><select id="ajout-module" aria-label="Module à ajouter"></select> <button type="button" class="button" id="ajouter">Ajouter au parcours</button></p>
+  <p><button type="submit" class="button primary">Enregistrer le parcours</button> <span id="parcours-etat" class="muted small" role="status"></span></p>
+  <p class="form-error" role="alert" hidden></p>
+</form>
+</div>
+{% endblock %}

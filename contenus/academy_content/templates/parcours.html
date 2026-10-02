@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ parcours.titre }} · ROS Academy{% endblock %}
+{% block content %}
+<nav class="breadcrumb"><a href="/">Parcours</a> › {{ parcours.titre }}</nav>
+<h1>{{ parcours.titre }}</h1>
+<p class="lead">{{ parcours.description }}</p>
+<ol class="parcours-steps">
+  {% for m in parcours.modules %}
+  <li class="card">
+    <span class="step">{{ loop.index }}</span>
+    <div>
+      <h2><a href="/modules/{{ m.id }}/">{{ m.titre }}</a></h2>
+      <p>{{ m.resume }}</p>
+      <p class="muted small">{% if m.duree %}{{ m.duree }} · {% endif %}coefficient {{ m.coef | round(1) | replace('.0', '') }} sur {{ total_coef | round(1) | replace('.0', '') }}</p>
+    </div>
+  </li>
+  {% endfor %}
+</ol>
+<p class="muted small">Chaque module est noté sur 20 : 50 % QCM, 50 % exercice (−15 % par indice utilisé). La note finale est la moyenne pondérée par les coefficients.</p>
+{% endblock %}

@@ -86,7 +86,7 @@ def render_cours(markdown, module_id):
     tokens = md.parse(markdown)
     _group_tabs(tokens)
 
-    def fence(tokens, idx, options, env):
+    def fence(renderer, tokens, idx, options, env):
         tok = tokens[idx]
         lang, attrs = parse_info(tok.info)
         label = LANG_LABELS.get(lang, lang or "Code")
