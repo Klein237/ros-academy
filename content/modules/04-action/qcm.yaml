@@ -1,0 +1,42 @@
+questions:
+  - id: quand
+    question: Dans quel cas une action est-elle préférable à un service ?
+    choix:
+      - texte: Une tâche longue dont on veut suivre la progression et qu'on peut vouloir annuler.
+        correct: true
+      - texte: Lire une valeur instantanée, comme la position actuelle du robot.
+      - texte: Diffuser des mesures de capteur en continu.
+    explication: Une action ajoute au requête-réponse un feedback régulier et l'annulation, utiles pour les tâches longues.
+  - id: parties
+    question: Combien de parties comporte un fichier .action, et lesquelles ?
+    choix:
+      - texte: Trois — goal, résultat, feedback.
+        correct: true
+      - texte: Deux — requête et réponse.
+      - texte: Trois — goal, feedback, annulation.
+    explication: Goal, result et feedback, séparés par deux lignes ---. L'annulation est fournie par ROS 2, pas déclarée dans le fichier.
+  - id: etat
+    question: Que se passe-t-il si execute_callback renvoie un résultat sans appeler goal_handle.succeed() ?
+    choix:
+      - texte: Le goal se termine avec le statut ABORTED.
+        correct: true
+      - texte: Le goal est considéré comme réussi puisque le résultat est renvoyé.
+      - texte: Le client attend indéfiniment.
+    explication: Sans état explicite, rclpy suppose un abandon et l'indique dans les journaux.
+  - id: executeur
+    question: Pourquoi le nœud utilise-t-il un MultiThreadedExecutor ?
+    choix:
+      - texte: Pour que le timer continue de déplacer le robot pendant qu'un goal s'exécute.
+        correct: true
+      - texte: Parce qu'un serveur d'action ne fonctionne qu'avec plusieurs threads.
+      - texte: Pour accepter plusieurs goals par seconde.
+    explication: execute_callback dure plusieurs secondes ; avec un seul thread, les autres callbacks (timer, abonnements) seraient bloqués pendant tout ce temps.
+  - id: cli
+    question: Quelles commandes permettent d'essayer l'action sans écrire de client ?
+    choix:
+      - texte: 'ros2 action send_goal --feedback /goto my_interface/action/Goto "{target: {x: 1.0}}"'
+        correct: true
+      - texte: ros2 action list -t (pour trouver le nom et le type)
+        correct: true
+      - texte: ros2 service call /goto my_interface/action/Goto
+    explication: send_goal envoie le goal et affiche feedbacks et résultat ; action list -t donne le nom et le type à utiliser.
