@@ -4,7 +4,24 @@
 - Un serveur Linux avec Docker et le plugin Compose (≈16 vCPU / 64 Go pour 30 à 40 sessions).
 - Un nom de domaine pointant vers le serveur (ports 80 et 443 ouverts).
 
-## Installation
+## Installation en une commande (recommandé)
+
+Sur un serveur Ubuntu 22.04 ou 24.04 dont le nom de domaine (enregistrement DNS de type A) pointe vers lui :
+
+```bash
+git clone https://github.com/Klein237/ros-academy.git && cd ros-academy
+sudo scripts/installer-serveur.sh
+```
+
+Le script demande le domaine, l'adresse de l'administrateur et le SMTP (facultatif). Il installe ensuite :
+- Docker et la règle de pare-feu des labs (service `ros-academy-pare-feu`) ;
+- l'image ROS et les dossiers des étudiants limités à 1 Go (image XFS `/var/lib/ros-academy/homes.img`).
+
+Puis il génère `deploy/.env` (secrets aléatoires, droits 600), démarre la plateforme et vérifie le Hub, Comptes et le certificat HTTPS. Si le SMTP est renseigné, il envoie aussi un e-mail de test. Le nombre de labs simultanés est calculé d'après le serveur (`--sessions` pour le fixer).
+
+Le script est rejouable : un `deploy/.env` existant est gardé. Sans questions : `--non-interactif --domaine … --admin … --smtp-host … --smtp-user … --smtp-password …` (ou `--sans-smtp`) ; `--help` pour la liste. La CI installe son serveur de test avec ce script.
+
+## Installation pas à pas
 1. `docker build -t ros-lab:0.1.0 images/ros-lab`
 2. `cp deploy/.env.example deploy/.env` puis remplacer chaque secret par `openssl rand -hex 32`, `DOMAIN` par le domaine, et renseigner `ADMIN_EMAILS`, le SMTP et, si souhaité, GitHub / Google (voir « Comptes » ci-dessous).
 3. Dossiers des étudiants limités à 1 Go (voir « Espace disque des étudiants ») : `sudo apt install xfsprogs`, puis `sudo scripts/preparer-hote.sh --image /var/lib/ros-academy/homes.img --taille 200G` (ou `--partition /dev/sdX1`), et ajouter à `.env` les deux lignes `LAB_HOMES_DIR` et `COMPOSE_FILE` affichées par le script.
