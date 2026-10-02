@@ -4,6 +4,24 @@
 - Un serveur Linux avec Docker et le plugin Compose (≈16 vCPU / 64 Go pour 30 à 40 sessions).
 - Un nom de domaine pointant vers le serveur (ports 80 et 443 ouverts).
 
+## Essayer sur son ordinateur
+
+Linux, macOS, ou Windows avec WSL2. Il faut Docker (Docker Desktop sur macOS et Windows) avec au moins 8 Go de mémoire, et les ports 80 et 443 libres.
+
+```bash
+git clone https://github.com/Klein237/ros-academy.git && cd ros-academy
+scripts/demarrer-local.sh            # demande votre adresse (administrateur), puis démarre tout
+```
+
+La première fois, le script construit l'image ROS (15 à 40 minutes) et génère `deploy/.env` : localhost, secrets aléatoires, nombre de labs d'après la mémoire de Docker, lien de connexion affiché à l'écran. Il attend ensuite que le site réponde. Ouvrez alors https://localhost et acceptez le certificat local.
+
+Autres commandes :
+- `scripts/demarrer-local.sh arreter` : arrête, en gardant les données ;
+- `scripts/demarrer-local.sh lien` : affiche le dernier lien de connexion ;
+- `scripts/demarrer-local.sh effacer` : efface toutes les données locales.
+
+La CI rejoue ce démarrage à chaque PR.
+
 ## Installation en une commande (recommandé)
 
 Sur un serveur Ubuntu 22.04 ou 24.04 dont le nom de domaine (enregistrement DNS de type A) pointe vers lui :
