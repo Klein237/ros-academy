@@ -1,5 +1,5 @@
 // Journaux centralisés (Grafana + Loki) et alertes de la veille.
-import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Page } from "./fixtures";
 import { admin, cleanup, loginStudent, mintAdmin, newEmail, openLabViaAccount, run, stopServer } from "./helpers";
 
 let api: APIRequestContext;
