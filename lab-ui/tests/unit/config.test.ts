@@ -29,3 +29,8 @@ it("?vue=bureau : la fenêtre séparée du bureau", () => {
   expect(readConfig("?vue=bureau").desktopOnly).toBe(true);
   expect(readConfig("?vue=autre").desktopOnly).toBe(false);
 });
+
+it("?integre=1 : le lab affiché à côté du cours", () => {
+  expect(readConfig("?module=02-noeud").embedded).toBe(false);
+  expect(readConfig("?module=02-noeud&integre=1").embedded).toBe(true);
+});

@@ -48,6 +48,35 @@ it("sans cookie du Hub → noauth", async () => {
   expect(s.state.kind).toBe("noauth");
 });
 
+it("coupure réseau passagère à l'ouverture → nouvel essai, puis démarrage", async () => {
+  let calls = 0;
+  const hub = fakeHub({
+    token: async () => {
+      calls += 1;
+      if (calls <= 2) throw new HttpError(0, "Hub injoignable : TypeError: Failed to fetch");
+      return {};
+    },
+  });
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+  const s = new Session(hub as never);
+  const done = s.open();
+  await vi.advanceTimersByTimeAsync(1000 + 2000);
+  await done;
+  expect(hub.refreshToken).toHaveBeenCalledTimes(3);
+  expect(s.state.kind).toBe("ready");
+});
+
+it("Hub injoignable de façon durable → failed après trois nouveaux essais", async () => {
+  const hub = fakeHub({ token: async () => Promise.reject(new HttpError(0, "Hub injoignable")) });
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+  const s = new Session(hub as never);
+  const done = s.open();
+  await vi.advanceTimersByTimeAsync(1000 + 2000 + 3000);
+  await done;
+  expect(hub.refreshToken).toHaveBeenCalledTimes(4);
+  expect(s.state).toEqual({ kind: "failed", message: "Le serveur du lab est injoignable." });
+});
+
 it("serveur plein (429) → full, puis nouvel essai automatique", async () => {
   const hub = fakeHub({ start: ["full", "started"] });
   const s = new Session(hub as never, { fullRetryMs: 15_000 });

@@ -105,11 +105,13 @@ figure.code figcaption {
 }
 figure.code .code-lang { font-weight: 600; }
 figure.code .code-file { color: #8fd3c4; background: none; flex: 1; overflow-wrap: anywhere; }
-figure.code .code-open, figure.code .code-copy {
+figure.code .code-open, figure.code .code-run, figure.code .code-copy {
   color: #0b1015; background: #7fd4c1; border: 0; border-radius: 4px; padding: 2px 8px;
   text-decoration: none; font: inherit; font-size: 0.8rem; cursor: pointer;
 }
 figure.code .code-copy { background: #2b3a48; color: #d8dee9; margin-left: auto; }
+figure.code .code-run:not([hidden]) + .code-copy { margin-left: 0; }
+figure.code .code-run { margin-left: auto; }
 figure.code .code-file + .code-open + .code-copy { margin-left: 0; }
 figure.code pre { margin: 0; padding: 14px 16px; overflow-x: auto; color: var(--code-text); font-size: 0.875rem; line-height: 1.5; }
 
@@ -141,3 +143,21 @@ figure.code pre { margin: 0; padding: 14px 16px; overflow-x: auto; color: var(--
 }
 
 .site-footer a { color: inherit; }
+
+/* --- Cours + lab : le lab (iframe, ?integre=1) à droite, largeur réglable par la poignée */
+.module-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+body.cote-a-cote { --lab-w: 55vw; }
+body.cote-a-cote > :not(.lab-dock) { margin-right: var(--lab-w); }
+body.cote-a-cote .site-header { padding: 12px 24px; }
+body.cote-a-cote main.page { max-width: none; padding: 24px 24px 48px; }
+.lab-dock {
+  position: fixed; top: 0; right: 0; bottom: 0; width: var(--lab-w); z-index: 10;
+  display: flex; flex-direction: column; background: var(--surface); border-left: 1px solid var(--line);
+}
+.lab-dock-bar { display: flex; align-items: center; gap: 12px; padding: 6px 12px; border-bottom: 1px solid var(--line); font-size: 14px; }
+.lab-dock-bar strong { flex: 1; }
+.lab-dock-bar button { font: inherit; background: none; border: 1px solid var(--line); color: var(--text); border-radius: 4px; padding: 2px 10px; cursor: pointer; }
+.lab-dock iframe { flex: 1; width: 100%; border: 0; background: #0f141a; }
+.lab-dock-poignee { position: absolute; left: -5px; top: 0; bottom: 0; width: 10px; cursor: col-resize; }
+.lab-dock-poignee:hover, .lab-dock.glisse .lab-dock-poignee { background: var(--accent); opacity: 0.4; }
+.lab-dock.glisse iframe { pointer-events: none; } /* le glisser reste à la page pendant le déplacement */

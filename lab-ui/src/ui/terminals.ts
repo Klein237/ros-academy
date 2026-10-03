@@ -201,4 +201,23 @@ export class TerminalPanel {
   focus(): void {
     this.active?.term.focus();
   }
+
+  /**
+   * Tape une commande dans le terminal actif, comme l'étudiant (« Lancer dans le lab » du cours) :
+   * chaque ligne est validée par Entrée. Ouvre un terminal s'il n'y en a aucun.
+   */
+  async type(command: string): Promise<void> {
+    if (!this.active) await this.add();
+    const tab = this.active!;
+    this.show(tab);
+    const text = command.replace(/\r?\n/g, "\r").replace(/\r*$/, "\r");
+    const send = (tries: number) => {
+      if (tab.conn.status === "open") {
+        tab.conn.send(text);
+        this.opts.onCommand?.();
+      } else if (tries > 0) setTimeout(() => send(tries - 1), 200);
+    };
+    send(50);
+    tab.term.focus();
+  }
 }

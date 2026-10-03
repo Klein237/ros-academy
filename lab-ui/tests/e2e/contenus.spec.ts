@@ -11,6 +11,7 @@ import {
   openLabViaAccount,
   run,
   waitReady,
+  watchErrors,
 } from "./helpers";
 
 let api: APIRequestContext;
@@ -109,6 +110,36 @@ test("module Nœud : l'exercice se fait entièrement dans le lab @ros", async ({
   await expect(panel.locator(".explication")).toContainText("cmd_vell");
   await page.goto("/compte/resultats");
   await expect(page.getByRole("row", { name: /Écrire un nœud/ })).toContainText("réussi (1 indice) · 17,0");
+});
+
+test("Cours + lab : le lab à côté du cours lance les commandes et ouvre les fichiers @ros", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  const errors = watchErrors(page);
+  students.push(await loginStudent(page, newEmail()));
+  await page.goto("/modules/02-noeud/");
+  await expect(page.locator(".code-run").first()).toBeHidden(); // sans le lab à côté : pas de bouton
+  await page.getByRole("button", { name: "Cours + lab" }).click();
+  const lab = page.frameLocator(".lab-dock iframe");
+  await expect(lab.locator(".overlay")).toBeHidden({ timeout: 180_000 });
+  const term = lab.locator(".terminal-host:not([hidden])");
+  await expect(term).toHaveAttribute("data-status", "open", { timeout: 60_000 });
+  await expect(lab.locator(".panel.files")).toBeHidden(); // intégré : fichiers repliés au départ
+  // « Lancer dans le lab » : le premier bloc de commandes (création des paquets) s'exécute dans le terminal
+  await page.locator(".code-run").first().click();
+  await expect(term.locator(".xterm-rows")).toContainText("ros2 pkg create my_pkg_cpp", { timeout: 30_000 });
+  // exécuté ligne par ligne : le « cd » a changé de dossier (les paquets existent déjà : lab guidé installé)
+  await expect(term.locator(".xterm-rows")).toContainText("/ws/02-noeud/src$", { timeout: 60_000 });
+  // « Ouvrir dans le lab » : le fichier du cours s'ouvre dans l'éditeur du panneau, la page ne change pas
+  await page.locator('a.code-open[data-open$="diff_drive_node.py"]').first().click();
+  await expect(page).toHaveURL(/\/modules\/02-noeud\/$/);
+  await expect(lab.locator(".editor .tab.active")).toContainText("diff_drive_node.py");
+  // le choix est retenu d'une page à l'autre ; « Cours seul » referme le panneau
+  await page.reload();
+  await expect(page.locator(".lab-dock iframe")).toBeVisible();
+  await page.getByRole("button", { name: "Cours seul" }).click();
+  await expect(page.locator(".lab-dock")).toHaveCount(0);
+  await expect(page.locator(".code-run").first()).toBeHidden();
+  expect(errors).toEqual([]);
 });
 
 test("l'administrateur modifie un module et le publie après les tests", async ({ page }) => {

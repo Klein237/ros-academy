@@ -21,6 +21,8 @@ export interface LabConfig {
   idleWarnMs: number;
   /** Page réduite au bureau graphique, ouverte par « Fenêtre séparée » (?vue=bureau). */
   desktopOnly: boolean;
+  /** Lab affiché à côté du cours, dans la page du module (?integre=1) : panneaux repliables. */
+  embedded: boolean;
 }
 
 function safePath(value: string | null): string | null {
@@ -48,5 +50,6 @@ export function readConfig(search: string): LabConfig {
     idleStopMs,
     idleWarnMs,
     desktopOnly: params.get("vue") === "bureau",
+    embedded: params.get("integre") === "1",
   };
 }
