@@ -1,4 +1,5 @@
-// Onglets Python / C++, bouton Copier, QCM corrigé par le serveur (via Comptes).
+// Onglets Python / C++, bouton Copier, QCM corrigé par le serveur (via Comptes),
+// cours et lab côte à côte (« Cours + lab »).
 
 function setupTabs() {
   for (const group of document.querySelectorAll(".code-tabs")) {
@@ -113,6 +114,148 @@ function setupQcm() {
   }
 }
 
+// --- Cours + lab : le lab (même origine, /lab/?integre=1) dans un panneau à droite du cours.
+// « Ouvrir dans le lab » ouvre le fichier dans l'éditeur du panneau, « Lancer dans le lab » tape la
+// commande dans son terminal (messages postMessage, voir lab-ui/src/lab.ts). Écrans larges seulement ;
+// le choix et la largeur sont retenus d'une page à l'autre.
+const COTE_A_COTE = "rosacademy.coteACote";
+const LARGEUR_LAB = "rosacademy.largeurLab";
+const memoire = {
+  lire(cle) {
+    try {
+      return localStorage.getItem(cle);
+    } catch {
+      return null;
+    }
+  },
+  ecrire(cle, valeur) {
+    try {
+      if (valeur === null) localStorage.removeItem(cle);
+      else localStorage.setItem(cle, valeur);
+    } catch {
+      // stockage indisponible (navigation privée) : le choix n'est pas retenu
+    }
+  },
+};
+
+function setupSideBySide() {
+  const toggle = document.querySelector("button.cote-a-cote");
+  if (!toggle) return;
+  const large = window.matchMedia("(min-width: 1100px)");
+  let dock = null;
+  let frame = null;
+
+  const post = (message) => frame?.contentWindow?.postMessage(message, location.origin);
+  const setWidth = (px) => {
+    const w = Math.round(Math.min(window.innerWidth * 0.75, Math.max(420, px)));
+    document.body.style.setProperty("--lab-w", `${w}px`);
+    return w;
+  };
+
+  function open(src) {
+    if (dock) {
+      if (src && frame.getAttribute("src") !== src) frame.src = src;
+      return;
+    }
+    frame = document.createElement("iframe");
+    frame.title = "Lab ROS 2";
+    frame.src = src;
+    frame.allow = "clipboard-read; clipboard-write; fullscreen";
+    const handle = document.createElement("div");
+    handle.className = "lab-dock-poignee";
+    handle.title = "Glisser pour régler la largeur du lab";
+    const close = document.createElement("button");
+    close.type = "button";
+    close.textContent = "Fermer le lab";
+    close.addEventListener("click", () => shut());
+    const bar = document.createElement("div");
+    bar.className = "lab-dock-bar";
+    const title = document.createElement("strong");
+    title.textContent = "Lab";
+    bar.append(title, close);
+    dock = document.createElement("aside");
+    dock.className = "lab-dock";
+    dock.setAttribute("aria-label", "Lab à côté du cours");
+    dock.append(handle, bar, frame);
+    document.body.append(dock);
+    document.body.classList.add("cote-a-cote");
+    const saved = Number(memoire.lire(LARGEUR_LAB));
+    if (saved > 0) setWidth(saved);
+    handle.addEventListener("pointerdown", (ev) => {
+      handle.setPointerCapture(ev.pointerId);
+      dock.classList.add("glisse");
+      const move = (e) => memoire.ecrire(LARGEUR_LAB, String(setWidth(window.innerWidth - e.clientX)));
+      const up = () => {
+        dock.classList.remove("glisse");
+        handle.removeEventListener("pointermove", move);
+        handle.removeEventListener("pointerup", up);
+      };
+      handle.addEventListener("pointermove", move);
+      handle.addEventListener("pointerup", up);
+    });
+    for (const b of document.querySelectorAll(".code-run")) b.hidden = false;
+    toggle.textContent = "Cours seul";
+    toggle.setAttribute("aria-pressed", "true");
+    memoire.ecrire(COTE_A_COTE, "1");
+  }
+
+  function shut(remember = true) {
+    if (!dock) return;
+    dock.remove();
+    dock = null;
+    frame = null;
+    document.body.classList.remove("cote-a-cote");
+    for (const b of document.querySelectorAll(".code-run")) b.hidden = true;
+    toggle.textContent = "Cours + lab";
+    toggle.setAttribute("aria-pressed", "false");
+    if (remember) memoire.ecrire(COTE_A_COTE, null);
+  }
+
+  const follow = () => {
+    toggle.hidden = !large.matches;
+    if (!large.matches) shut(false); // fenêtre devenue étroite : le cours reprend toute la place
+  };
+  large.addEventListener("change", follow);
+  follow();
+  toggle.addEventListener("click", () => (dock ? shut() : open(toggle.dataset.lab)));
+  if (large.matches && memoire.lire(COTE_A_COTE) === "1") open(toggle.dataset.lab);
+
+  document.addEventListener("click", (ev) => {
+    if (!dock) return;
+    const openLink = ev.target.closest("a.code-open[data-open]");
+    if (openLink) {
+      ev.preventDefault();
+      post({ type: "rosacademy:open", path: openLink.dataset.open });
+      return;
+    }
+    const run = ev.target.closest(".code-run");
+    if (run) {
+      post({ type: "rosacademy:run", command: run.closest("figure").querySelector("code").textContent });
+      return;
+    }
+    if (ev.target.closest("a.exercice-lab")) {
+      ev.preventDefault();
+      open(toggle.dataset.exercice);
+    }
+  });
+
+  // Lire le cours compte comme de l'activité : le lab ouvert à côté ne s'arrête pas pour inactivité
+  let last = 0;
+  for (const type of ["scroll", "keydown", "pointerdown"]) {
+    window.addEventListener(
+      type,
+      () => {
+        const now = Date.now();
+        if (!dock || now - last < 30_000) return;
+        last = now;
+        post({ type: "rosacademy:activity" });
+      },
+      { passive: true },
+    );
+  }
+}
+
 setupTabs();
 setupCopy();
 setupQcm();
+setupSideBySide();

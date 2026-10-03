@@ -12,7 +12,13 @@
     {% if module.en_tete.resume %}<p class="lead">{{ module.en_tete.resume }}</p>{% endif %}
     {% if module.en_tete.duree %}<p class="muted small">Durée : {{ module.en_tete.duree }}</p>{% endif %}
   </div>
-  <a class="button primary" href="{{ lab_link(module.id) }}">Ouvrir le lab</a>
+  <div class="module-actions">
+    <a class="button primary" href="{{ lab_link(module.id) }}">Ouvrir le lab</a>
+    {# Cours et lab côte à côte (site.js, écrans larges seulement) #}
+    <button type="button" class="button cote-a-cote" hidden
+            data-lab="{{ lab_link(module.id, integre=1) }}"
+            data-exercice="{{ lab_link(module.id, exercice=1, integre=1) }}">Cours + lab</button>
+  </div>
 </header>
 <nav class="toc" aria-label="Sections du module">
   <a href="#cours">1. Cours et lab guidé</a>
@@ -27,7 +33,7 @@
 <section id="exercice" class="card exercise">
   <h2>Exercice : situation réelle</h2>
   {{ enonce_html | safe }}
-  <p><a class="button primary" href="{{ lab_link(module.id, exercice=1) }}">Ouvrir l'exercice dans le lab</a></p>
+  <p><a class="button primary exercice-lab" href="{{ lab_link(module.id, exercice=1) }}">Ouvrir l'exercice dans le lab</a></p>
   <p class="muted small">Dans le lab : « Commencer l'exercice » installe le workspace avec la panne, « Vérifier » contrôle votre correction. Trois indices sont disponibles ; chacun retire 15 % de la note de l'exercice.</p>
 </section>
 

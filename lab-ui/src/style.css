@@ -719,3 +719,44 @@ button.link {
     height: 80vh;
   }
 }
+
+/* --- Lab affiché à côté du cours (?integre=1) : fichiers et panneau du module repliables
+   (boutons de la barre du haut), jamais empilés comme sur un petit écran. Sélecteurs avec
+   #app : ils l'emportent sur la règle des écrans étroits ci-dessus. */
+body.integre {
+  overflow: hidden;
+}
+
+body.integre #app {
+  height: 100%;
+}
+
+body.integre #app .workspace,
+body.integre #app .workspace:has(.side[hidden]) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body.integre #app .workspace:has(> .files:not([hidden])) {
+  grid-template-columns: 200px minmax(0, 1fr);
+}
+
+body.integre #app .workspace:has(> .side:not([hidden])) {
+  grid-template-columns: minmax(0, 1fr) 300px;
+}
+
+body.integre #app .workspace:has(> .files:not([hidden])):has(> .side:not([hidden])) {
+  grid-template-columns: 200px minmax(0, 1fr) 300px;
+}
+
+body.integre #app .files {
+  max-height: none;
+}
+
+body.integre #app .center {
+  height: auto;
+}
+
+body.integre .topbar {
+  gap: 8px;
+  padding: 4px 8px;
+}

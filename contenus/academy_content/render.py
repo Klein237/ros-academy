@@ -15,6 +15,8 @@ from urllib.parse import quote
 from markdown_it import MarkdownIt
 
 TAB_LANGS = {"python": "Python", "cpp": "C++"}
+# Blocs de commandes : « Lancer dans le lab » quand le lab est ouvert à côté du cours (site.js)
+COMMAND_LANGS = {"bash", "sh", "shell", "console"}
 LANG_LABELS = {
     "python": "Python", "cpp": "C++", "bash": "Terminal", "sh": "Terminal", "xml": "XML",
     "yaml": "YAML", "cmake": "CMake", "text": "Texte", "srv": "Service (.srv)", "action": "Action (.action)",
@@ -101,7 +103,10 @@ def render_cours(markdown, module_id):
         if path:
             head.append(f'<code class="code-file">{html.escape(path)}</code>')
             href = lab_link(module_id, open=f"ws/{module_id}/{path}")
-            head.append(f'<a class="code-open" href="{html.escape(href)}">Ouvrir dans le lab</a>')
+            head.append(f'<a class="code-open" href="{html.escape(href)}" '
+                        f'data-open="{html.escape(f"ws/{module_id}/{path}")}">Ouvrir dans le lab</a>')
+        elif lang in COMMAND_LANGS:
+            head.append('<button type="button" class="code-run" hidden>Lancer dans le lab</button>')
         head.append('<button type="button" class="code-copy">Copier</button>')
         body = (
             f'<figure class="code" data-lang="{html.escape(lang)}" data-tab="{html.escape(TAB_LANGS.get(lang, ""))}">'

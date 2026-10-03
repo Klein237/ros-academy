@@ -38,6 +38,11 @@ const stopButton = button("Arrêter le lab", () => {
 });
 const show2d = button("Vue 2D", () => toggle2d(), { attrs: { "aria-pressed": "true" } });
 const showDesktop = button("Bureau (RViz, Gazebo)", () => toggleDesktop(), { attrs: { "aria-pressed": "false" } });
+// Lab à côté du cours (?integre=1) : place comptée, fichiers et panneau du module repliés au départ
+if (config.embedded) document.body.classList.add("integre");
+const showFiles = button("Fichiers", () => toggleFiles(), { attrs: { "aria-pressed": "true" } });
+showFiles.hidden = !config.embedded;
+if (config.embedded) show2d.textContent = config.moduleId ? "Module et vue 2D" : "Vue 2D";
 const workspace = h("main", { class: "workspace" });
 app.append(
   h(
@@ -46,6 +51,7 @@ app.append(
     h("strong", { text: "Lab ROS 2" }),
     user,
     h("span", { class: "spacer" }),
+    showFiles,
     showDesktop,
     show2d,
     stopButton,
@@ -75,6 +81,15 @@ let current: {
   desktop: DesktopPanel;
 } | null = null;
 let openedFromUrl = false;
+
+/** Demande du cours affiché à côté (voir handleCourseMessage), gardée tant que le lab démarre. */
+interface CourseMessage {
+  type?: string;
+  path?: string;
+  command?: string;
+}
+const pendingMessages: CourseMessage[] = [];
+
 
 /** Le bureau graphique prend la place de l'éditeur (les terminaux restent dessous). */
 function toggleDesktop(): void {
@@ -131,10 +146,23 @@ function reattachDesktop(): void {
   current?.desktop.setDetached(false);
 }
 
+function toggleFiles(): void {
+  const files = workspace.querySelector<HTMLElement>(".panel.files");
+  if (!files) return;
+  files.hidden = !files.hidden;
+  showFiles.setAttribute("aria-pressed", String(!files.hidden));
+}
+
 function toggle2d(): void {
   const view = workspace.querySelector<HTMLElement>(".view2d");
   const side = workspace.querySelector<HTMLElement>(".side");
   if (!view || !side) return;
+  if (config.embedded) {
+    // intégré : le bouton replie tout le panneau (module et vue 2D) pour laisser la place à l'éditeur
+    side.hidden = !side.hidden;
+    show2d.setAttribute("aria-pressed", String(!side.hidden));
+    return;
+  }
   view.hidden = !view.hidden;
   side.hidden = view.hidden && !side.querySelector(".module-panel");
   show2d.setAttribute("aria-pressed", String(!view.hidden));
@@ -234,6 +262,12 @@ async function startWorkspace(): Promise<void> {
   current = { terminals, ros, view, editor, desktop };
   showDesktop.setAttribute("aria-pressed", "false");
   setDesktopMaximized(false);
+  if (config.embedded) {
+    files.el.hidden = true;
+    showFiles.setAttribute("aria-pressed", "false");
+    side.hidden = !config.exercice; // l'exercice garde son panneau (Commencer, Vérifier, indices)
+    show2d.setAttribute("aria-pressed", String(!side.hidden));
+  }
   idle.start();
   watchQuota();
   await Promise.all([files.load(), terminals.restore().catch(() => undefined)]);
@@ -245,6 +279,7 @@ async function startWorkspace(): Promise<void> {
   } else {
     terminals.focus();
   }
+  for (const message of pendingMessages.splice(0)) handleCourseMessage(message);
 }
 
 /** Minutes restantes, relues chaque minute : bandeau dans les 5 dernières. */
@@ -300,19 +335,34 @@ session.onChange((state) => {
   else if (state.kind === "stopped" || state.kind === "failed" || state.kind === "noauth" || state.kind === "quota") teardown();
 });
 
-// Une page parente de même origine (le site du cours) peut signaler une activité
-// ou demander l'ouverture d'un fichier (« Ouvrir dans le lab »).
-window.addEventListener("message", (ev) => {
-  if (ev.origin !== location.origin || typeof ev.data !== "object" || ev.data === null) return;
-  const data = ev.data as { type?: string; path?: string };
-  if (data.type === "rosacademy:activity") idle.activity();
-  if (data.type === "rosacademy:open" && typeof data.path === "string" && current) {
+// Une page de même origine (le site du cours, qui affiche le lab à côté, ou la fenêtre séparée du
+// bureau) peut signaler une activité, demander l'ouverture d'un fichier (« Ouvrir dans le lab ») ou
+// taper une commande du cours dans le terminal (« Lancer dans le lab »). Les demandes arrivées
+// pendant le démarrage du lab sont traitées dès qu'il est prêt.
+
+function handleCourseMessage(data: CourseMessage): void {
+  if (!current) {
+    const useful = data.type === "rosacademy:open" || data.type === "rosacademy:run";
+    if (useful && pendingMessages.length < 10) pendingMessages.push(data);
+    return;
+  }
+  if (data.type === "rosacademy:open" && typeof data.path === "string") {
     try {
       void openFromCourse(current.editor, normalizePath(data.path));
     } catch {
       // chemin refusé (..)
     }
   }
+  if (data.type === "rosacademy:run" && typeof data.command === "string" && data.command.length <= 4000) {
+    void current.terminals.type(data.command).catch(() => toast("Impossible d'ouvrir un terminal", "error"));
+  }
+}
+
+window.addEventListener("message", (ev) => {
+  if (ev.origin !== location.origin || typeof ev.data !== "object" || ev.data === null) return;
+  const data = ev.data as CourseMessage;
+  if (data.type === "rosacademy:activity") idle.activity();
+  else handleCourseMessage(data);
 });
 
 window.addEventListener("beforeunload", (ev) => {

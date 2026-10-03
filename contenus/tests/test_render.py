@@ -55,3 +55,12 @@ def test_raw_html_is_not_rendered():
     html = render_markdown("<script>alert(1)</script>\n\n[x](javascript:alert(1))")
     assert "<script>" not in html
     assert 'href="javascript:' not in html
+
+
+def test_side_by_side_hooks():
+    """Mode « Cours + lab » : chemin à ouvrir dans le lab, bouton pour lancer les commandes."""
+    html = render_cours(COURS, "02-noeud")
+    assert 'data-open="ws/02-noeud/src/my_pkg/my_pkg/node.py"' in html
+    assert html.count('class="code-run"') == 1  # le bloc bash seulement (pas les fichiers)
+    bash = html.split('data-lang="bash"')[1].split("</figure>")[0]
+    assert 'class="code-run" hidden' in bash
