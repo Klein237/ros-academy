@@ -205,6 +205,20 @@ image_ros() {
   image_ros_a_jour "${image:-ros-lab:0.1.0}" "$RACINE/images/ros-lab"
 }
 
+# Hors de localhost, sans e-mail personne ne peut se connecter : un e-mail de test le vérifie tout de suite
+verifier_envoi_mail() {  # verifier_envoi_mail ADRESSE
+  local sortie
+  if sortie=$(compose exec -T comptes python -m academy_comptes.mail "$1" 2>&1); then
+    info "e-mail de test envoyé à $1 : l'envoi des liens de connexion fonctionne"
+  else
+    attention "l'envoi d'e-mails échoue : personne ne recevra son lien de connexion"
+    printf '%s\n' "$sortie" | tail -3 | sed 's/^/     /'
+    info "Avec Gmail : SMTP_USER = votre adresse complète, SMTP_PASSWORD = un « mot de passe d'application »"
+    info "(https://myaccount.google.com/apppasswords, validation en deux étapes activée), sans espaces."
+    info "Corrigez les lignes SMTP_ de deploy/.env, puis : cd deploy && docker compose up -d comptes veille"
+  fi
+}
+
 demarrer() {
   verifier_docker
   configurer
@@ -237,7 +251,7 @@ demarrer() {
     info "Ouverte à tous tant que le site tourne ; « scripts/demarrer-local.sh arreter » la ferme."
     info "Nouvelle adresse à chaque démarrage. Retour à localhost : scripts/demarrer-local.sh --local"
     info "Connexion : « Connexion », votre adresse : le lien arrive par e-mail."
-    info "E-mail de test : cd deploy && docker compose exec comptes python -m academy_comptes.mail $ADMIN"
+    verifier_envoi_mail "${ADMIN%%,*}"
   fi
   info "Ensuite : un parcours → « Ouvrir le lab » ; « Mon compte » → éditeur et tableau de bord formateur."
   info "Arrêter : scripts/demarrer-local.sh arreter (vos données sont gardées)"

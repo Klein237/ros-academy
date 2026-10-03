@@ -104,6 +104,15 @@ echo "ouvrir_tunnel (faux docker compose)"
 egal "nouvel essai quand Cloudflare refuse" "$(sed -n 1p "$TMP/tunnel")" "3|essai-ok.trycloudflare.com"
 egal "abandon après trois refus" "$(sed -n 2p "$TMP/tunnel")" refuse
 
+echo "verifier_envoi_mail (faux docker compose)"
+(
+  compose() { [ "$ENVOI" = ok ] && echo "E-mail de test envoyé." || { echo "Échec : SMTPServerDisconnected : Connection unexpectedly closed"; return 1; }; }
+  ENVOI=ok; verifier_envoi_mail moi@exemple.fr
+  ENVOI=ko; verifier_envoi_mail moi@exemple.fr
+) > "$TMP/mail" 2>&1
+egal "envoi réussi annoncé" "$(grep -c "l'envoi des liens de connexion fonctionne" "$TMP/mail")" 1
+egal "échec expliqué" "$(grep -c "SMTPServerDisconnected\|mot de passe d'application" "$TMP/mail")" 2
+
 echo "fonctions appelées"
 # toute fonction appelée dans le script y est définie (une suppression par erreur casse le démarrage)
 manque=""
