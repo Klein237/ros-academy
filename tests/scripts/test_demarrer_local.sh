@@ -94,7 +94,9 @@ echo "ouvrir_tunnel (faux docker compose)"
       ps) [ "$LANCEMENTS" -gt "$ECHECS_AVANT_ADRESSE" ] || echo arrete ;;
     esac
   }
+  set -euo pipefail   # comme dans le script : « pas encore d'adresse » ne doit pas l'arrêter
   ouvrir_tunnel >/dev/null 2>&1
+  set +e
   echo "$LANCEMENTS|$(valeur_env "$ENV_FILE" DOMAIN)"
   ECHECS_AVANT_ADRESSE=99 LANCEMENTS=0
   ( ouvrir_tunnel >/dev/null 2>&1 ) && echo accepte || echo refuse

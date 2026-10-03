@@ -49,7 +49,8 @@ maj_env() {  # maj_env FICHIER CLE VALEUR
 
 # Adresse publique du tunnel, lue dans son journal (la dernière : le tunnel en cours)
 adresse_tunnel() {
-  grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' | tail -1
+  # pas encore d'adresse : résultat vide, sans échec (set -e et pipefail arrêteraient le script)
+  { grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' || true; } | tail -1
 }
 
 # Labs simultanés d'après la mémoire donnée à Docker : ~1,5 Go par lab, 4 Go pour la plateforme
@@ -183,7 +184,7 @@ ouvrir_tunnel() {
     compose up -d --build tunnel || fail "démarrage du tunnel impossible"
     info "ouverture du tunnel (essai $essai/3)…"
     for _ in $(seq 1 30); do
-      adresse=$(compose logs tunnel 2>/dev/null | adresse_tunnel)
+      adresse=$(compose logs tunnel 2>/dev/null | adresse_tunnel) || adresse=""
       [ -n "$adresse" ] && break 2
       # le tunnel s'arrête si Cloudflare refuse (service gratuit sans garantie) : nouvel essai
       [ -n "$(compose ps -q --status exited tunnel 2>/dev/null)" ] && break
