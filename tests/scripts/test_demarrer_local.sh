@@ -82,6 +82,26 @@ egal "--local : retour à localhost" "$(sed -n 3p "$TMP/acces")" "localhost|0|1"
   configurer_acces
 ) >/dev/null 2>&1 && ko "Internet sans SMTP accepté" || ok "Internet sans SMTP refusé en mode non interactif"
 
+echo "ouvrir_tunnel (faux docker compose)"
+(
+  ENV_FILE="$TMP/deploy/.env" ECHECS_AVANT_ADRESSE=2 LANCEMENTS=0
+  sleep() { :; }
+  # simule cloudflared : refusé deux fois par Cloudflare, puis une adresse
+  compose() {
+    case "$1" in
+      up) LANCEMENTS=$((LANCEMENTS + 1)) ;;
+      logs) if [ "$LANCEMENTS" -gt "$ECHECS_AVANT_ADRESSE" ]; then echo "tunnel-1 | INF |  https://essai-ok.trycloudflare.com  |"; else echo "tunnel-1 | failed to parse quick Tunnel ID: invalid UUID length: 0"; fi ;;
+      ps) [ "$LANCEMENTS" -gt "$ECHECS_AVANT_ADRESSE" ] || echo arrete ;;
+    esac
+  }
+  ouvrir_tunnel >/dev/null 2>&1
+  echo "$LANCEMENTS|$(valeur_env "$ENV_FILE" DOMAIN)"
+  ECHECS_AVANT_ADRESSE=99 LANCEMENTS=0
+  ( ouvrir_tunnel >/dev/null 2>&1 ) && echo accepte || echo refuse
+) > "$TMP/tunnel" 2>&1
+egal "nouvel essai quand Cloudflare refuse" "$(sed -n 1p "$TMP/tunnel")" "3|essai-ok.trycloudflare.com"
+egal "abandon après trois refus" "$(sed -n 2p "$TMP/tunnel")" refuse
+
 echo "fonctions appelées"
 # toute fonction appelée dans le script y est définie (une suppression par erreur casse le démarrage)
 manque=""

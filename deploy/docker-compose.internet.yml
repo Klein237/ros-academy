@@ -11,7 +11,7 @@ services:
       CADDY_RELAIS: private_ranges
 
   tunnel:
-    image: cloudflare/cloudflared:2025.9.1
+    image: cloudflare/cloudflared:2026.9.3
     command: tunnel --no-autoupdate --url http://caddy:80
     depends_on: [caddy]
     restart: "no"   # une adresse par démarrage : pas de reprise automatique avec une adresse périmée
