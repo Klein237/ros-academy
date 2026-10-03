@@ -49,7 +49,8 @@ maj_env() {  # maj_env FICHIER CLE VALEUR
 
 # Adresse publique du tunnel, lue dans son journal (la dernière : le tunnel en cours)
 adresse_tunnel() {
-  grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' | tail -1
+  # pas encore d'adresse : résultat vide, sans échec (set -e et pipefail arrêteraient le script)
+  { grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' || true; } | tail -1
 }
 
 # Labs simultanés d'après la mémoire donnée à Docker : ~1,5 Go par lab, 4 Go pour la plateforme
@@ -183,7 +184,7 @@ ouvrir_tunnel() {
     compose up -d --build tunnel || fail "démarrage du tunnel impossible"
     info "ouverture du tunnel (essai $essai/3)…"
     for _ in $(seq 1 30); do
-      adresse=$(compose logs tunnel 2>/dev/null | adresse_tunnel)
+      adresse=$(compose logs tunnel 2>/dev/null | adresse_tunnel) || adresse=""
       [ -n "$adresse" ] && break 2
       # le tunnel s'arrête si Cloudflare refuse (service gratuit sans garantie) : nouvel essai
       [ -n "$(compose ps -q --status exited tunnel 2>/dev/null)" ] && break
@@ -202,6 +203,20 @@ image_ros() {
   local image
   image=$(valeur_env "$ENV_FILE" ROS_LAB_IMAGE)
   image_ros_a_jour "${image:-ros-lab:0.1.0}" "$RACINE/images/ros-lab"
+}
+
+# Hors de localhost, sans e-mail personne ne peut se connecter : un e-mail de test le vérifie tout de suite
+verifier_envoi_mail() {  # verifier_envoi_mail ADRESSE
+  local sortie
+  if sortie=$(compose exec -T comptes python -m academy_comptes.mail "$1" 2>&1); then
+    info "e-mail de test envoyé à $1 : l'envoi des liens de connexion fonctionne"
+  else
+    attention "l'envoi d'e-mails échoue : personne ne recevra son lien de connexion"
+    printf '%s\n' "$sortie" | tail -3 | sed 's/^/     /'
+    info "Avec Gmail : SMTP_USER = votre adresse complète, SMTP_PASSWORD = un « mot de passe d'application »"
+    info "(https://myaccount.google.com/apppasswords, validation en deux étapes activée), sans espaces."
+    info "Corrigez les lignes SMTP_ de deploy/.env, puis : cd deploy && docker compose up -d comptes veille"
+  fi
 }
 
 demarrer() {
@@ -236,7 +251,7 @@ demarrer() {
     info "Ouverte à tous tant que le site tourne ; « scripts/demarrer-local.sh arreter » la ferme."
     info "Nouvelle adresse à chaque démarrage. Retour à localhost : scripts/demarrer-local.sh --local"
     info "Connexion : « Connexion », votre adresse : le lien arrive par e-mail."
-    info "E-mail de test : cd deploy && docker compose exec comptes python -m academy_comptes.mail $ADMIN"
+    verifier_envoi_mail "${ADMIN%%,*}"
   fi
   info "Ensuite : un parcours → « Ouvrir le lab » ; « Mon compte » → éditeur et tableau de bord formateur."
   info "Arrêter : scripts/demarrer-local.sh arreter (vos données sont gardées)"

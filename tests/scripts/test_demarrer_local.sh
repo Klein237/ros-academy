@@ -94,13 +94,24 @@ echo "ouvrir_tunnel (faux docker compose)"
       ps) [ "$LANCEMENTS" -gt "$ECHECS_AVANT_ADRESSE" ] || echo arrete ;;
     esac
   }
+  set -euo pipefail   # comme dans le script : « pas encore d'adresse » ne doit pas l'arrêter
   ouvrir_tunnel >/dev/null 2>&1
+  set +e
   echo "$LANCEMENTS|$(valeur_env "$ENV_FILE" DOMAIN)"
   ECHECS_AVANT_ADRESSE=99 LANCEMENTS=0
   ( ouvrir_tunnel >/dev/null 2>&1 ) && echo accepte || echo refuse
 ) > "$TMP/tunnel" 2>&1
 egal "nouvel essai quand Cloudflare refuse" "$(sed -n 1p "$TMP/tunnel")" "3|essai-ok.trycloudflare.com"
 egal "abandon après trois refus" "$(sed -n 2p "$TMP/tunnel")" refuse
+
+echo "verifier_envoi_mail (faux docker compose)"
+(
+  compose() { [ "$ENVOI" = ok ] && echo "E-mail de test envoyé." || { echo "Échec : SMTPServerDisconnected : Connection unexpectedly closed"; return 1; }; }
+  ENVOI=ok; verifier_envoi_mail moi@exemple.fr
+  ENVOI=ko; verifier_envoi_mail moi@exemple.fr
+) > "$TMP/mail" 2>&1
+egal "envoi réussi annoncé" "$(grep -c "l'envoi des liens de connexion fonctionne" "$TMP/mail")" 1
+egal "échec expliqué" "$(grep -c "SMTPServerDisconnected\|mot de passe d'application" "$TMP/mail")" 2
 
 echo "fonctions appelées"
 # toute fonction appelée dans le script y est définie (une suppression par erreur casse le démarrage)

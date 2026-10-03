@@ -1,5 +1,5 @@
 // Abonnement pro de bout en bout contre le faux Stripe (deploy/docker-compose.stripe-simule.yml).
-import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Page } from "./fixtures";
 import { admin, cleanup, containerLimits, loginStudent, newEmail, openLabViaAccount, stopServer } from "./helpers";
 
 const STRIPE = process.env.FAKE_STRIPE_URL ?? "http://localhost:12111";
