@@ -178,15 +178,21 @@ configurer_acces() {
 # Démarre le tunnel (et Caddy), puis met son adresse dans DOMAIN : les liens envoyés par e-mail,
 # les cookies et les vérifications d'origine l'utilisent. Le tunnel déjà ouvert garde la sienne.
 ouvrir_tunnel() {
-  compose up -d --build tunnel || fail "démarrage du tunnel impossible"
-  info "ouverture du tunnel…"
-  local adresse=""
-  for _ in $(seq 1 45); do
-    adresse=$(compose logs tunnel 2>/dev/null | adresse_tunnel)
-    [ -n "$adresse" ] && break
-    sleep 2
+  local adresse="" essai
+  for essai in 1 2 3; do
+    compose up -d --build tunnel || fail "démarrage du tunnel impossible"
+    info "ouverture du tunnel (essai $essai/3)…"
+    for _ in $(seq 1 30); do
+      adresse=$(compose logs tunnel 2>/dev/null | adresse_tunnel)
+      [ -n "$adresse" ] && break 2
+      # le tunnel s'arrête si Cloudflare refuse (service gratuit sans garantie) : nouvel essai
+      [ -n "$(compose ps -q --status exited tunnel 2>/dev/null)" ] && break
+      sleep 2
+    done
+    attention "pas d'adresse : $(compose logs --no-log-prefix tunnel 2>/dev/null | grep -v '^ *$' | tail -1)"
+    if [ "$essai" -lt 3 ]; then sleep $((essai * 10)); fi
   done
-  [ -n "$adresse" ] || fail "pas d'adresse de tunnel (Cloudflare injoignable ?) : cd deploy && docker compose logs tunnel"
+  [ -n "$adresse" ] || fail "Cloudflare n'a pas donné d'adresse (service gratuit sans garantie) : réessayez dans quelques minutes ; détails : cd deploy && docker compose logs tunnel"
   maj_env "$ENV_FILE" DOMAIN "${adresse#https://}"
   info "adresse publique : $adresse"
 }
