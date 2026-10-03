@@ -59,11 +59,21 @@ export class Session {
 
   async open(): Promise<void> {
     this.set({ kind: "auth" });
-    try {
-      await this.hub.refreshToken();
-    } catch (e) {
-      if (e instanceof NotLoggedIn) return this.set({ kind: "noauth" });
-      return this.set({ kind: "failed", message: "Le serveur du lab est injoignable." });
+    // une coupure réseau passagère (Wi-Fi, changement de réseau) ne fait pas échouer l'ouverture :
+    // jusqu'à trois nouveaux essais, 1 s, 2 s puis 3 s plus tard
+    for (let essai = 1; ; essai++) {
+      try {
+        await this.hub.refreshToken();
+        break;
+      } catch (e) {
+        if (e instanceof NotLoggedIn) return this.set({ kind: "noauth" });
+        if (essai <= 3 && isTransient(e)) {
+          console.warn("Jeton du lab : coupure passagère, nouvel essai", e);
+          await sleep(1000 * essai, this.timers);
+          continue;
+        }
+        return this.set({ kind: "failed", message: "Le serveur du lab est injoignable." });
+      }
     }
     await this.launch();
   }
