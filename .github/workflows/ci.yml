@@ -32,12 +32,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Démarrage local
         run: scripts/demarrer-local.sh --non-interactif --admin moi@exemple.fr
-      - name: Connexion par le lien affiché sur la page
+      - name: Inscription, confirmation par le lien affiché sur la page, puis connexion par mot de passe
         run: |
-          page=$(curl -ks -c /tmp/jar -H "Origin: https://localhost" -d "email=moi@exemple.fr" https://localhost/connexion/email)
+          page=$(curl -ks -c /tmp/jar -H "Origin: https://localhost" \
+            -d "nom=Moi&email=moi@exemple.fr&mot_de_passe=un-mot-de-passe-solide" https://localhost/connexion/inscription)
           grep -q "Test en local" <<<"$page" || { echo "$page"; exit 1; }
-          lien=$(grep -o 'href="https://localhost/connexion/email/[^"]*"' <<<"$page" | head -1 | cut -d'"' -f2)
+          lien=$(grep -o 'href="https://localhost/connexion/confirmer/[^"]*"' <<<"$page" | head -1 | cut -d'"' -f2)
           test "$(curl -ks -o /dev/null -w '%{http_code}' -b /tmp/jar -c /tmp/jar "$lien")" = 303
+          curl -ks -b /tmp/jar -c /tmp/jar -H "Origin: https://localhost" -o /dev/null https://localhost/deconnexion -X POST
+          test "$(curl -ks -o /dev/null -w '%{http_code}' -b /tmp/jar -c /tmp/jar -H "Origin: https://localhost" \
+            -d "email=moi@exemple.fr&mot_de_passe=un-mot-de-passe-solide" https://localhost/connexion)" = 303
           curl -ks -b /tmp/jar https://localhost/compte/ | grep -q "moi@exemple.fr"
           curl -ks -b /tmp/jar https://localhost/compte/ | grep -q "Tableau de bord formateur"   # administrateur
       - run: scripts/demarrer-local.sh arreter
@@ -170,5 +174,5 @@ jobs:
           docker logs deploy-contenus-1 || true
           docker logs deploy-fake-stripe-1 || true
           for s in veille alloy loki grafana; do docker logs deploy-$s-1 2>&1 | tail -50 || true; done
-          docker logs deploy-comptes-1 2>&1 | sed -E 's#/connexion/email/[^ ]+#/connexion/email/…#' || true
+          docker logs deploy-comptes-1 2>&1 | sed -E 's#/connexion/(confirmer|mot-de-passe)/[^ ]+#/connexion/\1/…#' || true
           for c in $(docker ps -aq --filter name=jupyter-); do docker logs "$c"; done

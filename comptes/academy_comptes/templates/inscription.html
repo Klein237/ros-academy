@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Créer un compte{% endblock %}
+{% block content %}
+<section class="card login">
+  <h1>Créer un compte</h1>
+  <p class="muted">Gratuit : il donne accès au lab ROS 2, enregistre vos exercices et vos QCM, et calcule votre note.</p>
+  {% if erreur %}<p class="form-error" role="alert">{{ erreur }}</p>{% endif %}
+  <form method="post" action="/connexion/inscription" class="stack">
+    <input type="hidden" name="suite" value="{{ suite }}">
+    <label>Nom (affiché sur vos certificats) <input name="nom" maxlength="120" autocomplete="name" value="{{ nom or '' }}"></label>
+    <label>Adresse e-mail <input type="email" name="email" required autocomplete="email" value="{{ email or '' }}" placeholder="vous@exemple.fr"></label>
+    <label>Mot de passe <span class="muted small">(10 caractères au moins)</span>
+      <input type="password" name="mot_de_passe" required minlength="10" maxlength="200" autocomplete="new-password"></label>
+    <button class="button primary" type="submit">Créer mon compte</button>
+  </form>
+  <p class="muted small">Nous vous envoyons un e-mail pour confirmer votre adresse avant la première connexion.</p>
+  <p class="login-switch">Déjà un compte ? <a href="/connexion?suite={{ suite | urlencode }}">Se connecter</a></p>
+</section>
+{% endblock %}

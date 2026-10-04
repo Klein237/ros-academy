@@ -21,7 +21,7 @@ STRIPE = "https://stripe.simule"
 def world(tmp_path, monkeypatch):
     """Comptes et le faux Stripe, chacun appelant l'autre comme sur le réseau."""
     sent = []
-    monkeypatch.setattr(appmod, "send_login_link", lambda settings, email, link: sent.append((email, link)))
+    monkeypatch.setattr(appmod, "send_account_mail", lambda settings, email, sorte, link: sent.append((email, link, sorte)))
     holder = {}
 
     def to_comptes(request):

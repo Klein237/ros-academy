@@ -163,7 +163,7 @@ questions() {
     demander SMTP_PASSWORD "Mot de passe SMTP" secret
     SMTP_FROM=${SMTP_FROM:-"ROS Academy <$SMTP_USER>"}
   elif [ "$DOMAINE" != localhost ]; then
-    attention "sans SMTP, les étudiants ne recevront pas leur lien de connexion"
+    attention "sans SMTP, les étudiants ne pourront ni confirmer leur adresse ni retrouver leur mot de passe"
   fi
   if [ "$INTERACTIF" = 1 ] && [ -z "$EDITEUR_NOM$EDITEUR_ADRESSE$HEBERGEUR" ]; then
     info "Mentions légales (obligatoires en ligne ; vide = à compléter plus tard dans deploy/.env) :"

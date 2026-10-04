@@ -1,4 +1,5 @@
-"""Envoi du lien de connexion. Sans SMTP configuré, le lien est écrit dans les journaux.
+"""E-mails du compte (confirmation de l'adresse, mot de passe). Sans SMTP configuré, le lien est écrit
+dans les journaux.
 
 Tester la configuration SMTP : docker compose exec comptes python -m academy_comptes.mail vous@exemple.fr
 """
@@ -21,17 +22,35 @@ def _message(settings, email, subject, body):
     return msg
 
 
-def send_login_link(settings, email, link):
-    msg = _message(
-        settings, email, "Votre lien de connexion à ROS Academy",
-        "Bonjour,\n\n"
-        "Pour vous connecter à ROS Academy, ouvrez ce lien (valable 15 minutes, une seule fois) :\n\n"
-        f"{link}\n\n"
-        "Si vous n'avez rien demandé, ignorez ce message.\n",
-    )
+MAILS = {
+    # sorte : (libellé dans les journaux, objet, texte avant le lien, texte après le lien)
+    "confirmation": (
+        "lien de confirmation", "Confirmez votre adresse — ROS Academy",
+        "Bonjour,\n\nBienvenue sur ROS Academy ! Pour activer votre compte, confirmez votre adresse en ouvrant "
+        "ce lien (valable 24 heures, une seule fois) :",
+        "Si vous n'avez pas créé de compte, ignorez ce message.",
+    ),
+    "reinitialisation": (
+        "lien de réinitialisation", "Choisissez un nouveau mot de passe — ROS Academy",
+        "Bonjour,\n\nPour choisir un nouveau mot de passe, ouvrez ce lien (valable 30 minutes, une seule fois) :",
+        "Si vous n'avez rien demandé, ignorez ce message : votre mot de passe actuel reste valable.",
+    ),
+    "compte_existant": (
+        "lien de réinitialisation", "Vous avez déjà un compte — ROS Academy",
+        "Bonjour,\n\nQuelqu'un (vous, sans doute) a voulu créer un compte avec cette adresse, mais elle en a déjà "
+        "un. Connectez-vous avec votre mot de passe ; si vous l'avez oublié ou n'en avez jamais choisi, ouvrez ce "
+        "lien (valable 30 minutes, une seule fois) :",
+        "Si vous n'avez rien demandé, ignorez ce message.",
+    ),
+}
+
+
+def send_account_mail(settings, email, sorte, link):
+    label, subject, before, after = MAILS[sorte]
+    msg = _message(settings, email, subject, f"{before}\n\n{link}\n\n{after}\n")
     if not settings.smtp_host:
         # Développement : pas de serveur d'envoi, le lien est lisible dans les journaux.
-        log.warning("SMTP non configuré — lien de connexion pour %s : %s", email, link)
+        log.warning("SMTP non configuré — %s pour %s : %s", label, email, link)
         return
     deliver(settings, msg)
 
@@ -64,12 +83,12 @@ def main(argv=None, settings=None):
 
         settings = Settings.from_env()
     if not settings.smtp_host:
-        print("SMTP_HOST est vide : aucun e-mail n'est envoyé (les liens de connexion sont dans les journaux).")
+        print("SMTP_HOST est vide : aucun e-mail n'est envoyé (les liens de confirmation sont dans les journaux).")
         return 1
     print(f"Envoi par {settings.smtp_host}:{settings.smtp_port} (utilisateur : {settings.smtp_user or 'aucun'}, "
           f"expéditeur : {settings.smtp_from})…")
     msg = _message(settings, argv[0], "ROS Academy : test d'envoi",
-                   "Ce message confirme que ROS Academy peut envoyer des e-mails (liens de connexion, alertes).\n")
+                   "Ce message confirme que ROS Academy peut envoyer des e-mails (confirmation d'adresse, mot de passe, alertes).\n")
     try:
         deliver(settings, msg)
     except (OSError, smtplib.SMTPException) as exc:

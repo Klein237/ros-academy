@@ -13,11 +13,11 @@ git clone https://github.com/Klein237/ros-academy.git && cd ros-academy
 scripts/demarrer-local.sh            # demande votre adresse (administrateur), puis démarre tout
 ```
 
-La première fois, le script construit l'image ROS (15 à 40 minutes) et génère `deploy/.env` : localhost, secrets aléatoires, nombre de labs d'après la mémoire de Docker, lien de connexion affiché à l'écran. Il attend ensuite que le site réponde. Ouvrez alors https://localhost et acceptez le certificat local.
+La première fois, le script construit l'image ROS (15 à 40 minutes) et génère `deploy/.env` : localhost, secrets aléatoires, nombre de labs d'après la mémoire de Docker, lien de confirmation affiché à l'écran après l'inscription. Il attend ensuite que le site réponde. Ouvrez alors https://localhost et acceptez le certificat local.
 
 Autres commandes :
 - `scripts/demarrer-local.sh arreter` : arrête, en gardant les données ;
-- `scripts/demarrer-local.sh lien` : affiche le dernier lien de connexion ;
+- `scripts/demarrer-local.sh lien` : affiche le dernier lien envoyé (confirmation d'adresse, mot de passe oublié) ;
 - `scripts/demarrer-local.sh effacer` : efface toutes les données locales.
 
 La CI rejoue ce démarrage à chaque PR.
@@ -33,7 +33,7 @@ scripts/demarrer-local.sh --internet
 Un tunnel Cloudflare gratuit et sans compte (« quick tunnel », service `tunnel` de `docker-compose.internet.yml`) donne une adresse publique `https://<mots-au-hasard>.trycloudflare.com`, avec un vrai certificat : rien à ouvrir sur la box, rien à installer chez les testeurs. Le script met cette adresse dans `DOMAIN`, puis l'affiche. Derrière le tunnel, Caddy sert le site en HTTP (HTTPS est assuré par Cloudflare) et garde l'en-tête `X-Forwarded-Proto` de cloudflared.
 
 - **L'adresse est ouverte à tous** tant que le site tourne. `scripts/demarrer-local.sh arreter` ferme le tunnel ; l'adresse change à chaque démarrage. Le nombre de labs simultanés reste limité par `ACTIVE_SERVER_LIMIT`.
-- Hors de localhost, le lien de connexion n'est plus affiché à l'écran (n'importe qui pourrait ouvrir la session de n'importe quelle adresse) : il part **par e-mail**. Le script demande le serveur SMTP la première fois (par exemple Gmail : `smtp.gmail.com`, port 587, un mot de passe d'application). Vérifier l'envoi : `cd deploy && docker compose exec comptes python -m academy_comptes.mail vous@exemple.fr`.
+- Hors de localhost, le lien de confirmation n'est plus affiché à l'écran (n'importe qui pourrait activer un compte avec l'adresse d'un autre) : il part **par e-mail**. Le script demande le serveur SMTP la première fois (par exemple Gmail : `smtp.gmail.com`, port 587, un mot de passe d'application). Vérifier l'envoi : `cd deploy && docker compose exec comptes python -m academy_comptes.mail vous@exemple.fr`.
 - Le mode est gardé : `scripts/demarrer-local.sh` rouvre un tunnel (nouvelle adresse) ; `scripts/demarrer-local.sh --local` revient à https://localhost.
 - Pour un essai seulement : le PC doit rester allumé, chaque lab prend environ 1,5 Go de mémoire, et Cloudflare ne garantit pas ces tunnels gratuits. Pour une vraie ouverture, voir « Installation en une commande » sur un serveur.
 
@@ -61,9 +61,9 @@ Le script est rejouable : un `deploy/.env` existant est gardé. Sans questions :
 4. `cd deploy && docker compose up -d --build` (construit aussi le Lab UI dans l'image Caddy : Node n'est pas nécessaire sur le serveur), puis, toujours depuis `deploy/` : `set -a; . ./.env; set +a; BASE_URL=https://$DOMAIN ../scripts/wait_for_hub.sh`
 
 ## Comptes des étudiants (service Comptes)
-- **Connexion** sur `/connexion` : lien magique par e-mail (toujours disponible), GitHub et Google (affichés quand `GITHUB_CLIENT_*` / `GOOGLE_CLIENT_*` sont renseignés ; URL de retour `https://<domaine>/connexion/github/retour` et `…/google/retour`). Un compte = une adresse e-mail vérifiée : GitHub puis Google sous la même adresse ouvrent le même compte.
+- **Connexion** sur `/connexion` : adresse e-mail et mot de passe (inscription sur `/connexion/inscription`, adresse confirmée par un lien reçu par e-mail, « Mot de passe oublié » sur `/connexion/oubli`), GitHub et Google (affichés quand `GITHUB_CLIENT_*` / `GOOGLE_CLIENT_*` sont renseignés ; URL de retour `https://<domaine>/connexion/github/retour` et `…/google/retour`). Un compte = une adresse e-mail vérifiée : GitHub puis Google sous la même adresse ouvrent le même compte.
 - **E-mails** (liens de connexion, alertes) : renseigner `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` et `SMTP_FROM` (exemples Gmail, Brevo, OVH dans `.env.example` ; avec Gmail, un *mot de passe d'application*), puis `docker compose up -d comptes veille` et vérifier : `docker compose exec comptes python -m academy_comptes.mail vous@exemple.fr` (envoie un e-mail de test et explique l'échec, identifiants refusés par exemple).
-- **Sans SMTP** (`SMTP_HOST` vide), aucun e-mail n'est envoyé : le lien de connexion est écrit dans `docker compose logs comptes | grep "lien de connexion"`. Pour tester sur sa machine, `CONNEXION_LIEN_A_L_ECRAN=1` l'affiche directement sur la page ; cette option est sans effet dès que `SMTP_HOST` est rempli ou que `DOMAIN` n'est pas `localhost` (en ligne, n'importe qui pourrait ouvrir la session de n'importe quelle adresse).
+- **Sans SMTP** (`SMTP_HOST` vide), aucun e-mail n'est envoyé : les liens (confirmation, mot de passe oublié) sont écrits dans `docker compose logs comptes | grep "lien de"`. Pour tester sur sa machine, `CONNEXION_LIEN_A_L_ECRAN=1` l'affiche directement sur la page ; cette option est sans effet dès que `SMTP_HOST` est rempli ou que `DOMAIN` n'est pas `localhost` (en ligne, n'importe qui pourrait activer un compte avec l'adresse d'un autre).
 - **Lab** : les boutons « Ouvrir le lab » du site passent par `/compte/lab`, qui vérifie le quota du mois (formule `free` : 600 min ; `pro` : sans limite) puis émet le jeton court du Hub. Le Lab UI prévient 5 min avant la fin du quota ; à zéro, Comptes arrête le serveur et le Hub refuse tout nouveau démarrage (`COMPTES_URL`, vérifié avant chaque démarrage).
 - **Progression** : QCM (2 tentatives, la meilleure est gardée), indices (−15 % chacun) et réussite des exercices sont enregistrés dans Postgres (volume `postgres-data`) ; notes sur `/compte/resultats`. Les corrections, indices et explications ne sortent de Contenus que par Comptes : Caddy bloque ces routes internes et Contenus exige un secret dérivé de `JWT_SECRET`.
 - **Serveur plein** : le Lab UI prend un ticket dans la file de Comptes et affiche la position ; le démarrage est retenté quand le tour arrive.

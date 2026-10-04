@@ -29,10 +29,16 @@ from .auth import (
     SESSION_DAYS,
     AuthError,
     Sessions,
+    authenticate,
     authorize_url,
-    consume_login_link,
+    check_new_password,
+    consume_link,
+    create_link,
+    hash_password,
+    check_password,
+    normalize_email,
     oauth_identity,
-    request_login_link,
+    peek_link,
     safe_next,
     user_for_email,
 )
@@ -43,13 +49,14 @@ from .db import (
     Exercise,
     QcmAttempt,
     QueueTicket,
+    SessionRow,
     StripeEvent,
     User,
     make_engine,
     make_sessionmaker,
     utcnow,
 )
-from .mail import send_login_link
+from .mail import send_account_mail
 from .quotas import HUB_NAME_RE, join_queue, leave_queue, minutes_left, minutes_used, queue_position, record_minute
 from .settings import Settings
 
@@ -183,44 +190,173 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
 
     # --- Connexion
 
+    def login_page(request, status=200, suite="/", **ctx):
+        return page(request, "connexion.html", status, suite=safe_next(suite), github=settings.github_enabled,
+                    google=settings.google_enabled, **ctx)
+
+    def mail_sent(request, email, sorte, link, suite, titre, message, status=200, renvoi=False):
+        """Envoie le lien et affiche « Vérifiez votre boîte » (ou le lien lui-même en test local)."""
+        try:
+            send_account_mail(settings, email, sorte, link)
+        except Exception:  # noqa: BLE001 - serveur SMTP
+            log.exception("Envoi de l'e-mail (%s) impossible", sorte)
+            return page(request, "message.html", 502, titre="Envoi impossible",
+                        message="L'e-mail n'a pas pu être envoyé. Réessayez dans un instant.")
+        return page(request, "attente.html", status, titre=titre, message=message, email=email,
+                    suite=safe_next(suite), renvoi=renvoi, lien=link if settings.show_login_link else None)
+
+    def send_confirmation(request, db, user, suite, titre, message):
+        try:
+            link = create_link(db, user.email, "confirmation", suite, settings.public_url)
+        except AuthError as exc:  # renvoi trop rapproché : le lien précédent reste valable
+            return page(request, "attente.html", titre=titre, message=message, email=user.email,
+                        suite=safe_next(suite), renvoi=True, erreur=str(exc))
+        return mail_sent(request, user.email, "confirmation", link, suite, titre, message, renvoi=True)
+
+    def revoke_sessions(db, user):
+        for row in db.scalars(select(SessionRow).where(SessionRow.user_id == user.id, SessionRow.revoquee.is_(False))):
+            row.revoquee = True
+        db.commit()
+
     @app.get("/connexion", response_class=HTMLResponse)
     def connexion(request: Request, suite: str = "/", user=Depends(current_user)):
         if user:
             return RedirectResponse(safe_next(suite), status_code=303)
-        return page(request, "connexion.html", suite=safe_next(suite), github=settings.github_enabled,
-                    google=settings.google_enabled)
+        return login_page(request, suite=suite)
 
-    @app.post("/connexion/email", response_class=HTMLResponse)
-    def connexion_email(request: Request, email: str = Form(...), suite: str = Form("/"), db=Depends(get_db),
-                        _=Depends(same_origin)):
+    @app.post("/connexion", response_class=HTMLResponse)
+    def connexion_post(request: Request, email: str = Form(...), mot_de_passe: str = Form(...), suite: str = Form("/"),
+                       db=Depends(get_db), _=Depends(same_origin)):
         try:
-            email, link = request_login_link(db, email, suite, settings.public_url)
+            user = authenticate(db, email, mot_de_passe)
         except AuthError as exc:
-            return page(request, "connexion.html", 400, suite=safe_next(suite), erreur=str(exc),
-                        github=settings.github_enabled, google=settings.google_enabled)
-        try:
-            send_login_link(settings, email, link)
-        except Exception:  # noqa: BLE001 - serveur SMTP
-            log.exception("Envoi du lien de connexion impossible")
-            return page(request, "message.html", 502, titre="Envoi impossible",
-                        message="Le lien de connexion n'a pas pu être envoyé. Réessayez dans un instant.")
-        if settings.show_login_link:
-            return page(request, "message.html", titre="Test en local : votre lien de connexion",
-                        message=f"Aucun serveur d'e-mail n'est configuré : voici le lien qui aurait été envoyé à "
-                                f"{email} (valable 15 minutes). Cette page n'existe que sur une adresse locale "
-                                "(CONNEXION_LIEN_A_L_ECRAN=1).",
-                        lien=link, lien_texte="Se connecter")
-        return page(request, "message.html", titre="Vérifiez votre boîte de réception",
-                    message=f"Un lien de connexion a été envoyé à {email}. Il est valable 15 minutes.")
+            return login_page(request, 400, suite=suite, erreur=str(exc), email=email[:320])
+        if user.email_verifie_le is None:
+            return send_confirmation(request, db, user, suite, "Confirmez d'abord votre adresse",
+                                     f"Votre compte n'est pas encore activé. Ouvrez le lien envoyé à {user.email} "
+                                     "pour le confirmer.")
+        return open_session(db, user, suite)
 
-    @app.get("/connexion/email/{raw}")
-    def connexion_email_retour(request: Request, raw: str, db=Depends(get_db)):
+    @app.get("/connexion/inscription", response_class=HTMLResponse)
+    def inscription(request: Request, suite: str = "/", user=Depends(current_user)):
+        if user:
+            return RedirectResponse(safe_next(suite), status_code=303)
+        return page(request, "inscription.html", suite=safe_next(suite))
+
+    @app.post("/connexion/inscription", response_class=HTMLResponse)
+    def inscription_post(request: Request, nom: str = Form(""), email: str = Form(...), mot_de_passe: str = Form(...),
+                         suite: str = Form("/"), db=Depends(get_db), _=Depends(same_origin)):
+        nom = nom.strip()[:120]
         try:
-            email, suite = consume_login_link(db, raw)
+            email = normalize_email(email)
+            check_new_password(mot_de_passe)
+        except AuthError as exc:
+            return page(request, "inscription.html", 400, suite=safe_next(suite), erreur=str(exc), nom=nom,
+                        email=email[:320])
+        titre = "Vérifiez votre boîte de réception"
+        message = f"Nous avons envoyé un e-mail à {email}. Ouvrez le lien qu'il contient pour activer votre compte."
+        user = db.scalar(select(User).where(User.email == email))
+        if user and user.email_verifie_le is not None:
+            # Adresse déjà inscrite : même réponse, et un e-mail qui propose de choisir un nouveau mot de passe
+            # (on ne révèle pas ici quelles adresses ont un compte).
+            try:
+                link = create_link(db, email, "reinitialisation", suite, settings.public_url)
+            except AuthError:
+                return page(request, "attente.html", titre=titre, message=message, email=email, suite=safe_next(suite))
+            return mail_sent(request, email, "compte_existant", link, suite, titre, message)
+        if user is None:
+            user = User(email=email)
+            db.add(user)
+        user.nom = nom or user.nom
+        user.mot_de_passe = hash_password(mot_de_passe)
+        db.commit()
+        return send_confirmation(request, db, user, suite, titre, message)
+
+    @app.post("/connexion/renvoyer", response_class=HTMLResponse)
+    def renvoyer(request: Request, email: str = Form(...), suite: str = Form("/"), db=Depends(get_db),
+                 _=Depends(same_origin)):
+        titre = "Vérifiez votre boîte de réception"
+        try:
+            email = normalize_email(email)
+        except AuthError as exc:
+            return login_page(request, 400, suite=suite, erreur=str(exc))
+        message = f"Un nouvel e-mail a été envoyé à {email}, s'il correspond à un compte à activer."
+        user = db.scalar(select(User).where(User.email == email))
+        if not user or user.email_verifie_le is not None:
+            return page(request, "attente.html", titre=titre, message=message, email=email, suite=safe_next(suite),
+                        renvoi=True)
+        return send_confirmation(request, db, user, suite, titre, message)
+
+    @app.get("/connexion/confirmer/{raw}")
+    def confirmer(request: Request, raw: str, db=Depends(get_db)):
+        try:
+            email, suite = consume_link(db, raw, "confirmation")
         except AuthError as exc:
             return page(request, "message.html", 400, titre="Lien expiré", message=str(exc),
-                        lien="/connexion", lien_texte="Demander un nouveau lien")
-        return open_session(db, user_for_email(db, email), suite)
+                        lien="/connexion", lien_texte="Se connecter pour recevoir un nouveau lien")
+        user = db.scalar(select(User).where(User.email == email))
+        if not user:
+            raise HTTPException(404, "Compte introuvable")
+        if user.email_verifie_le is None:
+            user.email_verifie_le = utcnow()
+            db.commit()
+        return open_session(db, user, suite)
+
+    @app.get("/connexion/oubli", response_class=HTMLResponse)
+    def oubli(request: Request, suite: str = "/"):
+        return page(request, "oubli.html", suite=safe_next(suite))
+
+    @app.post("/connexion/oubli", response_class=HTMLResponse)
+    def oubli_post(request: Request, email: str = Form(...), suite: str = Form("/"), db=Depends(get_db),
+                   _=Depends(same_origin)):
+        try:
+            email = normalize_email(email)
+        except AuthError as exc:
+            return page(request, "oubli.html", 400, suite=safe_next(suite), erreur=str(exc))
+        titre = "Vérifiez votre boîte de réception"
+        message = (f"Si un compte existe pour {email}, nous venons d'y envoyer un lien pour choisir un nouveau mot "
+                   "de passe. Il est valable 30 minutes.")
+        user = db.scalar(select(User).where(User.email == email))
+        if not user:
+            return page(request, "attente.html", titre=titre, message=message, email=email, suite=safe_next(suite))
+        try:
+            link = create_link(db, email, "reinitialisation", suite, settings.public_url)
+        except AuthError as exc:
+            return page(request, "oubli.html", 429, suite=safe_next(suite), erreur=str(exc), email=email)
+        return mail_sent(request, email, "reinitialisation", link, suite, titre, message)
+
+    @app.get("/connexion/mot-de-passe/{raw}", response_class=HTMLResponse)
+    def nouveau_mot_de_passe(request: Request, raw: str, db=Depends(get_db)):
+        try:
+            row = peek_link(db, raw, "reinitialisation")
+        except AuthError as exc:
+            return page(request, "message.html", 400, titre="Lien expiré", message=str(exc),
+                        lien="/connexion/oubli", lien_texte="Demander un nouveau lien")
+        return page(request, "nouveau_mot_de_passe.html", email=row.email)
+
+    @app.post("/connexion/mot-de-passe/{raw}", response_class=HTMLResponse)
+    def nouveau_mot_de_passe_post(request: Request, raw: str, mot_de_passe: str = Form(...), db=Depends(get_db),
+                                  _=Depends(same_origin)):
+        try:
+            row = peek_link(db, raw, "reinitialisation")
+        except AuthError as exc:
+            return page(request, "message.html", 400, titre="Lien expiré", message=str(exc),
+                        lien="/connexion/oubli", lien_texte="Demander un nouveau lien")
+        try:
+            check_new_password(mot_de_passe)
+        except AuthError as exc:
+            return page(request, "nouveau_mot_de_passe.html", 400, email=row.email, erreur=str(exc))
+        email, suite = consume_link(db, raw, "reinitialisation")
+        user = db.scalar(select(User).where(User.email == email))
+        if not user:
+            raise HTTPException(404, "Compte introuvable")
+        user.mot_de_passe = hash_password(mot_de_passe)
+        if user.email_verifie_le is None:
+            user.email_verifie_le = utcnow()  # le lien prouve l'accès à la boîte
+        db.commit()
+        revoke_sessions(db, user)  # les autres appareils doivent se reconnecter
+        log.info("Mot de passe changé pour u%s", user.id)
+        return open_session(db, user, suite)
 
     def oauth_start(provider, suite):
         enabled = settings.github_enabled if provider == "github" else settings.google_enabled
@@ -272,6 +408,23 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
             return login_redirect("/compte/")
         return page(request, "compte.html", user=user, utilisees=minutes_used(db, user),
                     restantes=minutes_left(db, user, settings), admin=user.email in settings.admin_emails)
+
+    @app.post("/compte/mot-de-passe", response_class=HTMLResponse)
+    def compte_mot_de_passe(request: Request, actuel: str = Form(""), nouveau: str = Form(...),
+                            user=Depends(require_user), db=Depends(get_db), _=Depends(same_origin)):
+        def retour(status, **ctx):
+            return page(request, "compte.html", status, user=user, utilisees=minutes_used(db, user),
+                        restantes=minutes_left(db, user, settings), admin=user.email in settings.admin_emails, **ctx)
+        if user.mot_de_passe and not check_password(actuel, user.mot_de_passe):
+            return retour(400, erreur_mdp="Mot de passe actuel incorrect.")
+        try:
+            check_new_password(nouveau)
+        except AuthError as exc:
+            return retour(400, erreur_mdp=str(exc))
+        user.mot_de_passe = hash_password(nouveau)
+        db.commit()
+        log.info("Mot de passe changé pour u%s (depuis son compte)", user.id)
+        return retour(200, info_mdp="Mot de passe enregistré.")
 
     @app.get("/compte/lab")
     def compte_lab(request: Request, suite: str = "/lab/", user=Depends(current_user), db=Depends(get_db)):
