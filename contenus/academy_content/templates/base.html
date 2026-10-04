@@ -11,7 +11,7 @@
   {% block head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
-  <a class="skip-link" href="#contenu">Aller au contenu</a>
+  <a class="skip-link" href="#principal">Aller au contenu</a>
   <header class="site-header">
     <div class="site-header-inner">
       <a class="brand" href="/">
@@ -38,7 +38,7 @@
     </div>
   </header>
   {% block banner %}{% endblock %}
-  <main id="contenu" class="{% block main_class %}page{% endblock %}">
+  <main id="principal" class="{% block main_class %}page{% endblock %}">
     {% block content %}{% endblock %}
   </main>
   {% include "partiels/pied.html" %}

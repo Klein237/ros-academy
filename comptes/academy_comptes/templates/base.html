@@ -10,7 +10,7 @@
 </head>
 <body>
   {# Même en-tête et pied de page que Contenus (contenus/academy_content/templates/base.html) #}
-  <a class="skip-link" href="#contenu">Aller au contenu</a>
+  <a class="skip-link" href="#principal">Aller au contenu</a>
   <header class="site-header">
     <div class="site-header-inner">
       <a class="brand" href="/">
@@ -31,7 +31,7 @@
       </div>
     </div>
   </header>
-  <main id="contenu" class="{% block main_class %}page narrow{% endblock %}">
+  <main id="principal" class="{% block main_class %}page narrow{% endblock %}">
     {% block content %}{% endblock %}
   </main>
   <footer class="site-footer">
