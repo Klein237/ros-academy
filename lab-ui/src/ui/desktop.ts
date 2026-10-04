@@ -61,6 +61,7 @@ export class DesktopPanel {
   private retryTimer: unknown = null;
   private readonly backoff = new Backoff(1000, 15_000);
   private readonly timers: Timers;
+  private resizeTimers: unknown[] = [];
   status: DesktopStatus = "arrete";
 
   constructor(private readonly options: DesktopOptions) {
@@ -75,6 +76,9 @@ export class DesktopPanel {
       button("Ramener ici", () => options.onReattach?.(), { class: "small" }),
     );
     this.screen.append(this.detachedNote);
+    // Taille de l'écran changée (panneau agrandi, fenêtre séparée redimensionnée…) : on redemande la
+    // taille du bureau une fois l'écran stabilisé (voir resyncSize).
+    if (typeof ResizeObserver === "function") new ResizeObserver(() => this.resyncSize()).observe(this.screen);
     const fullscreen =
       typeof this.el.requestFullscreen === "function"
         ? button("Plein écran", () => void this.el.requestFullscreen().catch(() => undefined), { class: "small" })
@@ -195,6 +199,7 @@ export class DesktopPanel {
       if (this.rfb !== rfb) return;
       this.backoff.reset();
       this.setStatus("connecte");
+      this.resyncSize();
     });
     rfb.addEventListener("disconnect", () => {
       if (this.rfb !== rfb) return;
@@ -202,6 +207,21 @@ export class DesktopPanel {
       this.scheduleRetry();
     });
     this.rfb = rfb;
+  }
+
+  /**
+   * noVNC abandonne une demande de taille faite avant que le serveur ait annoncé qu'il sait changer de
+   * taille, ou pendant qu'une autre demande attend sa réponse, sans la refaire ensuite : l'écran pouvait
+   * rester à son ancienne taille. On la redemande donc un peu après chaque changement (sans effet si la
+   * taille est déjà la bonne).
+   */
+  private resyncSize(): void {
+    for (const t of this.resizeTimers) this.timers.clearTimeout(t);
+    this.resizeTimers = [600, 2000, 5000].map((ms) =>
+      this.timers.setTimeout(() => {
+        if (this.rfb) this.rfb.resizeSession = true;
+      }, ms),
+    );
   }
 
   private scheduleRetry(): void {
