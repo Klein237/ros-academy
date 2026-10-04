@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import logging
 import os
+import re
 import time
 from pathlib import Path
 
@@ -18,6 +19,7 @@ from .auth import COOKIE_NAME, SESSION_MAX_AGE, AuthError, Sessions, same_origin
 from .model import (
     MAX_FILE_BYTES,
     MODULE_ID_RE,
+    NIVEAUX,
     ContentError,
     ParcoursDef,
     Qcm,
@@ -50,7 +52,23 @@ def _module_or_404(root, module_id):
         raise HTTPException(404, "Module introuvable") from None
 
 
+def duree_minutes(duree):
+    """« 1 h 30 », « 2 h », « 45 min » → minutes ; 0 si illisible."""
+    m = re.fullmatch(r"\s*(?:(\d+)\s*h)?\s*(\d+)?\s*(?:min)?\s*", duree or "")
+    if not m or not (m.group(1) or m.group(2)):
+        return 0
+    return int(m.group(1) or 0) * 60 + int(m.group(2) or 0)
+
+
+def format_minutes(total):
+    h, m = divmod(total, 60)
+    if not h:
+        return f"{m} min"
+    return f"{h} h {m:02d}" if m else f"{h} h"
+
+
 def _parcours_list(root):
+    """Tous les parcours lisibles, dans l'ordre du catalogue (disponibles et annoncés)."""
     out = []
     for pid in list_parcours_ids(root):
         try:
@@ -65,12 +83,24 @@ def _parcours_list(root):
                              "duree": m.en_tete.duree, "coef": ref.coef})
             except ContentError:
                 continue
-        out.append({"id": p.id, "titre": p.titre, "description": p.description, "modules": mods})
+        if p.statut == "disponible" and not mods:
+            continue
+        total = sum(duree_minutes(m["duree"]) for m in mods)
+        out.append({"id": p.id, "titre": p.titre, "description": p.description, "modules": mods,
+                    "statut": p.statut, "niveau": p.niveau, "niveau_texte": NIVEAUX[p.niveau],
+                    "accroche": p.accroche or p.description, "ordre": p.ordre,
+                    "objectifs": p.objectifs, "prerequis": p.prerequis,
+                    "duree_totale": format_minutes(total) if total else ""})
+    out.sort(key=lambda p: (p["statut"] != "disponible", p["ordre"], p["titre"]))
     return out
 
 
+def _parcours_disponibles(root):
+    return [p for p in _parcours_list(root) if p["statut"] == "disponible"]
+
+
 def _parcours_of(root, module_id):
-    for p in _parcours_list(root):
+    for p in _parcours_disponibles(root):
         ids = [m["id"] for m in p["modules"]]
         if module_id in ids:
             i = ids.index(module_id)
@@ -203,12 +233,20 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
     def accueil(request: Request):
         return page(request, "accueil.html", parcours=_parcours_list(published()))
 
+    @app.get("/catalogue/", response_class=HTMLResponse)
+    def catalogue(request: Request):
+        return page(request, "catalogue.html", parcours=_parcours_list(published()), niveaux=NIVEAUX)
+
+    @app.get("/decouvrir/", response_class=HTMLResponse)
+    def decouvrir(request: Request):
+        return page(request, "decouvrir.html", parcours=_parcours_disponibles(published()))
+
     @app.get("/parcours/{parcours_id}/", response_class=HTMLResponse)
     def parcours_page(request: Request, parcours_id: str):
-        for p in _parcours_list(published()):
+        for p in _parcours_disponibles(published()):
             if p["id"] == parcours_id:
                 return page(request, "parcours.html", parcours=p,
-                            total_coef=sum(m["coef"] for m in p["modules"]))
+                            coefs_varies=len({m["coef"] for m in p["modules"]}) > 1)
         raise HTTPException(404, "Parcours introuvable")
 
     @app.get("/modules/{module_id}/", response_class=HTMLResponse)
@@ -242,7 +280,7 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
 
     @app.get("/api/contenus/parcours")
     def api_parcours():
-        return {"parcours": _parcours_list(published())}
+        return {"parcours": _parcours_disponibles(published())}
 
     # Routes internes : indices, explication et correction du QCM passent par Comptes,
     # qui applique les règles (indices comptés, explication après réussite, 2 tentatives).
@@ -447,7 +485,12 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
     @app.put("/admin/api/parcours/{parcours_id}")
     def api_parcours_write(parcours_id: str, body: dict, admin=Depends(admin_write)):
         try:
-            d = ParcoursDef.model_validate(body)
+            existant = store.read_parcours(parcours_id)
+        except StoreError:
+            existant = {}
+        try:
+            # Les champs absents du formulaire (ex. ancien éditeur) gardent leur valeur
+            d = ParcoursDef.model_validate({**(existant or {}), **body})
         except ValidationError as exc:
             msgs = [f"{'.'.join(str(p) for p in e['loc'])} : {e['msg'].removeprefix('Value error, ')}" for e in exc.errors()]
             raise HTTPException(400, " ; ".join(msgs)) from None

@@ -133,6 +133,7 @@ def test_magic_link_logs_in_once(client, env):
     assert "HttpOnly" in cookie and "Secure" in cookie and "SameSite=lax" in cookie
     assert env["sent"][-1][0] == "eleve@exemple.fr"
     assert client.get("/api/comptes/moi").json()["email"] == "eleve@exemple.fr"
+    assert client.get("/api/comptes/session").json() == {"connecte": True, "nom": client.get("/api/comptes/moi").json()["nom"], "email": "eleve@exemple.fr"}
     again = client.get(urlsplit(env["sent"][-1][1]).path, follow_redirects=False)
     assert again.status_code == 400 and "plus valable" in again.text
 
@@ -170,6 +171,7 @@ def test_logout_revokes_session(client, env):
     login(client, env)
     assert client.post("/deconnexion", headers=ORIGIN, follow_redirects=False).status_code == 303
     assert client.get("/api/comptes/moi").status_code == 401
+    assert client.get("/api/comptes/session").json() == {"connecte": False}
 
 
 def test_forged_cookie_is_refused(client):

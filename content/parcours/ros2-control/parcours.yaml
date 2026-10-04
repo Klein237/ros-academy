@@ -1,0 +1,10 @@
+titre: Contrôle avec ros2_control
+description: >-
+  Relier le logiciel aux moteurs : interfaces matérielles, contrôleurs et
+  boucles de commande avec ros2_control.
+accroche: Contrôleurs, interfaces matérielles et boucles de commande.
+statut: bientot
+niveau: avance
+ordre: 40
+prerequis:
+  - ROS 2 Fondamentaux

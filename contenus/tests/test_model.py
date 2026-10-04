@@ -118,3 +118,23 @@ def test_parse_helpers():
     meta, body = parse_front_matter("---\ntitre: A\n---\nCorps\n")
     assert meta == {"titre": "A"} and body == "Corps\n"
     assert parse_indices("intro\n## Indice 1\na\n## Indice 2\nb\n## Indice 3\nc\n") == ["a", "b", "c"]
+
+
+def test_upcoming_parcours_needs_no_module(tmp_path):
+    p = tmp_path / "parcours" / "nav2" / "parcours.yaml"
+    p.parent.mkdir(parents=True)
+    p.write_text("titre: Nav2\nstatut: bientot\nniveau: intermediaire\nprerequis: [ROS 2 Fondamentaux]\n", encoding="utf-8")
+    parcours = load_parcours(tmp_path, "nav2")
+    assert (parcours.statut, parcours.niveau, parcours.modules, parcours.prerequis) == ("bientot", "intermediaire", [], ["ROS 2 Fondamentaux"])
+    p.write_text("titre: Nav2\n", encoding="utf-8")  # disponible par défaut : il faut des modules
+    with pytest.raises(ContentError) as e:
+        load_parcours(tmp_path, "nav2")
+    assert "au moins un module" in messages(e)[0]
+    p.write_text("titre: Nav2\nstatut: bientot\nniveau: expert\n", encoding="utf-8")
+    with pytest.raises(ContentError):
+        load_parcours(tmp_path, "nav2")
+
+
+def test_repo_content_is_valid(real_content):
+    assert validate_tree(real_content) == []
+    assert load_parcours(real_content, "nav2").statut == "bientot"

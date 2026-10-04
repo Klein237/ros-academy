@@ -1,21 +1,102 @@
 {% extends "base.html" %}
+{% from "partiels/icones.html" import coche, fleche %}
+{% block main_class %}page plein{% endblock %}
 {% block content %}
-<section class="hero">
-  <h1>Apprendre ROS 2 en résolvant de vraies pannes</h1>
-  <p>Des cours courts, un vrai ROS 2 Jazzy dans votre navigateur, et à la fin de chaque module une situation réelle à diagnostiquer avec les outils de ROS.</p>
+{% set premier = (parcours | selectattr("statut", "equalto", "disponible") | first) %}
+<section class="conteneur accueil-hero">
+  <div class="accueil-hero-texte">
+    <p class="pastille douce">ROS 2 Jazzy · Gazebo Harmonic · 100 % dans le navigateur</p>
+    <h1>Apprenez ROS 2 sur des cas concrets, sans rien installer</h1>
+    <p class="chapeau">Faire rouler un robot, lire ses capteurs, le voir dans le simulateur : chaque module part d'une situation que vous rencontrerez sur un vrai projet. Le terminal, l'éditeur et Gazebo s'ouvrent dans votre navigateur.</p>
+    <div class="actions">
+      {% if premier %}<a class="button primary grand" href="/parcours/{{ premier.id }}/">Commencer gratuitement</a>{% endif %}
+      <a class="button grand" href="/decouvrir/">Découvrir ROS 2 en 20 min</a>
+    </div>
+    <ul class="avantages">
+      <li>{{ coche() }}Aucune installation</li>
+      <li>{{ coche() }}Gratuit pour commencer</li>
+      <li>{{ coche() }}Certificat vérifiable</li>
+    </ul>
+  </div>
+  <div class="apercu" role="img" aria-label="Aperçu : le cours à gauche, le lab ROS 2 à droite, dans le navigateur">
+    <div class="apercu-barre"><span></span><span></span><span></span></div>
+    <div class="apercu-corps">
+      <div class="apercu-cours">
+        <span class="eyebrow">Module 2 · Écrire un nœud</span>
+        <span class="apercu-titre">Le robot reçoit ses ordres</span>
+        <span class="apercu-texte">Le nœud s'abonne à cmd_vel, intègre les vitesses et publie odom toutes les 50 ms.</span>
+        <code class="apercu-code">self.create_subscription(<br>&nbsp;&nbsp;Twist, 'cmd_vel', …)</code>
+        <span class="apercu-boutons"><span class="mini primaire">Ouvrir dans le lab</span><span class="mini">Lancer</span></span>
+      </div>
+      <div class="apercu-lab">
+        <div class="apercu-onglets"><span class="actif">diff_drive_node.py</span><span>robot.launch.py</span></div>
+        <code class="apercu-editeur"><b>class</b> DiffDrive(Node):<br>&nbsp;&nbsp;<b>def</b> update(self):<br>&nbsp;&nbsp;&nbsp;&nbsp;self.x += v * cos(θ) * dt</code>
+        <code class="apercu-terminal"><b>$</b> ros2 topic echo /odom nav_msgs/msg/Odometry<br><i>x: 0.84  y: 0.12</i></code>
+      </div>
+    </div>
+  </div>
 </section>
-{% for p in parcours %}
-<section class="card parcours-card">
-  <h2><a href="/parcours/{{ p.id }}/">{{ p.titre }}</a></h2>
-  <p>{{ p.description }}</p>
-  <ol class="module-list">
-    {% for m in p.modules %}
-    <li><a href="/modules/{{ m.id }}/">{{ m.titre }}</a>{% if m.duree %} <span class="muted">· {{ m.duree }}</span>{% endif %}</li>
+
+<section class="conteneur bloc" aria-labelledby="navigateur">
+  <div class="encart encart-navigateur">
+    <div>
+      <h2 id="navigateur">Votre navigateur suffit</h2>
+      <p>Pas d'Ubuntu à installer, pas de machine virtuelle, pas de dépendances qui cassent. Chaque étudiant reçoit son propre environnement ROS 2, prêt en quelques secondes, et retrouve ses fichiers à chaque connexion.</p>
+    </div>
+    <ul class="outils">
+      <li><span class="outil-icone">$_</span><strong>Terminal</strong><span>ros2, colcon, rviz2</span></li>
+      <li><span class="outil-icone">{ }</span><strong>Éditeur de code</strong><span>Python, C++, launch, URDF</span></li>
+      <li><span class="outil-icone">◎</span><strong>Simulateur</strong><span>Gazebo Harmonic et RViz</span></li>
+    </ul>
+  </div>
+</section>
+
+<section class="conteneur bloc" aria-labelledby="commencer-ici">
+  <div class="encart encart-ambre encart-commencer">
+    <div>
+      <span class="pastille ambre">Commencez ici · gratuit, sans compte</span>
+      <h2 id="commencer-ici">Découvrir ROS 2</h2>
+      <p>D'où vient ROS, pourquoi ROS 2, qui l'utilise aujourd'hui, et les liens à garder sous la main. 20 minutes pour savoir dans quoi vous vous lancez.</p>
+    </div>
+    <a class="button sombre grand" href="/decouvrir/">Lire l'introduction {{ fleche() }}</a>
+  </div>
+</section>
+
+<section class="bande" aria-labelledby="chemin">
+  <div class="conteneur">
+    <h2 id="chemin">Du problème au robot qui marche</h2>
+    <p class="sous-titre">Chaque module raconte une situation concrète, et vous la résolvez vous-même.</p>
+    <ol class="etapes">
+      <li><span class="numero">01</span><h3>Un cas réel</h3><p>Un robot doit avancer, suivre un mur, rejoindre un point. On part toujours d'un besoin concret.</p></li>
+      <li><span class="numero">02</span><h3>Le juste nécessaire</h3><p>Un cours court qui explique le concept ROS 2 utile pour ce cas, en Python et en C++.</p></li>
+      <li><span class="numero">03</span><h3>Les mains dedans</h3><p>Vous codez, lancez et observez dans le lab, ouvert à côté du cours. Puis vous corrigez un robot en panne.</p></li>
+      <li><span class="numero">04</span><h3>Validé</h3><p>Votre code est vérifié automatiquement. Un QCM, une note, et un certificat à la fin du parcours.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section class="conteneur bloc" aria-labelledby="les-parcours">
+  <div class="entete-section">
+    <div>
+      <h2 id="les-parcours">Les parcours</h2>
+      <p class="sous-titre">Des fondamentaux jusqu'aux robots autonomes.</p>
+    </div>
+    <a class="lien-fort" href="/catalogue/">Tout le catalogue {{ fleche() }}</a>
+  </div>
+  <div class="grille-parcours">
+    {% for p in parcours %}{% include "partiels/carte_parcours.html" %}{% else %}
+    <p class="muted">Aucun parcours publié pour le moment.</p>
     {% endfor %}
-  </ol>
-  {% if p.modules %}<a class="button primary" href="/modules/{{ p.modules[0].id }}/">Commencer</a>{% endif %}
+  </div>
 </section>
-{% else %}
-<p class="muted">Aucun parcours publié pour le moment.</p>
-{% endfor %}
+
+<section class="conteneur bloc" aria-labelledby="formateurs">
+  <div class="encart encart-sombre">
+    <div>
+      <h2 id="formateurs">Vous formez une classe ou une équipe ?</h2>
+      <p>Suivez la progression de chacun, repérez qui bloque sur quel exercice et délivrez des certificats vérifiables.</p>
+    </div>
+    <a class="button amber grand" href="/compte/formateur">Espace formateur</a>
+  </div>
+</section>
 {% endblock %}

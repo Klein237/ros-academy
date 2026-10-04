@@ -395,6 +395,13 @@ async function parcours() {
   const modules = (data.modules || []).map((m) => ({ id: m.id, coef: m.coef ?? 1 }));
   form.titre.value = data.titre || "";
   form.description.value = data.description || "";
+  form.accroche.value = data.accroche || "";
+  form.statut.value = data.statut || "disponible";
+  form.niveau.value = data.niveau || "debutant";
+  form.ordre.value = data.ordre ?? 100;
+  form.objectifs.value = (data.objectifs || []).join("\n");
+  form.prerequis.value = (data.prerequis || []).join("\n");
+  const lignes = (v) => v.split("\n").map((l) => l.trim()).filter(Boolean);
 
   function draw() {
     document.querySelector("#parcours-modules tbody").replaceChildren(
@@ -423,7 +430,11 @@ async function parcours() {
     ev.preventDefault();
     err.hidden = true;
     try {
-      await api("PUT", `/parcours/${pid}`, { titre: form.titre.value, description: form.description.value, modules });
+      await api("PUT", `/parcours/${pid}`, {
+        titre: form.titre.value, description: form.description.value, accroche: form.accroche.value,
+        statut: form.statut.value, niveau: form.niveau.value, ordre: Number(form.ordre.value || 100),
+        objectifs: lignes(form.objectifs.value), prerequis: lignes(form.prerequis.value), modules,
+      });
       document.getElementById("parcours-etat").textContent = "Enregistré (à publier depuis le tableau de bord)";
     } catch (e) {
       err.textContent = e.message;

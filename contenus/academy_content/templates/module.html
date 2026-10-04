@@ -3,7 +3,7 @@
 {% block banner %}{% if apercu %}<div class="preview-banner">Aperçu du brouillon — les étudiants ne voient pas encore cette version. <a href="/admin/modules/{{ module.id }}/">Retour à l'éditeur</a></div>{% endif %}{% endblock %}
 {% block content %}
 <nav class="breadcrumb">
-  <a href="/">Parcours</a>
+  <a href="/catalogue/">Catalogue</a>
   {% if parcours %} › <a href="/parcours/{{ parcours.id }}/">{{ parcours.titre }}</a> › module {{ numero }}{% endif %}
 </nav>
 <header class="module-header">

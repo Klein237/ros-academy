@@ -1,20 +1,70 @@
 {% extends "base.html" %}
+{% from "partiels/icones.html" import coche %}
+{% set nav_actif = "catalogue" %}
 {% block title %}{{ parcours.titre }} · ROS Academy{% endblock %}
+{% block main_class %}page plein{% endblock %}
 {% block content %}
-<nav class="breadcrumb"><a href="/">Parcours</a> › {{ parcours.titre }}</nav>
-<h1>{{ parcours.titre }}</h1>
-<p class="lead">{{ parcours.description }}</p>
-<ol class="parcours-steps">
-  {% for m in parcours.modules %}
-  <li class="card">
-    <span class="step">{{ loop.index }}</span>
-    <div>
-      <h2><a href="/modules/{{ m.id }}/">{{ m.titre }}</a></h2>
-      <p>{{ m.resume }}</p>
-      <p class="muted small">{% if m.duree %}{{ m.duree }} · {% endif %}coefficient {{ m.coef | round(1) | replace('.0', '') }} sur {{ total_coef | round(1) | replace('.0', '') }}</p>
+{% set premier = parcours.modules | first %}
+<section class="bandeau-parcours">
+  <div class="conteneur bandeau-parcours-inner">
+    <div class="bandeau-texte">
+      <nav class="breadcrumb" aria-label="Fil d'Ariane"><a href="/catalogue/">Catalogue</a> › {{ parcours.titre }}</nav>
+      <div class="pastilles">
+        <span class="pastille translucide">{{ parcours.niveau_texte }}</span>
+        <span class="pastille translucide">{{ parcours.modules | length }} module{{ "s" if parcours.modules | length > 1 }}{% if parcours.duree_totale %} · {{ parcours.duree_totale }}{% endif %}</span>
+        <span class="pastille translucide">Certificat</span>
+      </div>
+      <h1>{{ parcours.titre }}</h1>
+      <p>{{ parcours.description }}</p>
     </div>
-  </li>
-  {% endfor %}
-</ol>
-<p class="muted small">Chaque module est noté sur 20 : 50 % QCM, 50 % exercice (−15 % par indice utilisé). La note finale est la moyenne pondérée par les coefficients.</p>
+    <div class="carte-reprise">
+      <span class="carte-reprise-titre">Tout se passe dans le navigateur</span>
+      <p>Cours, terminal, éditeur et simulateur : rien à installer.</p>
+      <a class="button primary" href="/modules/{{ premier.id }}/">Commencer le module 1</a>
+    </div>
+  </div>
+</section>
+
+<div class="conteneur deux-colonnes">
+  <section class="colonne-principale serree" aria-labelledby="programme">
+    <h2 id="programme">Programme</h2>
+    <ol class="programme">
+      <li class="intro">
+        <span class="pastille-numero">0</span>
+        <div class="programme-texte">
+          <a href="/decouvrir/">Découvrir ROS 2</a>
+          <span>20 min · histoire, usages réels, liens utiles · sans note</span>
+        </div>
+      </li>
+      {% for m in parcours.modules %}
+      <li>
+        <span class="pastille-numero">{{ loop.index }}</span>
+        <div class="programme-texte">
+          <a href="/modules/{{ m.id }}/">{{ m.titre }}</a>
+          <span>{% if m.duree %}{{ m.duree }} · {% endif %}{{ m.resume }}</span>
+        </div>
+      </li>
+      {% endfor %}
+    </ol>
+  </section>
+
+  <aside class="colonne-laterale">
+    {% if parcours.objectifs %}
+    <section class="encart" aria-labelledby="vous-saurez">
+      <h2 id="vous-saurez">Vous saurez</h2>
+      <ul class="liste-cochee">{% for o in parcours.objectifs %}<li>{{ coche() }}{{ o }}</li>{% endfor %}</ul>
+    </section>
+    {% endif %}
+    {% if parcours.prerequis %}
+    <section class="encart" aria-labelledby="prerequis">
+      <h2 id="prerequis">Prérequis</h2>
+      <ul class="liste-simple">{% for o in parcours.prerequis %}<li>{{ o }}</li>{% endfor %}</ul>
+    </section>
+    {% endif %}
+    <section class="encart encart-ambre" aria-labelledby="certificat">
+      <h2 id="certificat">Comment c'est noté</h2>
+      <p>Chaque module est noté sur 20 : moitié QCM, moitié exercice (chaque indice utilisé retire 15 % de l'exercice). {% if coefs_varies %}Certains modules comptent davantage que d'autres dans la moyenne. {% endif %}Avec une moyenne suffisante, vous obtenez un certificat vérifiable par un lien.</p>
+    </section>
+  </aside>
+</div>
 {% endblock %}

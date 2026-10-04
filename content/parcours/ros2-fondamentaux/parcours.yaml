@@ -5,6 +5,20 @@ description: >-
   service, action, description URDF, paramètres et fichiers launch, repères
   TF2, puis simulation dans Gazebo. Chaque module se termine par une vraie
   panne à diagnostiquer et un QCM.
+accroche: >-
+  Nœuds, topics, services, actions, URDF, paramètres, TF2 et simulation dans
+  Gazebo, autour d'un même robot que vous faites rouler.
+statut: disponible
+niveau: debutant
+ordre: 10
+objectifs:
+  - écrire des nœuds ROS 2 en Python et en C++
+  - créer des services, des actions et des paramètres
+  - décrire un robot en URDF et ses repères avec TF2
+  - le simuler dans Gazebo et l'observer dans RViz
+prerequis:
+  - bases de Python
+  - quelques commandes de terminal Linux (cd, ls)
 modules:
   - id: 01-initiation
     coef: 1

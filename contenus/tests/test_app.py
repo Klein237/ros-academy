@@ -7,7 +7,7 @@ import jwt
 import pytest
 from fastapi.testclient import TestClient
 
-from academy_content.app import create_app
+from academy_content.app import create_app, duree_minutes, format_minutes
 from academy_content.store import ContentStore
 from academy_content.testing import Rapport
 from conftest import make_module, make_parcours
@@ -66,7 +66,7 @@ def test_public_pages(client):
     assert "Ouvrir dans le lab" in page
     assert "/compte/lab?suite=/lab/%3Fmodule%3D01-demo%26open%3Dws/01-demo/src/p/p/n.py" in page
     assert 'href="/compte/lab?suite=/lab/%3Fmodule%3D01-demo%26exercice%3D1"' in page
-    assert 'href="/compte/"' in page  # lien « Mon compte »
+    assert 'href="/connexion"' in page and 'href="/compte/resultats"' in page  # en-tête : connexion, « Mon apprentissage »
     assert 'class="code-tabs"' in page  # python + cpp consécutifs
     assert "Quelle commande compile un workspace ?" in page
 
@@ -126,6 +126,33 @@ def test_internal_routes_require_the_shared_secret(client, method, path):
         assert r.status_code == 403, headers
         assert "Regardez" not in r.text and "colcon" not in r.text and "manquait" not in r.text
     assert client.request(method, path, headers=INTERNE, **body).status_code == 200
+
+
+def test_catalogue_announces_upcoming_parcours(store, client):
+    store.write_parcours("nav2", {"titre": "Navigation avec Nav2", "description": "Aller au but",
+                                  "statut": "bientot", "niveau": "intermediaire", "ordre": 20})
+    store.publish(Runner())
+    for path in ("/", "/catalogue/"):
+        page = client.get(path).text
+        assert "Navigation avec Nav2" in page and "Bientôt · Intermédiaire" in page, path
+        assert 'href="/parcours/demo/"' in page and "/parcours/nav2/" not in page, path
+    assert client.get("/parcours/nav2/").status_code == 404  # annoncé, pas encore ouvert
+    assert [p["id"] for p in client.get("/api/contenus/parcours").json()["parcours"]] == ["demo"]
+
+
+def test_parcours_page_and_discover_page(client):
+    page = client.get("/parcours/demo/").text
+    assert "Programme" in page and 'href="/modules/01-demo/"' in page and 'href="/decouvrir/"' in page
+    assert "1 module · 10 min" in page
+    assert "coefficient" not in page
+    page = client.get("/decouvrir/").text
+    assert "ROS 2, le langage commun des robots" in page and "https://docs.ros.org/en/jazzy/" in page
+    assert 'href="/parcours/demo/"' in page
+
+
+def test_durations():
+    assert [duree_minutes(d) for d in ("1 h 30", "2 h", "45 min", "1h15", "", "bientôt")] == [90, 120, 45, 75, 0, 0]
+    assert [format_minutes(m) for m in (690, 120, 45)] == ["11 h 30", "2 h", "45 min"]
 
 
 def test_parcours_api_lists_modules_and_coefficients(client):
@@ -269,6 +296,13 @@ def test_create_module_from_template(admin):
 def test_parcours_edit_validates_modules(admin):
     ok = {"titre": "Parcours", "description": "", "modules": [{"id": "01-demo", "coef": 2}]}
     assert admin.put("/admin/api/parcours/demo", headers=ORIGIN, json=ok).status_code == 200
+    # Les champs que l'ancien formulaire n'envoie pas sont conservés
+    assert admin.put("/admin/api/parcours/demo", headers=ORIGIN, json={**ok, "niveau": "avance"}).status_code == 200
+    assert admin.put("/admin/api/parcours/demo", headers=ORIGIN, json=ok).status_code == 200
+    assert admin.get("/admin/api/parcours/demo").json()["niveau"] == "avance"
+    vide = {**ok, "modules": []}
+    assert "au moins un module" in admin.put("/admin/api/parcours/demo", headers=ORIGIN, json=vide).json()["erreur"]
+    assert admin.put("/admin/api/parcours/demo", headers=ORIGIN, json={**vide, "statut": "bientot"}).status_code == 200
     bad = {**ok, "modules": [{"id": "09-inconnu", "coef": 1}]}
     assert "module inconnu" in admin.put("/admin/api/parcours/demo", headers=ORIGIN, json=bad).json()["erreur"]
 

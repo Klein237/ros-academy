@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% set nav_actif = "catalogue" %}
+{% block title %}Catalogue · ROS Academy{% endblock %}
+{% block main_class %}page plein{% endblock %}
+{% block content %}
+<div class="conteneur page-titre">
+  <h1>Catalogue</h1>
+  <p class="sous-titre">Chaque parcours part de cas concrets et se pratique dans le lab, sans rien installer : cours, exercices vérifiés, QCM et certificat.</p>
+</div>
+
+<section class="conteneur bloc-serre" aria-labelledby="feuille-de-route">
+  <div class="encart feuille-de-route">
+    <div>
+      <h2 id="feuille-de-route">La feuille de route</h2>
+      <p>Commencez par les bases, puis choisissez votre spécialité.</p>
+    </div>
+    <ol class="niveaux">
+      {% for cle, nom in niveaux.items() %}
+      {% set du_niveau = parcours | selectattr("niveau", "equalto", cle) | list %}
+      {% if du_niveau %}
+      <li class="niveau niveau-{{ cle }}">
+        <span class="eyebrow">{{ nom }}</span>
+        <ul>
+          {% for p in du_niveau %}
+          <li class="{{ p.statut }}">{% if p.statut == "disponible" %}<a href="/parcours/{{ p.id }}/">{{ p.titre }}</a>{% else %}{{ p.titre }} <span class="muted small">· bientôt</span>{% endif %}</li>
+          {% endfor %}
+        </ul>
+      </li>
+      {% endif %}
+      {% endfor %}
+    </ol>
+  </div>
+</section>
+
+<section class="conteneur bloc-serre" aria-labelledby="tous">
+  <h2 id="tous" class="sr-only">Tous les parcours</h2>
+  <form class="filtres" role="search" data-filtres hidden>
+    <label class="recherche"><span class="sr-only">Rechercher un parcours</span><input type="search" name="q" placeholder="Rechercher un parcours (nav2, urdf, docker…)"></label>
+    <div class="segments" role="group" aria-label="Niveau">
+      <button type="button" data-niveau="" aria-pressed="true">Tous</button>
+      {% for cle, nom in niveaux.items() %}<button type="button" data-niveau="{{ cle }}" aria-pressed="false">{{ nom }}</button>{% endfor %}
+    </div>
+  </form>
+  <div class="grille-parcours" data-cartes>
+    {% for p in parcours %}{% include "partiels/carte_parcours.html" %}{% endfor %}
+  </div>
+  <p class="muted" data-aucun hidden>Aucun parcours ne correspond à cette recherche.</p>
+</section>
+{% endblock %}
