@@ -477,3 +477,42 @@ body.cote-a-cote .etapes-module { margin-left: 0; }
   }
   .barre-mobile .button { flex: 1; text-align: center; padding: 12px 0; border-radius: 12px; }
 }
+
+/* --- Tableau de bord de l'étudiant (Comptes : /compte/apprentissage) ------------------- */
+.tableau { padding-top: 40px; padding-bottom: 72px; display: flex; flex-direction: column; gap: 28px; }
+.tableau h1 { font-size: clamp(1.9rem, 4.5vw, 2.4rem); margin: 0; }
+.tableau h2 { margin: 0; }
+.reprendre { background: var(--ink); color: #ffffff; border-radius: 20px; padding: 28px; display: flex; flex-wrap: wrap; gap: 20px 24px; align-items: center; justify-content: space-between; }
+.reprendre > div { flex: 1 1 420px; min-width: 0; }
+.reprendre-sur { margin: 0 0 6px; color: #8fa0b0; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+.reprendre h2 { font-size: clamp(1.4rem, 3.5vw, 1.8rem); margin: 0 0 6px; color: #ffffff; }
+.reprendre p:last-child { margin: 0; color: var(--ink-text); }
+.chiffres { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.chiffre { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 6px; }
+.chiffre-label { color: var(--muted); font-size: 0.875rem; }
+.chiffre-valeur { font-family: var(--font-titre); font-size: 1.9rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.chiffre-note { color: var(--muted); font-size: 0.875rem; }
+/* <progress> : pas de style en ligne (CSP) */
+.jauge { appearance: none; width: 100%; height: 8px; border: 0; border-radius: 999px; background: var(--line); overflow: hidden; }
+.jauge::-webkit-progress-bar { background: var(--line); border-radius: 999px; }
+.jauge::-webkit-progress-value { background: var(--accent); border-radius: 999px; }
+.jauge::-moz-progress-bar { background: var(--accent); border-radius: 999px; }
+.suivis { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.suivi { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; }
+.suivi-texte { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.suivi-titre { font-weight: 600; font-size: 1.1rem; color: var(--text); text-decoration: none; }
+.suivi-titre:hover { color: var(--accent); }
+.deux-encarts { display: flex; flex-wrap: wrap; gap: 16px; }
+.deux-encarts .encart { flex: 1 1 360px; min-width: 0; padding: 22px; border-radius: var(--radius-lg); }
+.deux-encarts .encart h2 { font-size: 1.25rem; margin-bottom: 8px; }
+.deux-encarts .encart p + p { margin-top: 8px; }
+.liste-certificats { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.liste-certificats a { font-weight: 600; }
+
+/* Page d'un parcours : état de chaque module (rempli par site.js quand une session est ouverte) */
+.programme li[data-etat="termine"] .pastille-numero { background: var(--accent); color: var(--accent-ink); }
+.programme li[data-etat="en_cours"] { border: 2px solid var(--accent); padding: 17px 19px; }
+.etat-module { margin-left: auto; flex: none; font-size: 0.85rem; font-weight: 600; padding: 5px 10px; border-radius: 8px; background: var(--bg); color: var(--text-2); }
+li[data-etat="termine"] .etat-module { background: var(--accent-soft); color: var(--accent-soft-ink); }
+li[data-etat="en_cours"] .etat-module { background: var(--amber-soft); color: var(--text); border: 1px solid var(--amber-line); }
+.carte-reprise progress { margin-top: 2px; }

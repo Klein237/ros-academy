@@ -395,6 +395,26 @@ def test_results_page_and_final_grade(client, env):
     assert re.search(r"Note finale : <strong>15,1[23] / 20</strong>", page), expected
 
 
+def test_learning_dashboard_and_progress_api(client, env):
+    assert client.get("/compte/apprentissage", follow_redirects=False).headers["location"].startswith("/connexion")
+    assert client.get("/api/comptes/progression/ros2").json() == {"connecte": False}
+    login(client, env)
+    page = client.get("/compte/apprentissage").text
+    assert "Votre premier module" in page and "Commencer" in page and 'href="/modules/01-a/"' in page
+    client.post("/api/comptes/qcm/01-a", json={"reponses": {"q1": [0], "q2": [1]}}, headers=ORIGIN)  # 20
+    succeed(env, "01-a")
+    client.post("/api/comptes/exercices/01-a/verification", headers=ORIGIN)  # module 01-a terminé, 20/20
+    client.post("/api/comptes/qcm/02-b", json={"reponses": {"q1": [0]}}, headers=ORIGIN)  # 02-b commencé
+    data = client.get("/api/comptes/progression/ros2").json()
+    assert data["termines"] == 1 and data["total"] == 2 and data["prochain"] == "02-b"
+    assert data["modules"]["01-a"] == {"etat": "termine", "note": 20.0}
+    assert data["modules"]["02-b"] == {"etat": "en_cours", "note": None}
+    page = client.get("/compte/apprentissage").text
+    assert "Reprendre là où vous en étiez" in page and 'href="/modules/02-b/"' in page
+    assert "20,0 / 20" in page  # moyenne des modules terminés
+    assert client.get("/api/comptes/progression/inconnu").status_code == 404
+
+
 # --- File d'attente
 
 def test_queue_positions_and_ownership(client, env):

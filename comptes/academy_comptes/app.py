@@ -512,26 +512,69 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
             state[m["id"]] = (notes, bool(ex and ex.reussi_le), ex.indices if ex else 0)
         return certificats.eligibility(p, state, settings.certificat_note_min)
 
+    def parcours_progress(db, user, p):
+        """État de l'étudiant dans un parcours : notes, état de chaque module, prochain module."""
+        rows, weighted = [], []
+        for m in p["modules"]:
+            notes, ex = progress(db, user, m["id"])
+            g = grading.module_grade(notes, bool(ex and ex.reussi_le), ex.indices if ex else 0)
+            weighted.append((m["coef"], g))
+            commence = bool(notes) or ex is not None
+            etat = "termine" if g.termine else ("en_cours" if commence else "a_faire")
+            rows.append({"module": m, "grade": g, "tentatives": len(notes), "etat": etat,
+                         "indices": ex.indices if ex else 0, "reussi": bool(ex and ex.reussi_le)})
+        termines = sum(1 for r in rows if r["etat"] == "termine")
+        # prochain module : le premier en cours, sinon le premier à faire
+        prochain = next((r["module"] for r in rows if r["etat"] == "en_cours"),
+                        next((r["module"] for r in rows if r["etat"] == "a_faire"), None))
+        return {"parcours": p, "modules": rows, "finale": grading.final_grade(weighted), "termines": termines,
+                "commence": any(r["etat"] != "a_faire" for r in rows), "prochain": prochain,
+                "pourcentage": round(100 * termines / len(rows)) if rows else 0}
+
     @app.get("/compte/resultats", response_class=HTMLResponse)
     def resultats(request: Request, erreur: str = "", user=Depends(current_user), db=Depends(get_db)):
         if not user:
             return login_redirect("/compte/resultats")
-        parcours = all_parcours()
         out = []
-        for p in parcours:
-            rows, weighted = [], []
-            for m in p["modules"]:
-                notes, ex = progress(db, user, m["id"])
-                g = grading.module_grade(notes, bool(ex and ex.reussi_le), ex.indices if ex else 0)
-                weighted.append((m["coef"], g))
-                rows.append({"module": m, "grade": g, "tentatives": len(notes),
-                             "indices": ex.indices if ex else 0, "reussi": bool(ex and ex.reussi_le)})
-            out.append({"parcours": p, "modules": rows, "finale": grading.final_grade(weighted),
-                        "termines": sum(1 for _, g in weighted if g.termine),
-                        "certificat": certificats.existing(db, user.id, p["id"]),
-                        "eligible": certificate_eligibility(db, user, p)})
+        for p in all_parcours():
+            r = parcours_progress(db, user, p)
+            r.update(certificat=certificats.existing(db, user.id, p["id"]), eligible=certificate_eligibility(db, user, p))
+            out.append(r)
         return page(request, "resultats.html", user=user, resultats=out, note_min=settings.certificat_note_min,
                     erreur=erreur[:300])
+
+    @app.get("/compte/apprentissage", response_class=HTMLResponse)
+    def apprentissage(request: Request, user=Depends(current_user), db=Depends(get_db)):
+        if not user:
+            return login_redirect("/compte/apprentissage")
+        suivis = []
+        for p in all_parcours():
+            r = parcours_progress(db, user, p)
+            r["certificat"] = certificats.existing(db, user.id, p["id"])
+            suivis.append(r)
+        # « Reprendre » : le parcours commencé (sinon le premier) qui a encore un module à faire
+        actif = next((r for r in suivis if r["commence"] and r["prochain"]),
+                     next((r for r in suivis if r["prochain"]), None))
+        notes = [m["grade"].note for r in suivis for m in r["modules"] if m["etat"] == "termine"]
+        return page(request, "apprentissage.html", user=user, suivis=suivis, actif=actif,
+                    termines=len(notes), moyenne=round(sum(notes) / len(notes), 1) if notes else None,
+                    utilisees=minutes_used(db, user), restantes=minutes_left(db, user, settings),
+                    certificats=[r["certificat"] for r in suivis if r["certificat"] and not r["certificat"].revoque_le])
+
+    @app.get("/api/comptes/progression/{parcours_id}")
+    def progression(parcours_id: str, user=Depends(current_user), db=Depends(get_db)):
+        """Page d'un parcours : état de chaque module (vide sans session)."""
+        if not user:
+            return {"connecte": False}
+        p = next((x for x in all_parcours() if x["id"] == parcours_id), None)
+        if not p:
+            raise HTTPException(404, "Parcours introuvable")
+        r = parcours_progress(db, user, p)
+        return {"connecte": True, "termines": r["termines"], "total": len(r["modules"]),
+                "prochain": r["prochain"]["id"] if r["prochain"] else None,
+                "prochain_titre": r["prochain"]["titre"] if r["prochain"] else None,
+                "modules": {m["module"]["id"]: {"etat": m["etat"], "note": m["grade"].note if m["etat"] == "termine" else None}
+                            for m in r["modules"]}}
 
     # --- Certificats
 

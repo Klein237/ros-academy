@@ -3,14 +3,14 @@
 <h1>Mon compte</h1>
 <section class="card">
   <p><strong>{{ user.nom or user.email }}</strong>{% if user.nom %} <span class="muted">· {{ user.email }}</span>{% endif %}</p>
-  <p>Formule : <strong>{{ user.formule }}</strong>{% if billing %} · <a href="/compte/abonnement">{{ "Mon abonnement" if user.stripe_subscription_id else "Passer en pro" }}</a>{% endif %}</p>
+  <p>Formule : <strong>{{ {"free": "Gratuite", "pro": "Pro"}.get(user.formule, user.formule) }}</strong>{% if billing %} · <a href="/compte/abonnement">{{ "Mon abonnement" if user.stripe_subscription_id else "Passer en pro" }}</a>{% endif %}</p>
   {% if restantes is none %}
   <p>Lab : sans limite ({{ utilisees }} min utilisées ce mois-ci).</p>
   {% else %}
   <p>Lab : <strong>{{ restantes }} min</strong> restantes ce mois-ci ({{ utilisees }} min utilisées).</p>
   <progress class="meter" max="{{ restantes + utilisees }}" value="{{ utilisees }}" aria-label="Minutes de lab utilisées">{{ utilisees }} min</progress>
   {% endif %}
-  <p class="row"><a class="button primary" href="/compte/lab">Ouvrir le lab</a> <a class="button" href="/compte/resultats">Mes résultats</a>{% if admin %} <a class="button" href="/compte/formateur">Tableau de bord formateur</a> <a class="button" href="/compte/admin">Éditer les formations</a>{% endif %}</p>
+  <p class="row"><a class="button primary" href="/compte/lab">Ouvrir le lab</a> <a class="button" href="/compte/apprentissage">Mon apprentissage</a> <a class="button" href="/compte/resultats">Mes résultats</a>{% if admin %} <a class="button" href="/compte/formateur">Tableau de bord formateur</a> <a class="button" href="/compte/admin">Éditer les formations</a>{% endif %}</p>
   <form method="post" action="/deconnexion"><button class="button" type="submit">Se déconnecter</button></form>
 </section>
 <section class="card">

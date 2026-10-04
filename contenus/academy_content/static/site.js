@@ -308,6 +308,50 @@ function setupModule() {
   marquer();
 }
 
+// Page d'un parcours : état de chaque module et « Reprendre », si une session est ouverte
+async function setupProgression() {
+  const carte = document.querySelector("[data-progression]");
+  if (!carte) return;
+  let p;
+  try {
+    const r = await fetch(`/api/comptes/progression/${encodeURIComponent(carte.dataset.progression)}`);
+    if (!r.ok) return;
+    p = await r.json();
+  } catch {
+    return;
+  }
+  if (!p.connecte) return;
+  const TEXTES = { termine: "Terminé", en_cours: "En cours", a_faire: "À faire" };
+  for (const li of document.querySelectorAll(".programme li[data-module]")) {
+    const m = p.modules[li.dataset.module];
+    if (!m) continue;
+    li.dataset.etat = m.etat;
+    const badge = document.createElement("span");
+    badge.className = "etat-module";
+    badge.textContent = m.note != null ? `${TEXTES[m.etat]} · ${String(m.note.toFixed(1)).replace(".", ",")} / 20` : TEXTES[m.etat];
+    li.append(badge);
+  }
+  const titre = carte.querySelector(".carte-reprise-titre");
+  const texte = carte.querySelector("p");
+  const bouton = carte.querySelector("a");
+  titre.textContent = "Votre progression";
+  texte.textContent = `${p.termines} module${p.termines > 1 ? "s" : ""} terminé${p.termines > 1 ? "s" : ""} sur ${p.total}`;
+  const jauge = document.createElement("progress");
+  jauge.className = "jauge";
+  jauge.max = p.total;
+  jauge.value = p.termines;
+  jauge.setAttribute("aria-label", "Modules terminés");
+  texte.after(jauge);
+  if (p.prochain) {
+    bouton.href = `/modules/${encodeURIComponent(p.prochain)}/`;
+    bouton.textContent = p.termines || Object.values(p.modules).some((m) => m.etat !== "a_faire")
+      ? `Reprendre : ${p.prochain_titre}` : "Commencer le module 1";
+  } else {
+    bouton.href = "/compte/resultats";
+    bouton.textContent = "Parcours terminé : voir mes notes";
+  }
+}
+
 // Catalogue : recherche et filtre par niveau, sans rechargement
 function setupCatalogue() {
   const form = document.querySelector("[data-filtres]");
@@ -341,5 +385,6 @@ setupTabs();
 setupCopy();
 setupCatalogue();
 setupModule();
+setupProgression();
 setupQcm();
 setupSideBySide();
