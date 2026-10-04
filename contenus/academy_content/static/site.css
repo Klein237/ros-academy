@@ -516,3 +516,11 @@ body.cote-a-cote .etapes-module { margin-left: 0; }
 li[data-etat="termine"] .etat-module { background: var(--accent-soft); color: var(--accent-soft-ink); }
 li[data-etat="en_cours"] .etat-module { background: var(--amber-soft); color: var(--text); border: 1px solid var(--amber-line); }
 .carte-reprise progress { margin-top: 2px; }
+
+/* Encadré « La situation » : citation Markdown (> …) dans un cours ou un énoncé */
+.cours blockquote, .module-contenu .card blockquote {
+  margin: 0 0 24px; padding: 16px 20px; background: var(--amber-soft); border: 1px solid var(--amber-line);
+  border-left: 4px solid var(--amber); border-radius: 12px; font-size: 1.05rem; line-height: 1.65;
+}
+.cours blockquote p, .module-contenu .card blockquote p { margin: 0; }
+.cours blockquote p + p { margin-top: 10px; }
