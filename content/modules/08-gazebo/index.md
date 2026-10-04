@@ -5,6 +5,14 @@ duree: 1 h 45
 ---
 # Simuler le robot dans Gazebo
 
+> **La situation.** Avant de confier le vrai robot à l'entrepôt, l'équipe veut le tester : tient-il debout, ses roues adhèrent-elles, son laser voit-il les murs ? Casser un robot coûte cher ; casser une simulation, rien. Vous allez faire rouler le robot dans un monde simulé avec Gazebo.
+
+**Dans ce module, vous allez :**
+
+- préparer l'URDF pour la simulation : collisions, inerties, frottements ;
+- ajouter à Gazebo les roues motrices et le laser ;
+- relier Gazebo et ROS 2 avec `ros_gz_bridge`, puis piloter et observer le robot simulé.
+
 ## 1. Simuler, visualiser : deux outils
 
 **Constat :** jusqu'ici, notre robot était soit un calcul (`diff_drive_node` intègre les vitesses), soit une description immobile (URDF dans RViz). Rien ne vérifie qu'il tient debout, que ses roues adhèrent au sol ou que son laser voit les murs.
@@ -551,3 +559,5 @@ La fenêtre de Gazebo s'ouvre aussi sur le Bureau : `ros2 launch my_robot_descri
 - Les balises `<gazebo>` portent frottements, systèmes (`DiffDrive`, `JointStatePublisher`…) et capteurs.
 - Gazebo a ses propres topics : `ros_gz_bridge` les relie à ROS 2, topic par topic.
 - Un monde SDF autonome, avec ses systèmes ; un launch qui démarre `gz sim`, `robot_state_publisher`, `create` et le pont ; `use_sim_time` pour les nœuds de la simulation.
+
+**Et maintenant ?** Vous avez construit, pas à pas, le logiciel complet d'un robot mobile. Pour aller plus loin : la navigation autonome avec Nav2, qui s'appuie sur tout ce que vous venez d'apprendre.

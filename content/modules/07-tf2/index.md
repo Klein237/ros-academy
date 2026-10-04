@@ -5,6 +5,14 @@ duree: 1 h 30
 ---
 # Repères et transformations avec TF2
 
+> **La situation.** On a monté un laser à l'avant du robot. Il voit un carton à 1 m devant lui… mais pour l'éviter ou le signaler sur le plan de l'entrepôt, il faut savoir où est ce carton *dans l'entrepôt*. Entre les deux : la position du laser sur le robot, et celle du robot qui change sans cesse. C'est exactement le travail de TF2.
+
+**Dans ce module, vous allez :**
+
+- donner au robot ses repères (`odom`, `base_link`, `laser`) selon les conventions de ROS ;
+- diffuser une transformation mobile et une transformation fixe ;
+- convertir la position d'un obstacle d'un repère à l'autre avec un `Buffer` et un `TransformListener`.
+
 ## 1. Pourquoi des repères ?
 
 **Constat :** un capteur ne mesure jamais « dans le monde ». Le laser du robot voit un obstacle *à 1 m devant lui* ; pour l'éviter ou le placer sur une carte, il faut sa position *dans la pièce*. Entre les deux : la position du laser sur le robot, et la position du robot dans la pièce, qui change à chaque instant.
@@ -423,3 +431,5 @@ Pour **voir** l'arbre : ouvrez le **Bureau (RViz, Gazebo)**, lancez `rviz2` dans
 - Transformation **mobile** : un `TransformBroadcaster` sur `/tf`, à chaque mise à jour, avec le bon horodatage ; **fixe** : `static_transform_publisher` sur `/tf_static`.
 - Rotation autour de `z` d'un angle θ : quaternion `(0, 0, sin(θ/2), cos(θ/2))`.
 - `Buffer` + `TransformListener` pour écouter ; `transform()` ou `lookup_transform()` pour convertir, en gérant `TransformException`.
+
+**Et maintenant ?** Le robot sait situer ce qu'il voit. Dernière étape avant le vrai robot : le faire rouler dans un monde simulé, avec Gazebo.
