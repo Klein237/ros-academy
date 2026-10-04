@@ -3,6 +3,10 @@
 {% block content %}
 <div id="admin" data-page="tableau">
 <h1>Formations</h1>
+{% if mise_a_jour == "publiee" %}<p class="alert ok">Nouvelle version des formations de la plateforme : intégrée et publiée au démarrage.</p>
+{% elif mise_a_jour == "a_publier" %}<p class="alert">Nouvelle version des formations de la plateforme : elle est dans le brouillon, avec vos modifications. Publiez pour la mettre en ligne.</p>
+{% elif mise_a_jour == "conflit" %}<p class="alert">Une nouvelle version des formations de la plateforme modifie des passages que vous avez aussi modifiés : elle n'a pas été appliquée, pour ne rien écraser. Reportez à la main les changements voulus (dossier <code>content/</code> du dépôt).</p>
+{% elif mise_a_jour == "erreur" %}<p class="alert">La nouvelle version des formations de la plateforme n'a pas pu être intégrée : voir les journaux du service Contenus.</p>{% endif %}
 {% if not tests_enabled %}<p class="alert">Les tests des modules sont désactivés (MODULE_TESTS=off) : une publication ne vérifie que le format. À n'utiliser qu'en développement.</p>{% endif %}
 
 <section class="card" id="publication">

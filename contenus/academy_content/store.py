@@ -5,9 +5,13 @@
 
 Chaque enregistrement est un commit sur `brouillon`. « Publier » valide le format,
 teste les modules modifiés, puis avance `publie` jusqu'au commit testé.
+
+La branche `plateforme` garde les versions successives des formations livrées avec le code (voir
+sync_seed) : une mise à jour de la plateforme arrive dans le brouillon par une fusion Git.
 """
 
 import io
+import logging
 import os
 import shutil
 import subprocess
@@ -23,7 +27,11 @@ import yaml
 from .model import MAX_FILE_BYTES, MODULE_ID_RE, PARCOURS_ID_RE, list_module_ids, validate_tree
 from .render import safe_rel_path
 
+log = logging.getLogger("contenus")
 DRAFT, PUBLISHED = "brouillon", "publie"
+# Formations livrées avec la plateforme (dossier content/ du dépôt), version après version : au démarrage,
+# une nouvelle version est fusionnée dans le brouillon, sans écraser les modifications de l'administrateur.
+PLATFORM = "plateforme"
 
 
 class StoreError(Exception):
@@ -61,7 +69,13 @@ class ContentStore:
         }
         self._lock = threading.RLock()
         self.publication = Publication()
+        self.mise_a_jour = ""  # résultat de la dernière synchronisation avec les formations de la plateforme
         self._init(seed)
+        try:
+            self.sync_seed(seed)
+        except (StoreError, subprocess.CalledProcessError) as exc:  # le site démarre quand même
+            log.warning("Mise à jour des formations de la plateforme impossible : %s", exc)
+            self.mise_a_jour = "erreur"
 
     # --- Git
 
@@ -95,6 +109,54 @@ class ContentStore:
                 self._git("remote", "add", "origin", self.remote)
         self._git("config", "core.symlinks", "false")
         self._git("worktree", "add", str(self.published_dir), PUBLISHED)
+
+    # --- Formations livrées avec la plateforme
+
+    def _tree_of(self, folder):
+        """Arbre Git du dossier `folder` (index temporaire : le brouillon n'est pas touché)."""
+        with tempfile.TemporaryDirectory(prefix="index-") as tmp:
+            env = {**self.env, "GIT_INDEX_FILE": str(Path(tmp) / "index")}
+            subprocess.run(["git", "--work-tree", str(Path(folder).resolve()), "add", "-A", "."], cwd=self.draft_dir, env=env,
+                           capture_output=True, check=True)
+            return subprocess.run(["git", "write-tree"], cwd=self.draft_dir, env=env, capture_output=True,
+                                  text=True, check=True).stdout.strip()
+
+    def sync_seed(self, seed):
+        """Fusionne dans le brouillon la version des formations livrée avec la plateforme, si elle a changé.
+
+        Les fichiers que l'administrateur n'a pas touchés sont mis à jour ; ses modifications sont gardées.
+        Si les deux ont modifié les mêmes lignes, rien n'est changé et `mise_a_jour` le signale. Quand le
+        brouillon était publié tel quel, la nouvelle version est publiée aussi (elle est testée par la CI).
+        """
+        if not seed or not Path(seed).is_dir():
+            return
+        with self._lock:
+            if not self._git("branch", "--list", PLATFORM):
+                # Magasins créés avant cette branche : le premier commit est la copie initiale des formations
+                root = self._git("rev-list", "--max-parents=0", DRAFT).splitlines()[-1]
+                self._git("branch", PLATFORM, root)
+            tree = self._tree_of(seed)
+            if tree == self._git("rev-parse", f"{PLATFORM}^{{tree}}"):
+                return
+            commit = self._git("commit-tree", tree, "-p", PLATFORM, "-m", "Nouvelle version des formations de la plateforme")
+            self._git("update-ref", f"refs/heads/{PLATFORM}", commit)
+            if self._git("status", "--porcelain"):
+                self.mise_a_jour = "conflit"
+                return
+            was_published = self.head(DRAFT) == self.head(PUBLISHED)
+            merge = subprocess.run(["git", "merge", "--no-edit", "-m", "Intègre la nouvelle version des formations "
+                                    "de la plateforme", PLATFORM], cwd=self.draft_dir, env=self.env,
+                                   capture_output=True, text=True)
+            if merge.returncode != 0:
+                self._git("merge", "--abort", check=False)
+                self.mise_a_jour = "conflit"
+                return
+            self.mise_a_jour = "a_publier"
+            if was_published and not validate_tree(self.draft_dir):
+                self._git("merge", "--ff-only", DRAFT, cwd=self.published_dir)
+                self.mise_a_jour = "publiee"
+            if self.remote:
+                self._git("push", "origin", f"{DRAFT}:{DRAFT}", f"{PUBLISHED}:{PUBLISHED}", check=False)
 
     def _remote_has_draft(self):
         r = subprocess.run(["git", "ls-remote", "--heads", self.remote, DRAFT], env=self.env,

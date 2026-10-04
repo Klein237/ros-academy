@@ -48,3 +48,4 @@ button.link { background: none; border: 0; color: var(--accent); cursor: pointer
   .editor-layout { grid-template-columns: 1fr; }
 }
 .row { display: flex; gap: 12px; flex-wrap: wrap; margin: 0; }
+.alert.ok { background: var(--accent-soft); color: var(--accent-soft-ink); }
