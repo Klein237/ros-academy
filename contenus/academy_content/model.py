@@ -12,6 +12,7 @@ Arborescence d'un dépôt de contenu :
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
@@ -97,10 +98,20 @@ class ModuleRef(_Strict):
     coef: float = Field(default=1.0, gt=0, le=10)
 
 
+NIVEAUX = {"debutant": "Débutant", "intermediaire": "Intermédiaire", "avance": "Avancé"}
+
+
 class ParcoursDef(_Strict):
     titre: str = Field(min_length=1, max_length=120)
     description: str = Field(default="", max_length=2000)
-    modules: list[ModuleRef] = Field(min_length=1)
+    # Catalogue : un parcours « bientot » est annoncé sans modules ni lien.
+    statut: Literal["disponible", "bientot"] = "disponible"
+    niveau: Literal["debutant", "intermediaire", "avance"] = "debutant"
+    accroche: str = Field(default="", max_length=200)
+    ordre: int = Field(default=100, ge=0, le=1000)
+    objectifs: list[str] = Field(default_factory=list, max_length=12)
+    prerequis: list[str] = Field(default_factory=list, max_length=12)
+    modules: list[ModuleRef] = Field(default_factory=list)
 
     @field_validator("modules")
     @classmethod
@@ -109,6 +120,12 @@ class ParcoursDef(_Strict):
         if len(ids) != len(set(ids)):
             raise ValueError("un module apparaît deux fois dans le parcours")
         return modules
+
+    @model_validator(mode="after")
+    def _modules_si_disponible(self):
+        if self.statut == "disponible" and not self.modules:
+            raise ValueError("un parcours disponible contient au moins un module")
+        return self
 
 
 @dataclass
@@ -134,6 +151,12 @@ class Parcours:
     titre: str
     description: str
     modules: list[ModuleRef]
+    statut: str = "disponible"
+    niveau: str = "debutant"
+    accroche: str = ""
+    ordre: int = 100
+    objectifs: list[str] = field(default_factory=list)
+    prerequis: list[str] = field(default_factory=list)
 
 
 def _pydantic_errors(fichier, exc):
@@ -291,7 +314,7 @@ def load_parcours(root, parcours_id):
         d = ParcoursDef.model_validate(data)
     except ValidationError as exc:
         raise ContentError(_pydantic_errors(rel, exc)) from None
-    return Parcours(id=parcours_id, titre=d.titre, description=d.description, modules=d.modules)
+    return Parcours(id=parcours_id, **d.model_dump(exclude={"modules"}), modules=d.modules)
 
 
 def list_module_ids(root):

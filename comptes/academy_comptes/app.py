@@ -587,6 +587,13 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
 
     # --- API (Lab UI et pages du site)
 
+    @app.get("/api/comptes/session")
+    def session_state(user=Depends(current_user)):
+        """En-tête du site : toujours 200, pour ne pas remplir la console de 401."""
+        if not user:
+            return {"connecte": False}
+        return {"connecte": True, "nom": user.nom, "email": user.email}
+
     @app.get("/api/comptes/moi")
     def moi(user=Depends(require_user), db=Depends(get_db)):
         return {"nom": user.nom, "email": user.email, "formule": user.formule, "hub": user.hub_name,

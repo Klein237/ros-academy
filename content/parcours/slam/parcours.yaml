@@ -1,0 +1,10 @@
+titre: Cartographie et SLAM
+description: >-
+  Construire la carte d'un lieu inconnu en s'y déplaçant, puis s'y localiser,
+  avec slam_toolbox et les données du lidar.
+accroche: Construire la carte d'un lieu inconnu et s'y localiser.
+statut: bientot
+niveau: intermediaire
+ordre: 30
+prerequis:
+  - ROS 2 Fondamentaux

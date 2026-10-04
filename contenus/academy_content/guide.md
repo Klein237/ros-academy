@@ -49,6 +49,18 @@ Conseils, tirés des modules existants :
 - mettez un `timeout` sur toute commande qui peut attendre indéfiniment (`ros2 service call`, `ros2 action send_goal`, `ros2 topic echo`) ;
 - le bug doit faire échouer `check.sh` **pour la bonne raison** : lisez le journal des tests, pas seulement la coche.
 
+## Le parcours et le catalogue
+
+La page d'un parcours (tableau de bord → parcours) règle aussi sa place dans le catalogue :
+
+- **Statut** : « Disponible » (au moins un module, page ouverte) ou « Bientôt » (annoncé sur l'accueil et le catalogue, sans lien ni module) ;
+- **Niveau** : débutant, intermédiaire ou avancé — il range le parcours dans la feuille de route ;
+- **Accroche** : une phrase pour la carte du catalogue ;
+- **Ordre** : plus petit = plus haut dans le catalogue ;
+- **Vous saurez** et **Prérequis** : une ligne par élément, affichés sur la page du parcours.
+
+Pour ouvrir un nouveau parcours (Nav2, SLAM…), passez son statut à « Disponible » une fois ses premiers modules ajoutés.
+
 ## Publier
 
 « Publier le brouillon » :

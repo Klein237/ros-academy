@@ -1,0 +1,17 @@
+{# Carte d'un parcours (accueil et catalogue). p : entrée de _parcours_list #}
+{% if p.statut == "disponible" %}
+<article class="carte-parcours disponible" data-niveau="{{ p.niveau }}" data-recherche="{{ (p.titre ~ ' ' ~ p.accroche ~ ' ' ~ p.description) | lower }}">
+  <div class="pastilles"><span class="pastille ambre">Disponible</span><span class="pastille claire">{{ p.niveau_texte }}</span></div>
+  <h3><a class="lien-carte" href="/parcours/{{ p.id }}/">{{ p.titre }}</a></h3>
+  <p>{{ p.accroche }}</p>
+  {% if p.prerequis %}<p class="prerequis">Prérequis : {{ p.prerequis | join(", ") }}</p>{% endif %}
+  <p class="meta">{{ p.modules | length }} module{{ "s" if p.modules | length > 1 }}{% if p.duree_totale %} · {{ p.duree_totale }}{% endif %} · certificat</p>
+</article>
+{% else %}
+<article class="carte-parcours bientot" data-niveau="{{ p.niveau }}" data-recherche="{{ (p.titre ~ ' ' ~ p.accroche ~ ' ' ~ p.description) | lower }}">
+  <span class="pastille douce">Bientôt · {{ p.niveau_texte }}</span>
+  <h3>{{ p.titre }}</h3>
+  <p>{{ p.accroche }}</p>
+  {% if p.prerequis %}<p class="prerequis">Prérequis : {{ p.prerequis | join(", ") }}</p>{% endif %}
+</article>
+{% endif %}

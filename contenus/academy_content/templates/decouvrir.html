@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% set nav_actif = "decouvrir" %}
+{% block title %}Découvrir ROS 2 · ROS Academy{% endblock %}
+{% block description %}D'où vient ROS, pourquoi ROS 2, qui l'utilise aujourd'hui et les liens utiles pour bien commencer.{% endblock %}
+{% block main_class %}page plein{% endblock %}
+{% block content %}
+{% set premier = parcours | first %}
+<div class="conteneur page-titre">
+  <p class="eyebrow">Module 0 · Introduction · 20 min</p>
+  <h1 class="titre-xl">ROS 2, le langage commun des robots</h1>
+  <p class="chapeau">Un robot, c'est des capteurs, des moteurs et beaucoup de logiciels qui doivent se parler. ROS 2 leur donne une façon commune de le faire, et des milliers de briques prêtes à l'emploi pour ne pas tout réécrire.</p>
+</div>
+
+<div class="conteneur deux-colonnes">
+  <div class="colonne-principale">
+    <section aria-labelledby="histoire">
+      <h2 id="histoire">Une brève histoire</h2>
+      <ol class="frise">
+        <li><strong>2007</strong><p>Né à Stanford, ROS est développé chez Willow Garage. Le but : arrêter de réinventer la roue dans chaque laboratoire.</p></li>
+        <li><strong>2010</strong><p>Première distribution, Box Turtle, et le robot PR2 confié à des universités. La communauté décolle.</p></li>
+        <li><strong>2012</strong><p>Création de l'Open Source Robotics Foundation, qui reprend ROS et le simulateur Gazebo.</p></li>
+        <li><strong>2017</strong><p>ROS 2 Ardent, première version de ROS 2 : bâti sur DDS, pensé pour l'industrie, le temps réel, la sécurité et les flottes de robots.</p></li>
+        <li><strong>2024</strong><p>ROS 2 Jazzy, version à support long (jusqu'en 2029), avec Gazebo Harmonic. C'est celle que vous utilisez ici.</p></li>
+        <li class="maintenant"><strong>2025</strong><p>Fin de vie de ROS 1 (Noetic). Les nouveaux projets se font en ROS 2.</p></li>
+      </ol>
+    </section>
+
+    <section aria-labelledby="usages">
+      <h2 id="usages">Où on le trouve aujourd'hui</h2>
+      <p class="sous-titre">Les cas pratiques de la plateforme s'inspirent de ces usages.</p>
+      <div class="grille-petite">
+        <div class="carte-simple"><strong>Logistique</strong><p>Robots mobiles en entrepôt, qui naviguent avec Nav2.</p></div>
+        <div class="carte-simple"><strong>Industrie</strong><p>Bras manipulateurs pilotés avec MoveIt et ros2_control.</p></div>
+        <div class="carte-simple"><strong>Véhicules autonomes</strong><p>Autoware, la pile de conduite autonome open source, est bâtie sur ROS 2.</p></div>
+        <div class="carte-simple"><strong>Agriculture, espace, recherche</strong><p>Robots agricoles, rovers d'exploration, drones et prototypes de laboratoire.</p></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="concepts">
+      <h2 id="concepts">Les idées clés, en une minute</h2>
+      <dl class="concepts">
+        <div><dt>nœud</dt><dd>Un programme qui fait une chose : lire un lidar, piloter les roues.</dd></div>
+        <div><dt>topic</dt><dd>Un flux de messages : le lidar publie, qui veut s'abonne.</dd></div>
+        <div><dt>service · action</dt><dd>Une question et sa réponse, ou une tâche longue avec suivi.</dd></div>
+        <div><dt>simulation</dt><dd>Gazebo fait vivre le robot avant qu'il existe pour de vrai.</dd></div>
+      </dl>
+    </section>
+
+    {% if premier %}
+    <section class="encart encart-primaire">
+      <div>
+        <h2>Prêt à faire rouler votre premier robot ?</h2>
+        <p>Le premier module ouvre un terminal ROS 2 dans votre navigateur. Premières commandes dans 2 minutes.</p>
+      </div>
+      <a class="button amber grand" href="/parcours/{{ premier.id }}/">Commencer : {{ premier.titre }}</a>
+    </section>
+    {% endif %}
+  </div>
+
+  <aside class="colonne-laterale">
+    <section class="encart encart-liens" aria-labelledby="liens">
+      <h2 id="liens">Liens utiles</h2>
+      <ul class="liens">
+        <li><a href="https://docs.ros.org/en/jazzy/" rel="noopener">Documentation ROS 2 Jazzy</a><span>Tutoriels et référence officiels</span></li>
+        <li><a href="https://index.ros.org/" rel="noopener">ROS Index</a><span>Trouver un paquet existant</span></li>
+        <li><a href="https://gazebosim.org/docs/harmonic/" rel="noopener">Gazebo Harmonic</a><span>Documentation du simulateur</span></li>
+        <li><a href="https://robotics.stackexchange.com/" rel="noopener">Robotics Stack Exchange</a><span>Poser une question technique</span></li>
+        <li><a href="https://discourse.openrobotics.org/" rel="noopener">ROS Discourse</a><span>Actualités et discussions de la communauté</span></li>
+        <li><a href="https://github.com/ros2" rel="noopener">ROS 2 sur GitHub</a><span>Le code source</span></li>
+        <li><a href="https://roscon.ros.org/" rel="noopener">ROSCon</a><span>La conférence annuelle, vidéos en ligne</span></li>
+      </ul>
+    </section>
+    <section class="encart encart-ambre" aria-labelledby="distributions">
+      <h2 id="distributions">Les distributions</h2>
+      <p>Une version par an, en mai, avec un nom d'animal par ordre alphabétique. Celles des années paires sont maintenues 5 ans : Humble (2022), Jazzy (2024).</p>
+    </section>
+  </aside>
+</div>
+{% endblock %}

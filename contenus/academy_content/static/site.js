@@ -1,5 +1,5 @@
 // Onglets Python / C++, bouton Copier, QCM corrigé par le serveur (via Comptes),
-// cours et lab côte à côte (« Cours + lab »).
+// cours et lab côte à côte (« Cours + lab »), filtres du catalogue.
 
 function setupTabs() {
   for (const group of document.querySelectorAll(".code-tabs")) {
@@ -255,7 +255,37 @@ function setupSideBySide() {
   }
 }
 
+// Catalogue : recherche et filtre par niveau, sans rechargement
+function setupCatalogue() {
+  const form = document.querySelector("[data-filtres]");
+  if (!form) return;
+  const cartes = [...document.querySelectorAll("[data-cartes] > .carte-parcours")];
+  const aucun = document.querySelector("[data-aucun]");
+  let niveau = "";
+  const appliquer = () => {
+    const q = form.q.value.trim().toLowerCase();
+    let visibles = 0;
+    for (const c of cartes) {
+      const ok = (!niveau || c.dataset.niveau === niveau) && (!q || c.dataset.recherche.includes(q));
+      c.hidden = !ok;
+      if (ok) visibles++;
+    }
+    aucun.hidden = visibles > 0;
+  };
+  form.addEventListener("submit", (ev) => ev.preventDefault());
+  form.q.addEventListener("input", appliquer);
+  for (const b of form.querySelectorAll("[data-niveau]")) {
+    b.addEventListener("click", () => {
+      niveau = b.dataset.niveau;
+      for (const o of form.querySelectorAll("[data-niveau]")) o.setAttribute("aria-pressed", String(o === b));
+      appliquer();
+    });
+  }
+  form.hidden = false;
+}
+
 setupTabs();
 setupCopy();
+setupCatalogue();
 setupQcm();
 setupSideBySide();

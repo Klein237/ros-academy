@@ -1,0 +1,10 @@
+titre: Navigation autonome avec Nav2
+description: >-
+  Donner à un robot mobile la capacité de rejoindre un but seul : carte,
+  localisation, planification de trajectoire et évitement d'obstacles avec Nav2.
+accroche: Planifier un trajet, éviter les obstacles et rejoindre un but.
+statut: bientot
+niveau: intermediaire
+ordre: 20
+prerequis:
+  - ROS 2 Fondamentaux

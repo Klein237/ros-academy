@@ -1,0 +1,10 @@
+titre: Docker pour la robotique
+description: >-
+  Des environnements ROS 2 reproductibles, du poste de développement au robot :
+  images, compose, réseau DDS et déploiement.
+accroche: Images ROS, développement et déploiement reproductibles.
+statut: bientot
+niveau: intermediaire
+ordre: 50
+prerequis:
+  - quelques commandes de terminal Linux
