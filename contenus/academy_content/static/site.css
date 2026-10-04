@@ -166,8 +166,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   background: var(--accent); color: var(--accent-ink); font-weight: 700;
 }
 
-.module-header { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
-.toc { display: flex; gap: 8px 20px; flex-wrap: wrap; padding: 12px 0; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
 
 .cours table { border-collapse: collapse; width: 100%; display: block; overflow-x: auto; }
 .cours th, .cours td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
@@ -222,7 +220,8 @@ figure.code pre { margin: 0; padding: 14px 16px; overflow-x: auto; color: var(--
 body.cote-a-cote { --lab-w: 55vw; }
 body.cote-a-cote > :not(.lab-dock) { margin-right: var(--lab-w); }
 body.cote-a-cote .site-header-inner, body.cote-a-cote .site-footer-inner { max-width: none; }
-body.cote-a-cote main.page { max-width: none; width: auto; margin-left: 0; padding: 24px 24px 48px; }
+body.cote-a-cote main.page { max-width: none; width: auto; margin-left: 0; }
+body.cote-a-cote main.page:not(.plein) { padding: 24px 24px 48px; }
 .lab-dock {
   position: fixed; top: 0; right: 0; bottom: 0; width: var(--lab-w); z-index: 10;
   display: flex; flex-direction: column; background: var(--surface); border-left: 1px solid var(--line);
@@ -407,4 +406,74 @@ body.cote-a-cote main.page { max-width: none; width: auto; margin-left: 0; paddi
   .encart { padding: 22px; }
   .bande { padding: 48px 0; }
   .carte-parcours.disponible h3 { font-size: 1.5rem; }
+}
+
+/* --- Page d'un module : barre d'étapes, sommaire, cours, barre du bas sur téléphone ---- */
+.module-barre { position: sticky; top: 0; z-index: 15; background: var(--surface); border-bottom: 1px solid var(--line); }
+.module-barre-inner { max-width: 1320px; margin: 0 auto; padding: 8px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; }
+.module-retour { display: inline-flex; align-items: center; gap: 6px; color: var(--text); font-weight: 500; text-decoration: none; padding: 8px 0; min-width: 0; }
+.module-retour span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 22em; }
+.etapes-module { display: flex; gap: 4px; background: var(--bg); border: 1px solid var(--line); padding: 4px; border-radius: 12px; margin-left: auto; }
+.etapes-module a { color: var(--text-2); font-weight: 500; text-decoration: none; padding: 6px 14px; border-radius: 9px; }
+.etapes-module a:hover { color: var(--text); }
+.etapes-module a[aria-current] { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgba(18, 23, 28, 0.12); }
+.module-barre .module-actions .button { padding: 7px 14px; }
+.lecture { height: 3px; background: transparent; }
+.lecture-barre { height: 100%; background: var(--accent); transform-origin: left; transform: scaleX(0); }
+
+.module-corps { max-width: 1320px; margin: 0 auto; padding: 0 24px 64px; display: flex; gap: 40px; align-items: flex-start; }
+.sommaire { flex: 0 0 240px; position: sticky; top: 72px; max-height: calc(100vh - 88px); overflow-y: auto; padding: 28px 0 16px; }
+.sommaire-titre { margin: 0 0 10px 10px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.sommaire-liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; font-size: 0.92rem; }
+.sommaire-liste a { display: block; padding: 7px 10px; border-radius: 8px; color: var(--text-2); text-decoration: none; line-height: 1.35; border-left: 2px solid transparent; }
+.sommaire-liste a:hover { background: var(--surface); color: var(--text); }
+.sommaire-liste a[aria-current] { background: var(--accent-soft); color: var(--accent-soft-ink); font-weight: 600; border-left-color: var(--accent); }
+.sommaire-liste .etape-lien:first-of-type { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.module-contenu { flex: 1 1 auto; min-width: 0; max-width: 780px; padding-top: 32px; }
+.module-intro { margin-bottom: 8px; }
+.module-intro h1 { font-size: clamp(1.9rem, 4.5vw, 2.6rem); line-height: 1.1; margin: 0 0 12px; }
+.module-intro .lead { margin: 0 0 16px; }
+.sommaire-mobile { display: none; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px 12px; margin-bottom: 8px; }
+.sommaire-mobile summary { cursor: pointer; font-weight: 600; padding: 10px 0; }
+.sommaire-mobile .sommaire-liste { padding-bottom: 8px; }
+.cours { font-size: 1.04rem; }
+.cours h2 { font-size: 1.55rem; margin-top: 2.2em; scroll-margin-top: 80px; }
+.cours h3 { scroll-margin-top: 80px; }
+#cours, #exercice, #qcm { scroll-margin-top: 72px; }
+.module-contenu .card { border-radius: var(--radius-lg); padding: 24px 28px; margin: 40px 0; }
+.module-contenu .card h2 { margin-top: 0; }
+.module-contenu .exercise { border-left: 4px solid var(--accent); }
+.prev-next a { display: flex; flex-direction: column; gap: 2px; padding: 14px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); text-decoration: none; font-weight: 600; max-width: 48%; }
+.prev-next a span { font-size: 0.8rem; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.prev-next .suivant { text-align: right; margin-left: auto; background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.prev-next .suivant span { color: inherit; opacity: 0.8; }
+.barre-mobile { display: none; }
+.module-contenu .card pre { overflow-x: auto; background: var(--code-bg); color: var(--code-text); padding: 12px 14px; border-radius: 10px; font-size: 0.875rem; }
+.module-contenu .card pre code { background: none; padding: 0; }
+
+/* Lab à côté : le sommaire laisse sa place au cours */
+body.cote-a-cote .sommaire { display: none; }
+body.cote-a-cote .module-corps, body.cote-a-cote .module-barre-inner { max-width: none; }
+body.cote-a-cote .etapes-module { margin-left: 0; }
+
+@media (max-width: 1000px) {
+  .sommaire { display: none; }
+  .sommaire-mobile { display: block; }
+}
+@media (max-width: 760px) {
+  .module-barre-inner { padding: 6px 16px; gap: 6px 12px; }
+  .module-barre .module-actions { display: none; }
+  .etapes-module { margin-left: 0; flex: 1 1 100%; }
+  .etapes-module a { flex: 1; text-align: center; padding: 8px 0; }
+  .module-corps { padding: 0 16px 96px; }
+  .module-contenu { padding-top: 20px; }
+  #cours, #exercice, #qcm, .cours h2, .cours h3 { scroll-margin-top: 124px; }
+  .module-contenu .card { padding: 18px; }
+  .prev-next { flex-direction: column; }
+  .prev-next a { max-width: none; }
+  .barre-mobile {
+    display: flex; gap: 10px; position: fixed; left: 0; right: 0; bottom: 0; z-index: 15;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--line);
+  }
+  .barre-mobile .button { flex: 1; text-align: center; padding: 12px 0; border-radius: 12px; }
 }

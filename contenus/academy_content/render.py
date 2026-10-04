@@ -10,6 +10,7 @@ Conventions d'écriture :
 import html
 import re
 import shlex
+import unicodedata
 from urllib.parse import quote
 
 from markdown_it import MarkdownIt
@@ -89,9 +90,41 @@ def _group_tabs(tokens):
             i += 1
 
 
+def _slug(text, used):
+    text = text.lower().replace("œ", "oe").replace("æ", "ae")
+    base = re.sub(r"[^a-z0-9]+", "-", unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()).strip("-")
+    base = "c-" + (base[:60] or "section")
+    slug, n = base, 2
+    while slug in used:
+        slug, n = f"{base}-{n}", n + 1
+    used.add(slug)
+    return slug
+
+
+def _prepare(md, markdown):
+    """Jetons du cours : sans le titre de niveau 1 du début (déjà affiché par la page),
+    avec un identifiant sur chaque titre de section (## …) pour le sommaire."""
+    tokens = md.parse(markdown)
+    if len(tokens) >= 3 and tokens[0].type == "heading_open" and tokens[0].tag == "h1":
+        tokens = tokens[3:]
+    used, sections = set(), []
+    for i, tok in enumerate(tokens):
+        if tok.type == "heading_open" and tok.tag == "h2":
+            inline = tokens[i + 1]
+            title = "".join(c.content for c in inline.children or [] if c.type in ("text", "code_inline")) or inline.content
+            tok.attrSet("id", _slug(title, used))
+            sections.append({"id": tok.attrGet("id"), "titre": title})
+    return tokens, sections
+
+
+def cours_sommaire(markdown):
+    """Sections du cours (titres ## …) : [{"id", "titre"}], dans l'ordre."""
+    return _prepare(_md(), markdown)[1]
+
+
 def render_cours(markdown, module_id):
     md = _md()
-    tokens = md.parse(markdown)
+    tokens, _ = _prepare(md, markdown)
     _group_tabs(tokens)
 
     def fence(renderer, tokens, idx, options, env):

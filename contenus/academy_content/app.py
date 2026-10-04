@@ -29,7 +29,7 @@ from .model import (
     load_parcours,
     module_files,
 )
-from .render import code_files, lab_link, render_cours, render_markdown
+from .render import code_files, cours_sommaire, lab_link, render_cours, render_markdown
 from .store import ContentStore, StoreError
 from .verification import Busy, InvalidStudent
 
@@ -224,7 +224,7 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
         parcours, prev, nxt, numero = _parcours_of(root, module_id)
         return page(
             request, "module.html",
-            module=module, cours_html=render_cours(module.cours, module.id),
+            module=module, cours_html=render_cours(module.cours, module.id), sommaire=cours_sommaire(module.cours),
             enonce_html=render_markdown(module.exercice.enonce), qcm=_public_qcm(module),
             parcours=parcours, prev=prev, next=nxt, numero=numero, apercu=apercu,
         )

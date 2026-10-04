@@ -255,6 +255,59 @@ function setupSideBySide() {
   }
 }
 
+// Page d'un module : étape et section en cours, progression de lecture, barre du bas (téléphone)
+function setupModule() {
+  const corps = document.querySelector(".module-contenu");
+  if (!corps) return;
+  const etapes = [...document.querySelectorAll(".etapes-module [data-etape]")];
+  const liens = [...document.querySelectorAll(".sommaire [data-section], .sommaire-mobile [data-section]")];
+  const cibles = [...corps.querySelectorAll(".cours h2[id], #exercice, #qcm")];
+  const barre = document.querySelector(".lecture-barre");
+  const suivante = document.querySelector("[data-suivante]");
+  const SUITES = {
+    cours: ["#exercice", "Aller à l'exercice"],
+    exercice: ["#qcm", "Aller au QCM"],
+    qcm: [document.querySelector(".prev-next .suivant")?.getAttribute("href") || "#cours", document.querySelector(".prev-next .suivant") ? "Module suivant" : "Revoir le cours"],
+  };
+
+  let courante = "";
+  const marquer = () => {
+    // la dernière cible dont le haut a dépassé le premier quart de l'écran
+    const seuil = window.innerHeight * 0.25;
+    let id = cibles[0]?.id || "";
+    for (const c of cibles) if (c.getBoundingClientRect().top <= seuil) id = c.id;
+    const etape = id === "exercice" || id === "qcm" ? id : "cours";
+    if (barre) {
+      const r = corps.getBoundingClientRect();
+      const lu = Math.min(1, Math.max(0, -r.top / Math.max(1, r.height - window.innerHeight)));
+      barre.style.transform = `scaleX(${lu})`;
+    }
+    if (id === courante) return;
+    courante = id;
+    for (const a of liens) {
+      if (a.dataset.section === id) a.setAttribute("aria-current", "location");
+      else a.removeAttribute("aria-current");
+    }
+    for (const a of etapes) {
+      if (a.dataset.etape === etape) a.setAttribute("aria-current", "step");
+      else a.removeAttribute("aria-current");
+    }
+    if (suivante) [suivante.href, suivante.textContent] = SUITES[etape];
+  };
+  let prevu = false;
+  window.addEventListener("scroll", () => {
+    if (prevu) return;
+    prevu = true;
+    requestAnimationFrame(() => { prevu = false; marquer(); });
+  }, { passive: true });
+  window.addEventListener("resize", marquer);
+  // sommaire du téléphone : on le referme une fois la section choisie
+  for (const a of document.querySelectorAll(".sommaire-mobile a")) {
+    a.addEventListener("click", () => a.closest("details").removeAttribute("open"));
+  }
+  marquer();
+}
+
 // Catalogue : recherche et filtre par niveau, sans rechargement
 function setupCatalogue() {
   const form = document.querySelector("[data-filtres]");
@@ -287,5 +340,6 @@ function setupCatalogue() {
 setupTabs();
 setupCopy();
 setupCatalogue();
+setupModule();
 setupQcm();
 setupSideBySide();

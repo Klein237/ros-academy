@@ -1,4 +1,4 @@
-from academy_content.render import code_files, parse_info, render_cours, render_markdown, safe_rel_path
+from academy_content.render import code_files, cours_sommaire, parse_info, render_cours, render_markdown, safe_rel_path
 
 COURS = """\
 # Titre
@@ -64,3 +64,16 @@ def test_side_by_side_hooks():
     assert html.count('class="code-run"') == 1  # le bloc bash seulement (pas les fichiers)
     bash = html.split('data-lang="bash"')[1].split("</figure>")[0]
     assert 'class="code-run" hidden' in bash
+
+
+def test_cours_sommaire_and_no_duplicate_title():
+    md = "# Écrire un nœud\n\nIntro\n\n## 1. Le nœud `diff_drive_node`\n\nA\n\n## Suite\n\n## Suite\n"
+    assert cours_sommaire(md) == [
+        {"id": "c-1-le-noeud-diff-drive-node", "titre": "1. Le nœud diff_drive_node"},
+        {"id": "c-suite", "titre": "Suite"},
+        {"id": "c-suite-2", "titre": "Suite"},
+    ]
+    html = render_cours(md, "02-noeud")
+    assert "<h1>" not in html  # le titre est déjà celui de la page
+    assert '<h2 id="c-1-le-noeud-diff-drive-node">' in html and '<h2 id="c-suite-2">' in html
+    assert "<h1>Autre</h1>" in render_cours("Intro\n\n# Autre\n", "02-noeud")  # seul le titre de tête disparaît
