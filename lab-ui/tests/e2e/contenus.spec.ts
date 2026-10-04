@@ -144,14 +144,15 @@ test("Cours + lab : le lab à côté du cours lance les commandes et ouvre les f
 
 test("l'administrateur modifie un module et le publie après les tests", async ({ page }) => {
   test.setTimeout(600_000);
-  const marque = `Initiation à ROS 2 — édition ${Date.now()}`;
+  const marque = `Introduction — édition ${Date.now()}`;
   await page.goto(`/admin/login?token=${mintAdmin()}`);
   await expect(page.locator("h1")).toHaveText("Formations");
   await page.locator("#modules").getByRole("row", { name: /01-initiation/ }).getByRole("link", { name: "Éditer" }).click();
   const area = page.locator("#contenu");
   await expect(area).toHaveValue(/titre: Initiation à ROS 2/);
   const text = await area.inputValue();
-  await area.fill(text.replace(/^# Initiation à ROS 2.*$/m, `# ${marque}`));
+  // le titre « # » de tête n'est pas affiché (la page montre celui de l'en-tête) : on modifie une section
+  await area.fill(text.replace(/^## 1\. .*$/m, `## 1. ${marque}`));
   await page.keyboard.press("ControlOrMeta+S");
   await expect(page.locator("#etat-fichier")).toHaveText("Enregistré");
   await expect(page.locator("#apercu")).toContainText(marque);

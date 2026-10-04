@@ -69,6 +69,8 @@ def test_public_pages(client):
     assert 'href="/connexion"' in page and 'href="/compte/resultats"' in page  # en-tête : connexion, « Mon apprentissage »
     assert 'class="code-tabs"' in page  # python + cpp consécutifs
     assert "Quelle commande compile un workspace ?" in page
+    assert 'aria-label="Étapes du module"' in page and 'href="/parcours/demo/"' in page
+    assert page.count("<h1>") == 1  # plus de titre en double
 
 
 def test_answers_never_reach_the_browser(client):

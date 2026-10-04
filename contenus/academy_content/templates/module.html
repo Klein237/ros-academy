@@ -1,64 +1,100 @@
 {% extends "base.html" %}
+{% set nav_actif = "catalogue" %}
 {% block title %}{{ module.en_tete.titre }} · ROS Academy{% endblock %}
+{% block body_class %}page-module{% endblock %}
 {% block banner %}{% if apercu %}<div class="preview-banner">Aperçu du brouillon — les étudiants ne voient pas encore cette version. <a href="/admin/modules/{{ module.id }}/">Retour à l'éditeur</a></div>{% endif %}{% endblock %}
+{% block main_class %}page plein{% endblock %}
 {% block content %}
-<nav class="breadcrumb">
-  <a href="/catalogue/">Catalogue</a>
-  {% if parcours %} › <a href="/parcours/{{ parcours.id }}/">{{ parcours.titre }}</a> › module {{ numero }}{% endif %}
-</nav>
-<header class="module-header">
-  <div>
-    <h1>{{ module.en_tete.titre }}</h1>
-    {% if module.en_tete.resume %}<p class="lead">{{ module.en_tete.resume }}</p>{% endif %}
-    {% if module.en_tete.duree %}<p class="muted small">Durée : {{ module.en_tete.duree }}</p>{% endif %}
+{% macro liens_sommaire() %}
+  <ol class="sommaire-liste">
+    {% for s in sommaire %}<li><a href="#{{ s.id }}" data-section="{{ s.id }}">{{ s.titre }}</a></li>{% endfor %}
+    <li class="etape-lien"><a href="#exercice" data-section="exercice">Exercice : situation réelle</a></li>
+    <li class="etape-lien"><a href="#qcm" data-section="qcm">QCM</a></li>
+  </ol>
+{% endmacro %}
+<div class="module-barre">
+  <div class="module-barre-inner">
+    {% if parcours %}
+    <a class="module-retour" href="/parcours/{{ parcours.id }}/">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+      <span>{{ parcours.titre }}</span>
+    </a>
+    {% endif %}
+    <nav class="etapes-module" aria-label="Étapes du module">
+      <a href="#cours" data-etape="cours">Cours</a>
+      <a href="#exercice" data-etape="exercice">Exercice</a>
+      <a href="#qcm" data-etape="qcm">QCM</a>
+    </nav>
+    <div class="module-actions">
+      <a class="button primary" href="{{ lab_link(module.id) }}">Ouvrir le lab</a>
+      {# Cours et lab côte à côte (site.js, écrans larges seulement) #}
+      <button type="button" class="button cote-a-cote" hidden
+              data-lab="{{ lab_link(module.id, integre=1) }}"
+              data-exercice="{{ lab_link(module.id, exercice=1, integre=1) }}">Cours + lab</button>
+    </div>
   </div>
-  <div class="module-actions">
-    <a class="button primary" href="{{ lab_link(module.id) }}">Ouvrir le lab</a>
-    {# Cours et lab côte à côte (site.js, écrans larges seulement) #}
-    <button type="button" class="button cote-a-cote" hidden
-            data-lab="{{ lab_link(module.id, integre=1) }}"
-            data-exercice="{{ lab_link(module.id, exercice=1, integre=1) }}">Cours + lab</button>
-  </div>
-</header>
-<nav class="toc" aria-label="Sections du module">
-  <a href="#cours">1. Cours et lab guidé</a>
-  <a href="#exercice">2. Exercice</a>
-  <a href="#qcm">3. QCM</a>
-</nav>
+  <div class="lecture" aria-hidden="true"><div class="lecture-barre"></div></div>
+</div>
 
-<article id="cours" class="cours">
-  {{ cours_html | safe }}
-</article>
+<div class="module-corps">
+  <nav class="sommaire" aria-label="Sommaire du module">
+    <p class="sommaire-titre">Sommaire</p>
+    {{ liens_sommaire() }}
+  </nav>
 
-<section id="exercice" class="card exercise">
-  <h2>Exercice : situation réelle</h2>
-  {{ enonce_html | safe }}
-  <p><a class="button primary exercice-lab" href="{{ lab_link(module.id, exercice=1) }}">Ouvrir l'exercice dans le lab</a></p>
-  <p class="muted small">Dans le lab : « Commencer l'exercice » installe le workspace avec la panne, « Vérifier » contrôle votre correction. Trois indices sont disponibles ; chacun retire 15 % de la note de l'exercice.</p>
-</section>
+  <article class="module-contenu">
+    <header class="module-intro">
+      <p class="eyebrow">{% if numero %}Module {{ numero }}{% if parcours %} sur {{ parcours.modules | length }}{% endif %}{% endif %}{% if module.en_tete.duree %} · {{ module.en_tete.duree }}{% endif %}</p>
+      <h1>{{ module.en_tete.titre }}</h1>
+      {% if module.en_tete.resume %}<p class="lead">{{ module.en_tete.resume }}</p>{% endif %}
+      <details class="sommaire-mobile">
+        <summary>Sommaire du module</summary>
+        {{ liens_sommaire() }}
+      </details>
+    </header>
 
-<section id="qcm" class="card">
-  <h2>QCM</h2>
-  <p class="muted small">Deux tentatives ; la meilleure note est retenue. Elle compte pour la moitié de la note du module.</p>
-  <form class="qcm" data-module="{{ module.id }}">
-    <p class="qcm-status" role="status" hidden></p>
-    {% for q in qcm %}
-    <fieldset class="question" data-question="{{ q.id }}">
-      <legend>{{ loop.index }}. {{ q.question }}{% if q.multiple %} <span class="muted small">(plusieurs réponses)</span>{% endif %}</legend>
-      {% for c in q.choix %}
-      <label><input type="{{ 'checkbox' if q.multiple else 'radio' }}" name="{{ q.id }}" value="{{ loop.index0 }}"> {{ c }}</label>
-      {% endfor %}
-      <p class="feedback" hidden></p>
-    </fieldset>
-    {% endfor %}
-    <button type="submit" class="button primary">Valider mes réponses</button>
-    <p class="qcm-result" role="status" hidden></p>
-  </form>
-  <noscript><p class="muted">Le QCM a besoin de JavaScript.</p></noscript>
-</section>
+    <section id="cours" class="cours" aria-label="Cours">
+      {{ cours_html | safe }}
+    </section>
 
-<nav class="prev-next">
-  {% if prev %}<a href="/modules/{{ prev.id }}/">← {{ prev.titre }}</a>{% else %}<span></span>{% endif %}
-  {% if next %}<a href="/modules/{{ next.id }}/">{{ next.titre }} →</a>{% endif %}
-</nav>
+    <section id="exercice" class="card exercise">
+      <p class="eyebrow">Étape 2</p>
+      <h2>Exercice : situation réelle</h2>
+      {{ enonce_html | safe }}
+      <p><a class="button primary exercice-lab" href="{{ lab_link(module.id, exercice=1) }}">Ouvrir l'exercice dans le lab</a></p>
+      <p class="muted small">Dans le lab : « Commencer l'exercice » installe le workspace avec la panne, « Vérifier » contrôle votre correction. Trois indices sont disponibles ; chacun retire 15 % de la note de l'exercice.</p>
+    </section>
+
+    <section id="qcm" class="card">
+      <p class="eyebrow">Étape 3</p>
+      <h2>QCM</h2>
+      <p class="muted small">Deux tentatives ; la meilleure note est retenue. Elle compte pour la moitié de la note du module.</p>
+      <form class="qcm" data-module="{{ module.id }}">
+        <p class="qcm-status" role="status" hidden></p>
+        {% for q in qcm %}
+        <fieldset class="question" data-question="{{ q.id }}">
+          <legend>{{ loop.index }}. {{ q.question }}{% if q.multiple %} <span class="muted small">(plusieurs réponses)</span>{% endif %}</legend>
+          {% for c in q.choix %}
+          <label><input type="{{ 'checkbox' if q.multiple else 'radio' }}" name="{{ q.id }}" value="{{ loop.index0 }}"> {{ c }}</label>
+          {% endfor %}
+          <p class="feedback" hidden></p>
+        </fieldset>
+        {% endfor %}
+        <button type="submit" class="button primary">Valider mes réponses</button>
+        <p class="qcm-result" role="status" hidden></p>
+      </form>
+      <noscript><p class="muted">Le QCM a besoin de JavaScript.</p></noscript>
+    </section>
+
+    <nav class="prev-next" aria-label="Modules voisins">
+      {% if prev %}<a class="precedent" href="/modules/{{ prev.id }}/"><span>Module précédent</span>← {{ prev.titre }}</a>{% else %}<span></span>{% endif %}
+      {% if next %}<a class="suivant" href="/modules/{{ next.id }}/"><span>Module suivant</span>{{ next.titre }} →</a>{% endif %}
+    </nav>
+  </article>
+</div>
+
+<div class="barre-mobile">
+  <a class="button" href="{{ lab_link(module.id) }}">Ouvrir le lab</a>
+  <a class="button primary" href="#exercice" data-suivante>Aller à l'exercice</a>
+</div>
 {% endblock %}
