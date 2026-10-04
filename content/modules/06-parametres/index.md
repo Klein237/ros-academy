@@ -5,6 +5,14 @@ duree: 1 h 15
 ---
 # Paramètres et fichiers launch
 
+> **La situation.** Une salle de démonstration ouvre la semaine prochaine : le robot doit y rouler deux fois moins vite, et s'arrêter plus précisément. Aujourd'hui, ces valeurs sont écrites dans le code ; à chaque changement, il faut modifier et recompiler. Vous allez les transformer en paramètres, et démarrer le tout avec un seul fichier launch.
+
+**Dans ce module, vous allez :**
+
+- déclarer, lire et valider les paramètres d'un nœud ;
+- les inspecter et les modifier pendant que le robot roule (`ros2 param`) ;
+- les regrouper dans un fichier YAML et démarrer le robot avec un fichier launch.
+
 ## 1. Pourquoi des paramètres ?
 
 **Constat :** dans `diff_drive_node`, la vitesse maximale (`0.5` m/s), la tolérance d'arrivée de l'action `goto` (`0.05` m) et la période de mise à jour sont écrites en dur. Pour faire rouler le robot plus lentement dans une salle de démonstration, il faudrait modifier le code et recompiler.

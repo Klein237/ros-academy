@@ -5,6 +5,14 @@ duree: 1 h 15
 ---
 # Créer un service
 
+> **La situation.** Le système de gestion de l'entrepôt doit savoir où se trouve le robot au moment d'attribuer une livraison. Il n'a que faire d'un flux de positions 20 fois par seconde : il veut poser la question une fois et obtenir la réponse. Vous allez ajouter au robot un service `get_pose`.
+
+**Dans ce module, vous allez :**
+
+- définir votre propre interface de service (fichier `.srv`) dans un package dédié ;
+- ajouter un serveur de service au nœud `diff_drive_node` ;
+- appeler le service en ligne de commande et vérifier la réponse quand le robot bouge.
+
 ## 1. Introduction aux services
 
 **Concept :** un service est une communication **synchrone** : un client envoie une requête et attend une réponse unique.
@@ -364,3 +372,5 @@ Une requête (vide) est envoyée au serveur, et la réponse s'affiche : `x`, `y`
 
 - Écrire un service qui renvoie la distance parcourue par le robot.
 - Écrire un nœud client (`create_client`, `call_async`) qui interroge `get_pose` une fois par seconde et affiche la réponse.
+
+**Et maintenant ?** Le robot sait dire où il est. Prochaine étape : lui confier une vraie livraison, longue et interruptible, avec une action.

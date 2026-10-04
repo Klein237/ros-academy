@@ -5,6 +5,14 @@ duree: 1 h 30
 ---
 # Modéliser un robot avec URDF
 
+> **La situation.** L'équipe veut voir le robot dans RViz, et bientôt le simuler. Pour cela, ROS doit connaître sa forme : un châssis, deux roues motrices, une roulette, où chaque pièce se trouve et comment elle bouge. Vous allez écrire sa description URDF.
+
+**Dans ce module, vous allez :**
+
+- décrire le robot en URDF : links, joints, géométries et matériaux ;
+- factoriser la description avec Xacro (propriétés, macros) ;
+- publier la description avec `robot_state_publisher` et la voir dans RViz.
+
 ## 1. Introduction
 
 **Contexte :** dans le monde de la simulation robotique, l'élément central est le robot.
@@ -386,3 +394,5 @@ Le rendu est logiciel (sans carte graphique) : un peu lent, mais suffisant pour 
 - URDF = description statique du robot ;
 - Xacro = version paramétrée et factorisée ;
 - pour aller plus loin : transmissions et `ros2_control`, intégration dans Gazebo (SDF/URDF), génération depuis la CAO (SolidWorks → URDF…).
+
+**Et maintenant ?** Le robot a une forme. Avant de le simuler, rendons-le réglable sans recompiler : paramètres et fichiers launch, au module suivant.

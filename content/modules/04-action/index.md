@@ -5,6 +5,14 @@ duree: 1 h 30
 ---
 # Créer une action
 
+> **La situation.** Une commande arrive : livrer un colis au point (2, 1) de l'entrepôt. Le trajet prend plusieurs secondes ; l'opérateur veut suivre la distance restante et pouvoir annuler si le colis est retiré. Ni un topic ni un service ne suffisent : il faut une action `goto`.
+
+**Dans ce module, vous allez :**
+
+- définir une interface d'action (fichier `.action`) : goal, feedback et résultat ;
+- écrire le serveur d'action qui conduit le robot jusqu'au point demandé ;
+- suivre les feedbacks, recevoir le résultat et annuler un goal en cours.
+
 ## 1. Introduction aux actions
 
 **Petit rappel :**
@@ -498,3 +506,5 @@ Pour tester l'annulation, envoyez un goal lointain puis appuyez sur **Ctrl+C** d
 - Implémenter un contrôleur PID plus robuste.
 - Créer un nœud avec un client d'action (`ActionClient`) qui envoie le goal et republie les feedbacks sur un topic.
 - Refuser (`GoalResponse.REJECT`) les goals situés à plus de 10 m.
+
+**Et maintenant ?** Le robot sait livrer. Mais pour l'afficher, le simuler ou ajouter un capteur, il faut décrire sa forme : c'est le rôle de l'URDF, au module suivant.

@@ -5,7 +5,9 @@ duree: 1 h 15
 ---
 # Écrire un nœud
 
-**Objectifs :**
+> **La situation.** Le robot de livraison a deux moteurs, mais aucun logiciel pour les piloter. Votre première mission : écrire le programme qui reçoit les ordres de vitesse de l'équipe et calcule en permanence où se trouve le robot. Ce nœud, `diff_drive_node`, sera le cœur du robot pendant tout le parcours.
+
+**Dans ce module, vous allez :**
 
 - écrire un nœud qui s'abonne à un topic et en publie un autre ;
 - comprendre le cycle de vie d'un nœud : initialisation, `spin`, arrêt ;
@@ -295,3 +297,5 @@ ros2 topic hz /odom
 - Arrêter le robot quand aucune commande n'est reçue depuis 0,5 s (sécurité indispensable sur un vrai robot).
 - Ajouter un paramètre `rate` (`declare_parameter`) pour régler la fréquence de mise à jour.
 - Publier aussi la transformation `odom → base_link` avec un `TransformBroadcaster`.
+
+**Et maintenant ?** Le robot roule et publie sa position. Dans le module suivant, l'entrepôt veut pouvoir la lui demander à tout moment : vous lui ajouterez un service.
