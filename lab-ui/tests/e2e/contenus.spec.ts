@@ -58,6 +58,8 @@ test("module Nœud : « Ouvrir dans le lab » crée le fichier du cours sans jam
   await waitReady(page);
   await expect(page.locator(".editor .tab.active")).toContainText("diff_drive_node.py");
   await expect(page.locator(".monaco-editor")).toContainText("class DiffDriveNode");
+  // lab seul ouvert depuis un module : retour au cours visible, dans le même onglet
+  await expect(page.getByRole("link", { name: "← Retour au cours" })).toHaveAttribute("href", "/modules/02-noeud/");
   await expect(page.locator('.tree-row[data-path="ws/02-noeud/src"]')).toBeVisible(); // lab/ installé et déplié
   // en tête de fichier : Monaco n'affiche que les lignes visibles
   await run(page, `sed -i '1i # ma modification' ~/${file} && echo ok-""modifie`, "ok-modifie");
@@ -118,7 +120,9 @@ test("Cours + lab : le lab à côté du cours lance les commandes et ouvre les f
   students.push(await loginStudent(page, newEmail()));
   await page.goto("/modules/02-noeud/");
   await expect(page.locator(".code-run").first()).toBeHidden(); // sans le lab à côté : pas de bouton
-  await page.getByRole("button", { name: "Cours + lab" }).click();
+  // écran large : « Ouvrir le lab » ouvre le lab à côté du cours ; le lab seul reste proposé à part
+  await expect(page.getByRole("link", { name: "Lab en plein écran" })).toHaveAttribute("target", "_blank");
+  await page.getByRole("button", { name: "Ouvrir le lab" }).click();
   const lab = page.frameLocator(".lab-dock iframe");
   await expect(lab.locator(".overlay")).toBeHidden({ timeout: 180_000 });
   const term = lab.locator(".terminal-host:not([hidden])");
@@ -133,10 +137,10 @@ test("Cours + lab : le lab à côté du cours lance les commandes et ouvre les f
   await page.locator('a.code-open[data-open$="diff_drive_node.py"]').first().click();
   await expect(page).toHaveURL(/\/modules\/02-noeud\/$/);
   await expect(lab.locator(".editor .tab.active")).toContainText("diff_drive_node.py");
-  // le choix est retenu d'une page à l'autre ; « Cours seul » referme le panneau
+  // le choix est retenu d'une page à l'autre ; « Masquer le lab » referme le panneau
   await page.reload();
   await expect(page.locator(".lab-dock iframe")).toBeVisible();
-  await page.getByRole("button", { name: "Cours seul" }).click();
+  await page.getByRole("button", { name: "Masquer le lab" }).click();
   await expect(page.locator(".lab-dock")).toHaveCount(0);
   await expect(page.locator(".code-run").first()).toBeHidden();
   expect(errors).toEqual([]);

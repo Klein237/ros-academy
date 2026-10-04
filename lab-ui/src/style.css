@@ -120,6 +120,21 @@ code {
   flex: 1;
 }
 
+/* « ← Retour au cours » (lab seul ouvert depuis un module) */
+.back-course {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+  padding: 4px 10px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.back-course:hover {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
 .banners {
   grid-row: 2;
 }

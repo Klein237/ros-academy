@@ -1,5 +1,5 @@
 // Onglets Python / C++, bouton Copier, QCM corrigé par le serveur (via Comptes),
-// cours et lab côte à côte (« Cours + lab »), filtres du catalogue.
+// cours et lab côte à côte (« Ouvrir le lab » sur écran large), filtres du catalogue.
 
 function setupTabs() {
   for (const group of document.querySelectorAll(".code-tabs")) {
@@ -141,6 +141,8 @@ const memoire = {
 function setupSideBySide() {
   const toggle = document.querySelector("button.cote-a-cote");
   if (!toggle) return;
+  const labSeul = document.querySelector("a.lab-seul");
+  const pleinEcran = document.querySelector("a.lab-plein-ecran");
   const large = window.matchMedia("(min-width: 1100px)");
   let dock = null;
   let frame = null;
@@ -194,7 +196,8 @@ function setupSideBySide() {
       handle.addEventListener("pointerup", up);
     });
     for (const b of document.querySelectorAll(".code-run")) b.hidden = false;
-    toggle.textContent = "Cours seul";
+    toggle.textContent = "Masquer le lab";
+    toggle.classList.remove("primary");
     toggle.setAttribute("aria-pressed", "true");
     memoire.ecrire(COTE_A_COTE, "1");
   }
@@ -206,13 +209,16 @@ function setupSideBySide() {
     frame = null;
     document.body.classList.remove("cote-a-cote");
     for (const b of document.querySelectorAll(".code-run")) b.hidden = true;
-    toggle.textContent = "Cours + lab";
+    toggle.textContent = "Ouvrir le lab";
+    toggle.classList.add("primary");
     toggle.setAttribute("aria-pressed", "false");
     if (remember) memoire.ecrire(COTE_A_COTE, null);
   }
 
   const follow = () => {
     toggle.hidden = !large.matches;
+    if (labSeul) labSeul.hidden = large.matches;
+    if (pleinEcran) pleinEcran.hidden = !large.matches;
     if (!large.matches) shut(false); // fenêtre devenue étroite : le cours reprend toute la place
   };
   large.addEventListener("change", follow);
@@ -221,6 +227,12 @@ function setupSideBySide() {
   if (large.matches && memoire.lire(COTE_A_COTE) === "1") open(toggle.dataset.lab);
 
   document.addEventListener("click", (ev) => {
+    // « Ouvrir l'exercice dans le lab » : à côté de l'énoncé dès que l'écran le permet
+    if (large.matches && ev.target.closest("a.exercice-lab")) {
+      ev.preventDefault();
+      open(toggle.dataset.exercice);
+      return;
+    }
     if (!dock) return;
     const openLink = ev.target.closest("a.code-open[data-open]");
     if (openLink) {
@@ -232,10 +244,6 @@ function setupSideBySide() {
     if (run) {
       post({ type: "rosacademy:run", command: run.closest("figure").querySelector("code").textContent });
       return;
-    }
-    if (ev.target.closest("a.exercice-lab")) {
-      ev.preventDefault();
-      open(toggle.dataset.exercice);
     }
   });
 

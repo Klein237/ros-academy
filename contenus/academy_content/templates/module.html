@@ -26,11 +26,13 @@
       <a href="#qcm" data-etape="qcm">QCM</a>
     </nav>
     <div class="module-actions">
-      <a class="button primary" href="{{ lab_link(module.id) }}">Ouvrir le lab</a>
-      {# Cours et lab côte à côte (site.js, écrans larges seulement) #}
-      <button type="button" class="button cote-a-cote" hidden
+      {# Écran étroit (ou sans JavaScript) : le lab seul, avec un retour au cours #}
+      <a class="button primary lab-seul" href="{{ lab_link(module.id) }}">Ouvrir le lab</a>
+      {# Écran large (site.js) : le lab s'ouvre à côté du cours ; le lab seul reste possible, dans un autre onglet #}
+      <button type="button" class="button primary cote-a-cote" hidden
               data-lab="{{ lab_link(module.id, integre=1) }}"
-              data-exercice="{{ lab_link(module.id, exercice=1, integre=1) }}">Cours + lab</button>
+              data-exercice="{{ lab_link(module.id, exercice=1, integre=1) }}">Ouvrir le lab</button>
+      <a class="button lab-plein-ecran" href="{{ lab_link(module.id) }}" target="_blank" rel="noopener" hidden>Lab en plein écran</a>
     </div>
   </div>
   <div class="lecture" aria-hidden="true"><div class="lecture-barre"></div></div>

@@ -44,10 +44,15 @@ const showFiles = button("Fichiers", () => toggleFiles(), { attrs: { "aria-press
 showFiles.hidden = !config.embedded;
 if (config.embedded) show2d.textContent = config.moduleId ? "Module et vue 2D" : "Vue 2D";
 const workspace = h("main", { class: "workspace" });
+// Lab seul, ouvert depuis un module : chemin de retour visible vers le cours (même onglet)
+const backToCourse = config.moduleId && !config.embedded
+  ? h("a", { class: "back-course", text: "← Retour au cours", attrs: { href: `/modules/${encodeURIComponent(config.moduleId)}/` } })
+  : null;
 app.append(
   h(
     "header",
     { class: "topbar" },
+    ...(backToCourse ? [backToCourse] : []),
     h("strong", { text: "Lab ROS 2" }),
     user,
     h("span", { class: "spacer" }),
