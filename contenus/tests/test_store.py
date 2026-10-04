@@ -168,3 +168,45 @@ def test_parcours_roundtrip(store):
     data["titre"] = "Renommé"
     store.write_parcours("demo", data)
     assert store.read_parcours("demo")["titre"] == "Renommé"
+
+
+# --- Nouvelle version des formations livrées avec la plateforme
+
+def new_seed_version(seed, text="Nouveau cours\n"):
+    index = seed / "modules/01-demo/index.md"
+    index.write_text(index.read_text().replace("# Cours", f"# Cours\n\n{text}"), encoding="utf-8")
+
+
+def test_platform_update_reaches_untouched_store(store, seed):
+    new_seed_version(seed)
+    again = ContentStore(store.root, seed=seed)  # redémarrage du service avec le nouveau code
+    assert again.mise_a_jour == "publiee"
+    assert "Nouveau cours" in published_index(again) and not again.has_unpublished_changes()
+    head = again.head()
+    assert ContentStore(store.root, seed=seed).head() == head  # rien de neuf : rien ne bouge
+
+
+def test_platform_update_keeps_admin_edits(store, seed):
+    store.write_file("01-demo", "notes.md", "Mes notes\n")  # modification de l'administrateur, non publiée
+    new_seed_version(seed)
+    again = ContentStore(store.root, seed=seed)
+    assert again.mise_a_jour == "a_publier"
+    assert again.read_file("01-demo", "notes.md") == "Mes notes\n"
+    assert "Nouveau cours" in again.read_file("01-demo", "index.md")
+    assert "Nouveau cours" not in published_index(again)  # publiée avec les tests, par l'administrateur
+
+
+def test_platform_update_conflict_changes_nothing(store, seed):
+    text = store.read_file("01-demo", "index.md").replace("# Cours", "# Cours\n\nVersion de l'admin")
+    store.write_file("01-demo", "index.md", text)
+    head = store.head()
+    new_seed_version(seed, "Version de la plateforme\n")
+    again = ContentStore(store.root, seed=seed)
+    assert again.mise_a_jour == "conflit" and again.head() == head
+    assert "Version de l'admin" in again.read_file("01-demo", "index.md")
+
+
+def test_store_created_before_platform_branch(store, seed):
+    store._git("branch", "-D", "plateforme")
+    new_seed_version(seed)
+    assert "Nouveau cours" in published_index(ContentStore(store.root, seed=seed))

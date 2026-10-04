@@ -363,7 +363,7 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
 
     @app.get("/admin/", response_class=HTMLResponse)
     def admin_home(request: Request, admin=Depends(admin_user)):
-        return page(request, "admin/tableau.html", admin=admin, tests_enabled=tests_enabled)
+        return page(request, "admin/tableau.html", admin=admin, mise_a_jour=store.mise_a_jour, tests_enabled=tests_enabled)
 
     @app.get("/admin/guide/", response_class=HTMLResponse)
     def admin_guide(request: Request, admin=Depends(admin_user)):
