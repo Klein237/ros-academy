@@ -222,7 +222,7 @@ figure.code pre { margin: 0; padding: 14px 16px; overflow-x: auto; color: var(--
 body.cote-a-cote { --lab-w: 55vw; }
 body.cote-a-cote > :not(.lab-dock) { margin-right: var(--lab-w); }
 body.cote-a-cote .site-header-inner, body.cote-a-cote .site-footer-inner { max-width: none; }
-body.cote-a-cote main.page { max-width: none; padding: 24px 24px 48px; }
+body.cote-a-cote main.page { max-width: none; width: auto; margin-left: 0; padding: 24px 24px 48px; }
 .lab-dock {
   position: fixed; top: 0; right: 0; bottom: 0; width: var(--lab-w); z-index: 10;
   display: flex; flex-direction: column; background: var(--surface); border-left: 1px solid var(--line);
