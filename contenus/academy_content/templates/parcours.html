@@ -17,7 +17,8 @@
       <h1>{{ parcours.titre }}</h1>
       <p>{{ parcours.description }}</p>
     </div>
-    <div class="carte-reprise">
+    {# Remplie avec la progression de l'étudiant quand une session est ouverte (site.js) #}
+    <div class="carte-reprise" data-progression="{{ parcours.id }}">
       <span class="carte-reprise-titre">Tout se passe dans le navigateur</span>
       <p>Cours, terminal, éditeur et simulateur : rien à installer.</p>
       <a class="button primary" href="/modules/{{ premier.id }}/">Commencer le module 1</a>
@@ -37,7 +38,7 @@
         </div>
       </li>
       {% for m in parcours.modules %}
-      <li>
+      <li data-module="{{ m.id }}">
         <span class="pastille-numero">{{ loop.index }}</span>
         <div class="programme-texte">
           <a href="/modules/{{ m.id }}/">{{ m.titre }}</a>

@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% set nav_actif = "apprentissage" %}
+{% block title %}Mon apprentissage{% endblock %}
+{% block main_class %}page plein{% endblock %}
+{% block content %}
+{% set prenom = (user.nom or "").split(" ")[0] %}
+<div class="conteneur tableau">
+  <h1>{% if prenom %}Bonjour {{ prenom }}{% else %}Mon apprentissage{% endif %}</h1>
+
+  {% if actif and actif.prochain %}
+  <section class="reprendre" aria-labelledby="reprendre">
+    <div>
+      <p class="reprendre-sur">{{ "Reprendre là où vous en étiez" if actif.commence else "Votre premier module" }}</p>
+      <h2 id="reprendre">{{ actif.prochain.titre }}</h2>
+      <p>{{ actif.parcours.titre }} · module {{ (actif.parcours.modules | map(attribute="id") | list).index(actif.prochain.id) + 1 }} sur {{ actif.modules | length }}{% if actif.commence %} · vos fichiers vous attendent dans le lab{% endif %}</p>
+    </div>
+    <a class="button amber grand" href="/modules/{{ actif.prochain.id }}/">{{ "Reprendre" if actif.commence else "Commencer" }}</a>
+  </section>
+  {% elif suivis %}
+  <section class="reprendre" aria-labelledby="reprendre">
+    <div>
+      <p class="reprendre-sur">Bravo</p>
+      <h2 id="reprendre">Tous les modules disponibles sont terminés</h2>
+      <p>De nouveaux parcours arrivent : Nav2, SLAM, ros2_control…</p>
+    </div>
+    <a class="button amber grand" href="/catalogue/">Voir le catalogue</a>
+  </section>
+  {% endif %}
+
+  <div class="chiffres">
+    <div class="chiffre"><span class="chiffre-label">Modules terminés</span><span class="chiffre-valeur">{{ termines }}</span></div>
+    <div class="chiffre"><span class="chiffre-label">Moyenne des modules terminés</span><span class="chiffre-valeur">{% if moyenne is not none %}{{ ('%.1f' | format(moyenne)) | replace('.', ',') }} / 20{% else %}—{% endif %}</span></div>
+    <div class="chiffre">
+      <span class="chiffre-label">Lab ce mois-ci</span>
+      {% if restantes is none %}
+      <span class="chiffre-valeur">Sans limite</span>
+      <span class="chiffre-note">{{ utilisees }} min utilisées</span>
+      {% else %}
+      <span class="chiffre-valeur">{{ restantes }} min</span>
+      <progress class="jauge" max="{{ restantes + utilisees }}" value="{{ restantes }}" aria-label="Minutes de lab restantes">{{ restantes }} min</progress>
+      <span class="chiffre-note">restantes sur {{ restantes + utilisees }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <section aria-labelledby="mes-parcours">
+    <div class="entete-section">
+      <h2 id="mes-parcours">Mes parcours</h2>
+      <a class="lien-fort" href="/compte/resultats">Détail des notes →</a>
+    </div>
+    <ul class="suivis">
+      {% for r in suivis %}
+      <li class="suivi">
+        <div class="suivi-texte">
+          <a class="suivi-titre" href="/parcours/{{ r.parcours.id }}/">{{ r.parcours.titre }}</a>
+          <progress class="jauge" max="{{ r.modules | length }}" value="{{ r.termines }}" aria-label="Modules terminés">{{ r.termines }}</progress>
+          <span class="muted small">{{ r.termines }} module{{ "s" if r.termines > 1 }} sur {{ r.modules | length }}{% if r.finale is not none %} · note finale {{ ('%.2f' | format(r.finale)) | replace('.', ',') }} / 20{% elif r.prochain %} · prochain : {{ r.prochain.titre }}{% endif %}</span>
+        </div>
+        <a class="lien-fort" href="/parcours/{{ r.parcours.id }}/">Voir le programme →</a>
+      </li>
+      {% else %}
+      <li class="muted">Aucun parcours publié pour le moment.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <div class="deux-encarts">
+    <section class="encart" aria-labelledby="certificats">
+      <h2 id="certificats">Certificats</h2>
+      {% if certificats %}
+      <ul class="liste-certificats">
+        {% for c in certificats %}
+        <li><a href="/certificats/{{ c.code }}">{{ c.parcours_titre }}</a> <span class="muted small">· {{ c.emis_le.strftime('%d/%m/%Y') }} · {{ ('%.2f' | format(c.note)) | replace('.', ',') }} / 20</span></li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p>Votre premier certificat arrive à la fin d'un parcours. Il se partage par un lien vérifiable.</p>
+      {% endif %}
+    </section>
+    <section class="encart encart-ambre" aria-labelledby="ensuite">
+      <h2 id="ensuite">Ensuite</h2>
+      <p>D'autres parcours se préparent : navigation autonome avec Nav2, SLAM, ros2_control, Docker pour la robotique.</p>
+      <p><a class="lien-fort" href="/catalogue/">Voir le catalogue →</a></p>
+    </section>
+  </div>
+</div>
+{% endblock %}

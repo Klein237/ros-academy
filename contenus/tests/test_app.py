@@ -66,7 +66,7 @@ def test_public_pages(client):
     assert "Ouvrir dans le lab" in page
     assert "/compte/lab?suite=/lab/%3Fmodule%3D01-demo%26open%3Dws/01-demo/src/p/p/n.py" in page
     assert 'href="/compte/lab?suite=/lab/%3Fmodule%3D01-demo%26exercice%3D1"' in page
-    assert 'href="/connexion"' in page and 'href="/compte/resultats"' in page  # en-tête : connexion, « Mon apprentissage »
+    assert 'href="/connexion"' in page and 'href="/compte/apprentissage"' in page  # en-tête : connexion, « Mon apprentissage »
     assert 'class="code-tabs"' in page  # python + cpp consécutifs
     assert "Quelle commande compile un workspace ?" in page
     assert 'aria-label="Étapes du module"' in page and 'href="/parcours/demo/"' in page
