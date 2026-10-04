@@ -1,4 +1,4 @@
-"""Lien de connexion à l'écran (test en local) et commande de test SMTP."""
+"""Lien de confirmation à l'écran (test en local) et commande de test SMTP."""
 
 import smtplib
 from dataclasses import replace
@@ -38,7 +38,8 @@ def test_flag_read_from_environment(monkeypatch):
 def page_after_request(env, settings):
     app = appmod.create_app(settings, hub=env["hub"], contenus=env["contenus"], background=False)
     c = TestClient(app, base_url=settings.public_url)
-    return c, c.post("/connexion/email", data={"email": "eleve@exemple.fr"}, headers={"Origin": settings.public_url})
+    return c, c.post("/connexion/inscription", data={"email": "eleve@exemple.fr", "mot_de_passe": "un-mot-de-passe-solide"},
+                     headers={"Origin": settings.public_url})
 
 
 def test_page_shows_a_working_link_in_local_mode(env):  # noqa: F811
@@ -46,7 +47,7 @@ def test_page_shows_a_working_link_in_local_mode(env):  # noqa: F811
     c, r = page_after_request(env, settings)
     assert r.status_code == 200 and "Test en local" in r.text
     link = env["sent"][-1][1]
-    assert f'href="{link}"' in r.text
+    assert f'href="{link}"' in r.text and "/connexion/confirmer/" in link
     login = c.get(link.removeprefix(LOCAL), follow_redirects=False)
     assert login.status_code == 303
 

@@ -155,7 +155,7 @@ def test_client_errors_become_stripe_errors():
 @pytest.fixture
 def benv(tmp_path, monkeypatch):
     sent = []
-    monkeypatch.setattr(appmod, "send_login_link", lambda settings, email, link: sent.append((email, link)))
+    monkeypatch.setattr(appmod, "send_account_mail", lambda settings, email, sorte, link: sent.append((email, link, sorte)))
     settings = replace(
         appmod.Settings(jwt_secret=SECRET, public_url=BASE, database_url=f"sqlite:///{tmp_path}/c.db"),
         stripe_secret_key="sk_test_cle", stripe_webhook_secret=WHSEC, stripe_price_id=PRICE)

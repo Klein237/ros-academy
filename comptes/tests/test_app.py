@@ -92,7 +92,7 @@ def oauth_transport(github_verified=True, google_verified=True, email="eleve@exe
 @pytest.fixture
 def env(tmp_path, monkeypatch):
     sent = []
-    monkeypatch.setattr(appmod, "send_login_link", lambda settings, email, link: sent.append((email, link)))
+    monkeypatch.setattr(appmod, "send_account_mail", lambda settings, email, sorte, link: sent.append((email, link, sorte)))
     settings = Settings(jwt_secret=SECRET, public_url=BASE, database_url=f"sqlite:///{tmp_path}/c.db",
                         github_client_id="id", github_client_secret="sec", google_client_id="gid",
                         google_client_secret="gsec", admin_emails=frozenset({"admin@exemple.fr"}),
@@ -113,10 +113,20 @@ def client(env):
     return env["make"]()
 
 
-def login(client, env, email="eleve@exemple.fr", suite="/"):
-    r = client.post("/connexion/email", data={"email": email, "suite": suite}, headers=ORIGIN)
+PASSWORD = "un-mot-de-passe-solide"
+
+
+def login(client, env, email="eleve@exemple.fr", suite="/", password=PASSWORD):
+    """Connexion par mot de passe ; à la première fois, création du compte et lien de confirmation."""
+    r = client.post("/connexion", data={"email": email, "mot_de_passe": password, "suite": suite}, headers=ORIGIN,
+                    follow_redirects=False)
+    if r.status_code == 303:
+        return r
+    r = client.post("/connexion/inscription", data={"email": email, "mot_de_passe": password, "suite": suite},
+                    headers=ORIGIN)
     assert r.status_code == 200, r.text
-    link = env["sent"][-1][1]
+    email_sent, link, sorte = env["sent"][-1]
+    assert sorte == "confirmation"
     return client.get(urlsplit(link).path, follow_redirects=False)
 
 
@@ -124,22 +134,119 @@ def db(client):
     return client.app.state.session_factory()
 
 
-# --- Lien magique
+# --- Inscription, confirmation de l'adresse, mot de passe
 
-def test_magic_link_logs_in_once(client, env):
-    r = login(client, env, "Eleve@Exemple.FR", "/modules/02-noeud/")
+def signup(client, email="eleve@exemple.fr", password=PASSWORD, suite="/", nom="Élève Test"):
+    return client.post("/connexion/inscription", data={"nom": nom, "email": email, "mot_de_passe": password,
+                                                         "suite": suite}, headers=ORIGIN)
+
+
+def test_signup_confirm_then_password_login(client, env):
+    r = signup(client, "Eleve@Exemple.FR", suite="/modules/02-noeud/")
+    assert r.status_code == 200 and "Vérifiez votre boîte de réception" in r.text
+    email, link, sorte = env["sent"][-1]
+    assert (email, sorte) == ("eleve@exemple.fr", "confirmation") and link not in r.text  # pas de lien à l'écran
+    # pas de connexion avant la confirmation : un nouvel e-mail de confirmation est proposé
+    r = client.post("/connexion", data={"email": "eleve@exemple.fr", "mot_de_passe": PASSWORD}, headers=ORIGIN)
+    assert "abord votre adresse" in r.text and client.get("/api/comptes/moi").status_code == 401
+    r = client.get(urlsplit(link).path, follow_redirects=False)
     assert r.status_code == 303 and r.headers["location"] == "/modules/02-noeud/"
     cookie = r.headers["set-cookie"]
     assert "HttpOnly" in cookie and "Secure" in cookie and "SameSite=lax" in cookie
-    assert env["sent"][-1][0] == "eleve@exemple.fr"
-    assert client.get("/api/comptes/moi").json()["email"] == "eleve@exemple.fr"
-    assert client.get("/api/comptes/session").json() == {"connecte": True, "nom": client.get("/api/comptes/moi").json()["nom"], "email": "eleve@exemple.fr"}
-    again = client.get(urlsplit(env["sent"][-1][1]).path, follow_redirects=False)
-    assert again.status_code == 400 and "plus valable" in again.text
+    assert client.get("/api/comptes/moi").json()["nom"] == "Élève Test"
+    assert client.get(urlsplit(link).path, follow_redirects=False).status_code == 400  # usage unique
+    client.post("/deconnexion", headers=ORIGIN)
+    r = client.post("/connexion", data={"email": "ELEVE@exemple.fr", "mot_de_passe": PASSWORD, "suite": "/compte/"},
+                    headers=ORIGIN, follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/compte/"
+    with db(client) as s:
+        stored = s.query(User).one().mot_de_passe
+    assert stored.startswith("scrypt$") and PASSWORD not in stored
+
+
+def test_wrong_password_same_message_and_limited(client, env):
+    login(client, env)
+    client.post("/deconnexion", headers=ORIGIN)
+    bad = client.post("/connexion", data={"email": "eleve@exemple.fr", "mot_de_passe": "faux-mot-de-passe"}, headers=ORIGIN)
+    unknown = client.post("/connexion", data={"email": "personne@exemple.fr", "mot_de_passe": "faux-mot-de-passe"},
+                          headers=ORIGIN)
+    assert bad.status_code == unknown.status_code == 400
+    assert "Adresse e-mail ou mot de passe incorrect" in bad.text and "Adresse e-mail ou mot de passe incorrect" in unknown.text
+    for _ in range(9):
+        client.post("/connexion", data={"email": "eleve@exemple.fr", "mot_de_passe": "faux"}, headers=ORIGIN)
+    r = client.post("/connexion", data={"email": "eleve@exemple.fr", "mot_de_passe": PASSWORD}, headers=ORIGIN)
+    assert "essais pour cette adresse" in r.text  # même le bon mot de passe attend la fin du délai
+
+
+def test_one_link_at_a_time_and_resend_delay(client, env):
+    signup(client)
+    first = env["sent"][-1][1]
+    r = client.post("/connexion/renvoyer", data={"email": "eleve@exemple.fr"}, headers=ORIGIN)
+    assert "patientez une minute" in r.text and len(env["sent"]) == 1
+    with db(client) as s:
+        for t in s.query(LoginToken):
+            t.cree_le = utcnow() - timedelta(minutes=2)
+        s.commit()
+    r = client.post("/connexion/renvoyer", data={"email": "eleve@exemple.fr"}, headers=ORIGIN)
+    assert r.status_code == 200 and len(env["sent"]) == 2
+    assert client.get(urlsplit(first).path, follow_redirects=False).status_code == 400  # annulé par le nouveau
+    assert client.get(urlsplit(env["sent"][-1][1]).path, follow_redirects=False).status_code == 303
+
+
+def test_signup_on_existing_account_reveals_nothing(client, env):
+    login(client, env)
+    client.post("/deconnexion", headers=ORIGIN)
+    r = signup(client, password="un-autre-mot-de-passe")
+    assert r.status_code == 200 and "Vérifiez votre boîte de réception" in r.text
+    assert env["sent"][-1][2] == "compte_existant"  # l'e-mail propose de choisir un nouveau mot de passe
+    r = client.post("/connexion", data={"email": "eleve@exemple.fr", "mot_de_passe": PASSWORD}, headers=ORIGIN,
+                    follow_redirects=False)
+    assert r.status_code == 303  # l'ancien mot de passe n'a pas changé
+
+
+def test_password_reset(client, env):
+    login(client, env)
+    other = env["make"]()
+    login(other, env)  # une deuxième session, déconnectée par la réinitialisation
+    client.post("/deconnexion", headers=ORIGIN)
+    r = client.post("/connexion/oubli", data={"email": "personne@exemple.fr"}, headers=ORIGIN)
+    assert "Si un compte existe" in r.text and len([x for x in env["sent"] if x[2] == "reinitialisation"]) == 0
+    r = client.post("/connexion/oubli", data={"email": "eleve@exemple.fr", "suite": "/compte/"}, headers=ORIGIN)
+    assert "Si un compte existe" in r.text
+    link = urlsplit(env["sent"][-1][1]).path
+    assert env["sent"][-1][2] == "reinitialisation" and "Choisissez un nouveau mot de passe" in client.get(link).text
+    assert "au moins 10 caractères" in client.post(link, data={"mot_de_passe": "court"}, headers=ORIGIN).text
+    r = client.post(link, data={"mot_de_passe": "nouveau-mot-de-passe"}, headers=ORIGIN, follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/compte/"
+    assert other.get("/api/comptes/moi").status_code == 401
+    assert client.get(link).status_code == 400  # usage unique
+    client.post("/deconnexion", headers=ORIGIN)
+    assert login(client, env, password="nouveau-mot-de-passe").status_code == 303
+
+
+def test_legacy_account_sets_password_by_reset(client, env):
+    """Compte ouvert avant les mots de passe (lien par e-mail) : « Mot de passe oublié » lui en donne un."""
+    with db(client) as s:
+        s.add(User(email="ancien@exemple.fr", email_verifie_le=utcnow()))
+        s.commit()
+    r = client.post("/connexion", data={"email": "ancien@exemple.fr", "mot_de_passe": PASSWORD}, headers=ORIGIN)
+    assert r.status_code == 400
+    client.post("/connexion/oubli", data={"email": "ancien@exemple.fr"}, headers=ORIGIN)
+    link = urlsplit(env["sent"][-1][1]).path
+    client.post(link, data={"mot_de_passe": PASSWORD}, headers=ORIGIN)
+    assert client.get("/api/comptes/moi").json()["email"] == "ancien@exemple.fr"
+
+
+def test_change_password_from_account(client, env):
+    login(client, env)
+    r = client.post("/compte/mot-de-passe", data={"actuel": "faux", "nouveau": "nouveau-mot-de-passe"}, headers=ORIGIN)
+    assert r.status_code == 400 and "Mot de passe actuel incorrect" in r.text
+    r = client.post("/compte/mot-de-passe", data={"actuel": PASSWORD, "nouveau": "nouveau-mot-de-passe"}, headers=ORIGIN)
+    assert r.status_code == 200 and "Mot de passe enregistré" in r.text
 
 
 def test_expired_link_is_refused(client, env):
-    client.post("/connexion/email", data={"email": "a@exemple.fr"}, headers=ORIGIN)
+    signup(client)
     with db(client) as s:
         for t in s.query(LoginToken):
             t.expire_le = utcnow() - timedelta(seconds=1)
@@ -148,17 +255,28 @@ def test_expired_link_is_refused(client, env):
     assert r.status_code == 400
 
 
-def test_link_requests_are_rate_limited(client):
-    for _ in range(5):
-        assert client.post("/connexion/email", data={"email": "a@exemple.fr"}, headers=ORIGIN).status_code == 200
-    r = client.post("/connexion/email", data={"email": "a@exemple.fr"}, headers=ORIGIN)
-    assert r.status_code == 400 and "Trop de demandes" in r.text
+def test_link_requests_are_rate_limited(client, env):
+    login(client, env, "a@exemple.fr")  # 1 lien : la confirmation
+
+    def older():  # passé le délai de renvoi (60 s), toujours dans l'heure
+        with db(client) as s:
+            for t in s.query(LoginToken):
+                t.cree_le = utcnow() - timedelta(seconds=61)
+            s.commit()
+
+    for _ in range(4):
+        older()
+        assert "Si un compte existe" in client.post("/connexion/oubli", data={"email": "a@exemple.fr"}, headers=ORIGIN).text
+    older()
+    r = client.post("/connexion/oubli", data={"email": "a@exemple.fr"}, headers=ORIGIN)
+    assert r.status_code == 429 and "Trop de demandes" in r.text
 
 
-def test_invalid_email_and_foreign_origin(client):
-    assert "Adresse e-mail invalide" in client.post("/connexion/email", data={"email": "pas-un-mail"}, headers=ORIGIN).text
-    assert client.post("/connexion/email", data={"email": "a@exemple.fr"}).status_code == 403
-    assert client.post("/connexion/email", data={"email": "a@exemple.fr"},
+def test_invalid_input_and_foreign_origin(client):
+    assert "Adresse e-mail invalide" in signup(client, "pas-un-mail").text
+    assert "au moins 10 caractères" in signup(client, password="court").text
+    assert client.post("/connexion", data={"email": "a@exemple.fr", "mot_de_passe": "x"}).status_code == 403
+    assert client.post("/connexion/inscription", data={"email": "a@exemple.fr", "mot_de_passe": PASSWORD},
                        headers={"Origin": "https://evil.example"}).status_code == 403
 
 
@@ -450,7 +568,8 @@ def test_admin_link_only_for_admin_emails(client, env):
 
 
 def test_pages_render(client, env):
-    assert "Recevoir un lien de connexion" in client.get("/connexion").text
+    assert "Mot de passe oublié" in client.get("/connexion").text
+    assert "Créer mon compte" in client.get("/connexion/inscription").text
     login(client, env)
     page = client.get("/compte/").text
     assert "600 min" in page and "Se déconnecter" in page

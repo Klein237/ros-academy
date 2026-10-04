@@ -110,7 +110,7 @@ echo "verifier_envoi_mail (faux docker compose)"
   ENVOI=ok; verifier_envoi_mail moi@exemple.fr
   ENVOI=ko; verifier_envoi_mail moi@exemple.fr
 ) > "$TMP/mail" 2>&1
-egal "envoi réussi annoncé" "$(grep -c "l'envoi des liens de connexion fonctionne" "$TMP/mail")" 1
+egal "envoi réussi annoncé" "$(grep -c "l'envoi des e-mails du site fonctionne" "$TMP/mail")" 1
 egal "échec expliqué" "$(grep -c "SMTPServerDisconnected\|mot de passe d'application" "$TMP/mail")" 2
 
 echo "fonctions appelées"

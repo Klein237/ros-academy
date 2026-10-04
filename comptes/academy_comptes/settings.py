@@ -43,7 +43,7 @@ class Settings:
     smtp_user: str = ""
     smtp_password: str = ""
     smtp_from: str = "ROS Academy <no-reply@localhost>"
-    # Test en local : afficher le lien de connexion à l'écran (jamais en ligne, voir show_login_link)
+    # Test en local : afficher le lien de confirmation à l'écran (jamais en ligne, voir show_login_link)
     login_link_on_screen: bool = False
     github_client_id: str = ""
     github_client_secret: str = ""
@@ -79,7 +79,7 @@ class Settings:
 
     @property
     def show_login_link(self):
-        """Lien de connexion affiché à l'écran : demandé, sans SMTP, et sur une adresse locale seulement.
+        """Lien envoyé par e-mail (confirmation, mot de passe) affiché à l'écran : demandé, sans SMTP, et sur une adresse locale seulement.
 
         En ligne, n'importe qui pourrait ouvrir la session de n'importe quelle adresse.
         """

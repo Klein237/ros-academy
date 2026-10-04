@@ -13,6 +13,21 @@
   <p class="row"><a class="button primary" href="/compte/lab">Ouvrir le lab</a> <a class="button" href="/compte/apprentissage">Mon apprentissage</a> <a class="button" href="/compte/resultats">Mes résultats</a>{% if admin %} <a class="button" href="/compte/formateur">Tableau de bord formateur</a> <a class="button" href="/compte/admin">Éditer les formations</a>{% endif %}</p>
   <form method="post" action="/deconnexion"><button class="button" type="submit">Se déconnecter</button></form>
 </section>
+<section class="card" id="mot-de-passe">
+  <h2>Mot de passe</h2>
+  {% if erreur_mdp %}<p class="form-error" role="alert">{{ erreur_mdp }}</p>{% endif %}
+  {% if info_mdp %}<p class="verdict ok" role="status">{{ info_mdp }}</p>{% endif %}
+  <form method="post" action="/compte/mot-de-passe" class="stack">
+    {% if user.mot_de_passe %}
+    <label>Mot de passe actuel <input type="password" name="actuel" required autocomplete="current-password"></label>
+    {% else %}
+    <p class="muted small">Vous n'avez pas encore de mot de passe (connexion par lien ou par Google / GitHub) : choisissez-en un.</p>
+    {% endif %}
+    <label>Nouveau mot de passe <span class="muted small">(10 caractères au moins)</span>
+      <input type="password" name="nouveau" required minlength="10" maxlength="200" autocomplete="new-password"></label>
+    <p><button class="button" type="submit">Enregistrer le mot de passe</button></p>
+  </form>
+</section>
 <section class="card">
   <h2>Mes données</h2>
   <p class="row"><a class="button" href="/compte/donnees">Télécharger mes données</a> <a class="button" href="/compte/supprimer">Supprimer mon compte</a></p>

@@ -3,19 +3,19 @@
 #
 #   scripts/demarrer-local.sh            démarre (la première fois : configuration et image ROS)
 #   scripts/demarrer-local.sh arreter    arrête tout (vos données sont gardées)
-#   scripts/demarrer-local.sh lien       affiche le dernier lien de connexion (si vous l'avez manqué)
+#   scripts/demarrer-local.sh lien       affiche le dernier lien envoyé (confirmation d'adresse, mot de passe)
 #   scripts/demarrer-local.sh effacer    arrête et efface toutes les données locales
 #
 # Options : --admin ADRESSE (votre adresse, administrateur et formateur), --non-interactif,
 #   --internet : essai ouvert à tous, par un tunnel Cloudflare gratuit et sans compte, sur une
 #     adresse https://<mots-au-hasard>.trycloudflare.com qui disparaît à l'arrêt (voir
-#     deploy/README.md) ; les liens de connexion partent alors par e-mail (SMTP demandé la première fois)
+#     deploy/README.md) ; les e-mails de confirmation partent alors vraiment (SMTP demandé la première fois)
 #   --local : revenir à https://localhost seulement
 #
 # Prérequis : Docker (Docker Desktop sur macOS et Windows) avec au moins 8 Go de mémoire,
 # et les ports 80 et 443 libres. Par défaut, le site est servi sur https://localhost avec un
 # certificat local (le navigateur demande de l'accepter une fois). Sans serveur d'e-mail, le
-# lien de connexion s'affiche directement sur la page.
+# lien de confirmation de l'adresse (à l'inscription) s'affiche directement sur la page.
 set -euo pipefail
 
 RACINE=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -130,13 +130,13 @@ configurer() {
   local labs
   labs=$(labs_possibles "$MEMOIRE_GO")
   generer_env_local "$DEPLOY/.env.example" "$ENV_FILE" "$ADMIN" "$labs"
-  info "deploy/.env créé : localhost, $labs lab(s) simultané(s), lien de connexion affiché à l'écran"
+  info "deploy/.env créé : localhost, $labs lab(s) simultané(s), lien de confirmation affiché à l'écran"
 }
 
 demander_smtp() {
   [ -n "$(valeur_env "$ENV_FILE" SMTP_HOST)" ] && return
-  [ "$INTERACTIF" = 1 ] || fail "hors de localhost, les liens de connexion partent par e-mail : renseignez SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD et SMTP_FROM dans deploy/.env (exemples dans le fichier)"
-  info "Hors de localhost, les liens de connexion partent par e-mail : il faut un serveur d'envoi."
+  [ "$INTERACTIF" = 1 ] || fail "hors de localhost, les e-mails de confirmation partent vraiment : renseignez SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD et SMTP_FROM dans deploy/.env (exemples dans le fichier)"
+  info "Hors de localhost, les e-mails (confirmation d'adresse, mot de passe oublié) partent vraiment : il faut un serveur d'envoi."
   info "Exemple Gmail : serveur smtp.gmail.com, port 587, votre adresse, un « mot de passe d'application »"
   info "(compte Google → Sécurité → Validation en deux étapes → Mots de passe des applications)."
   local hote port user pass from
@@ -209,9 +209,9 @@ image_ros() {
 verifier_envoi_mail() {  # verifier_envoi_mail ADRESSE
   local sortie
   if sortie=$(compose exec -T comptes python -m academy_comptes.mail "$1" 2>&1); then
-    info "e-mail de test envoyé à $1 : l'envoi des liens de connexion fonctionne"
+    info "e-mail de test envoyé à $1 : l'envoi des e-mails du site fonctionne"
   else
-    attention "l'envoi d'e-mails échoue : personne ne recevra son lien de connexion"
+    attention "l'envoi d'e-mails échoue : personne ne pourra confirmer son adresse ni retrouver son mot de passe"
     printf '%s\n' "$sortie" | tail -3 | sed 's/^/     /'
     info "Avec Gmail : SMTP_USER = votre adresse complète, SMTP_PASSWORD = un « mot de passe d'application »"
     info "(https://myaccount.google.com/apppasswords, validation en deux étapes activée), sans espaces."
@@ -266,8 +266,9 @@ case_commande() {
       info "arrêté ; « scripts/demarrer-local.sh » pour redémarrer"
       ;;
     lien)
-      compose logs comptes 2>/dev/null | grep "lien de connexion pour" | tail -1 | sed 's/.*lien de connexion pour/Lien pour/' \
-        || info "aucun lien dans les journaux (le lien s'affiche sur la page de connexion)"
+      compose logs comptes 2>/dev/null | grep -E "lien de (confirmation|réinitialisation) pour" | tail -1 \
+        | sed -E 's/.*lien de (confirmation|réinitialisation) pour/Lien de \1 pour/' \
+        || info "aucun lien dans les journaux (en local, il s'affiche sur la page après l'inscription)"
       ;;
     effacer)
       verifier_docker

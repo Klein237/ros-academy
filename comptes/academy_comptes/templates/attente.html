@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ titre }}{% endblock %}
+{% block content %}
+<section class="card login">
+  <h1>{{ titre }}</h1>
+  <p>{{ message }}</p>
+  {% if erreur %}<p class="form-error" role="alert">{{ erreur }}</p>{% endif %}
+  {% if lien %}
+  <div class="notice card">
+    <p><strong>Test en local</strong> : aucun serveur d'e-mail n'est configuré, voici le lien qui aurait été envoyé à {{ email }}. Cette aide n'existe que sur une adresse locale (CONNEXION_LIEN_A_L_ECRAN=1).</p>
+    <p><a class="button primary" href="{{ lien }}">Ouvrir le lien</a></p>
+  </div>
+  {% endif %}
+  <p class="muted small">Rien reçu ? Vérifiez les courriers indésirables. Chaque nouvel e-mail annule le lien du précédent.</p>
+  {% if renvoi %}
+  <form method="post" action="/connexion/renvoyer" class="row">
+    <input type="hidden" name="email" value="{{ email }}">
+    <input type="hidden" name="suite" value="{{ suite }}">
+    <button class="button" type="submit">Renvoyer l'e-mail</button>
+  </form>
+  {% endif %}
+  <p class="login-switch"><a href="/connexion?suite={{ suite | urlencode }}">Retour à la connexion</a></p>
+</section>
+{% endblock %}

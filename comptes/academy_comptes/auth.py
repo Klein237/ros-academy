@@ -1,5 +1,6 @@
-"""Sessions, lien magique par e-mail, connexion GitHub et Google."""
+"""Sessions, mot de passe, liens par e-mail (confirmation, réinitialisation), connexion GitHub et Google."""
 
+import base64
 import hashlib
 import re
 import secrets
@@ -10,13 +11,19 @@ from email_validator import EmailNotValidError, validate_email
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy import func, select
 
-from .db import Identity, LoginToken, SessionRow, User, utcnow
+from .db import Identity, LoginFailure, LoginToken, SessionRow, User, utcnow
 
 SESSION_COOKIE = "academy_session"
 OAUTH_COOKIE = "academy_oauth"
 SESSION_DAYS = 30
-LINK_MINUTES = 15
+LINK_MINUTES = {"confirmation": 24 * 60, "reinitialisation": 30}
+LINK_PATHS = {"confirmation": "/connexion/confirmer/", "reinitialisation": "/connexion/mot-de-passe/"}
 LINKS_PER_HOUR = 5
+RESEND_SECONDS = 60
+PASSWORD_MIN = 10
+PASSWORD_MAX = 200
+FAILURES_MAX = 10  # mots de passe refusés par adresse…
+FAILURES_MINUTES = 15  # …sur cette durée
 SAFE_NEXT_RE = re.compile(r"^/(?![/\\])[^\s\\]*$")
 
 
@@ -41,8 +48,70 @@ def normalize_email(email):
 
 # --- Comptes
 
+# --- Mots de passe (scrypt, sel aléatoire ; seule l'empreinte est en base)
+
+_SCRYPT = {"n": 2**14, "r": 8, "p": 1}
+
+
+def _b64(raw):
+    return base64.b64encode(raw).decode()
+
+
+def hash_password(password):
+    salt = secrets.token_bytes(16)
+    digest = hashlib.scrypt(password.encode(), salt=salt, dklen=32, **_SCRYPT)
+    return f"scrypt${_SCRYPT['n']}${_SCRYPT['r']}${_SCRYPT['p']}${_b64(salt)}${_b64(digest)}"
+
+
+def check_password(password, stored):
+    """Vrai si le mot de passe correspond ; sans empreinte, un calcul a lieu quand même (temps constant)."""
+    try:
+        _, n, r, p, salt, digest = (stored or "").split("$")
+        params = {"n": int(n), "r": int(r), "p": int(p)}
+        salt, digest = base64.b64decode(salt), base64.b64decode(digest)
+    except ValueError:
+        hashlib.scrypt(password.encode(), salt=b"0" * 16, dklen=32, **_SCRYPT)
+        return False
+    return secrets.compare_digest(hashlib.scrypt(password.encode(), salt=salt, dklen=32, **params), digest)
+
+
+def check_new_password(password):
+    if len(password) < PASSWORD_MIN:
+        raise AuthError(f"Le mot de passe doit contenir au moins {PASSWORD_MIN} caractères.")
+    if len(password) > PASSWORD_MAX:
+        raise AuthError("Mot de passe trop long.")
+    return password
+
+
+def too_many_failures(db, email):
+    since = utcnow() - timedelta(minutes=FAILURES_MINUTES)
+    count = db.scalar(select(func.count()).select_from(LoginFailure)
+                      .where(LoginFailure.email == email, LoginFailure.cree_le > since))
+    return count >= FAILURES_MAX
+
+
+def record_failure(db, email):
+    db.add(LoginFailure(email=email))
+    db.commit()
+
+
+def authenticate(db, email, password):
+    """Compte correspondant à l'adresse et au mot de passe ; AuthError sinon (message identique dans tous
+    les cas, pour ne pas révéler quelles adresses ont un compte)."""
+    email = normalize_email(email)
+    if too_many_failures(db, email):
+        raise AuthError(f"Trop d'essais pour cette adresse : réessayez dans {FAILURES_MINUTES} minutes, "
+                        "ou choisissez un nouveau mot de passe avec « Mot de passe oublié ».")
+    user = db.scalar(select(User).where(User.email == email))
+    if not check_password(password, user.mot_de_passe if user else None):
+        record_failure(db, email)
+        raise AuthError("Adresse e-mail ou mot de passe incorrect.")
+    return user
+
+
 def user_for_email(db, email, nom="", fournisseur=None, sujet=None):
-    """Retrouve ou crée le compte d'une adresse vérifiée, et y rattache l'identité du fournisseur."""
+    """Retrouve ou crée le compte d'une adresse vérifiée (par Google, GitHub ou un lien reçu par e-mail),
+    et y rattache l'identité du fournisseur."""
     email = email.lower()
     if fournisseur and sujet:
         ident = db.scalar(select(Identity).where(Identity.fournisseur == fournisseur, Identity.sujet == sujet))
@@ -55,6 +124,8 @@ def user_for_email(db, email, nom="", fournisseur=None, sujet=None):
         db.flush()
     elif nom and not user.nom:
         user.nom = nom[:120]
+    if user.email_verifie_le is None:
+        user.email_verifie_le = utcnow()
     if fournisseur and sujet:
         db.add(Identity(user_id=user.id, fournisseur=fournisseur, sujet=sujet))
     db.commit()
@@ -111,26 +182,38 @@ class Sessions:
         return data["suite"]
 
 
-# --- Lien magique
+# --- Liens envoyés par e-mail (confirmation de l'adresse, réinitialisation du mot de passe)
 
-def request_login_link(db, email, suite, public_url):
-    email = normalize_email(email)
-    hour_ago = utcnow() - timedelta(hours=1)
+def create_link(db, email, but, suite, public_url):
+    """Nouveau lien à usage unique ; il annule les liens précédents du même but pour cette adresse."""
+    now = utcnow()
+    tokens = select(LoginToken).where(LoginToken.email == email, LoginToken.but == but)
+    last = db.scalar(tokens.order_by(LoginToken.cree_le.desc()).limit(1))
+    if last and (now - last.cree_le).total_seconds() < RESEND_SECONDS:
+        raise AuthError("Un e-mail vient de vous être envoyé : patientez une minute avant d'en demander un autre.")
     recent = db.scalar(select(func.count()).select_from(LoginToken)
-                       .where(LoginToken.email == email, LoginToken.cree_le > hour_ago))
+                       .where(LoginToken.email == email, LoginToken.cree_le > now - timedelta(hours=1)))
     if recent >= LINKS_PER_HOUR:
         raise AuthError("Trop de demandes pour cette adresse : réessayez dans une heure.")
+    for old in db.scalars(tokens.where(LoginToken.utilise_le.is_(None))):
+        old.utilise_le = now  # un seul lien valable à la fois
     raw = secrets.token_urlsafe(32)
-    db.add(LoginToken(hash=_hash(raw), email=email, suite=safe_next(suite),
-                      expire_le=utcnow() + timedelta(minutes=LINK_MINUTES)))
+    db.add(LoginToken(hash=_hash(raw), email=email, but=but, suite=safe_next(suite),
+                      expire_le=now + timedelta(minutes=LINK_MINUTES[but])))
     db.commit()
-    return email, f"{public_url}/connexion/email/{raw}"
+    return f"{public_url}{LINK_PATHS[but]}{raw}"
 
 
-def consume_login_link(db, raw):
+def peek_link(db, raw, but):
+    """Le lien est-il encore valable ? (sans le consommer : page du formulaire de mot de passe)"""
     row = db.get(LoginToken, _hash(raw or ""))
-    if not row or row.utilise_le is not None or row.expire_le < utcnow():
-        raise AuthError("Ce lien de connexion n'est plus valable : demandez-en un nouveau.")
+    if not row or row.but != but or row.utilise_le is not None or row.expire_le < utcnow():
+        raise AuthError("Ce lien n'est plus valable : demandez-en un nouveau.")
+    return row
+
+
+def consume_link(db, raw, but):
+    row = peek_link(db, raw, but)
     row.utilise_le = utcnow()
     db.commit()
     return row.email, row.suite

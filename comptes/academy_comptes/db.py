@@ -31,6 +31,9 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(320), unique=True)
     nom: Mapped[str] = mapped_column(String(120), default="")
     formule: Mapped[str] = mapped_column(String(20), default="free")
+    # Empreinte scrypt du mot de passe (None : compte créé par lien ou par Google / GitHub)
+    mot_de_passe: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    email_verifie_le: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     cree_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     # Abonnement Stripe (formule pro) ; Stripe fait foi, relu à chaque événement
     stripe_customer_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
@@ -64,13 +67,25 @@ class SessionRow(Base):
 
 
 class LoginToken(Base):
+    """Lien envoyé par e-mail, à usage unique : confirmation de l'adresse ou réinitialisation."""
+
     __tablename__ = "login_tokens"
     hash: Mapped[str] = mapped_column(String(64), primary_key=True)
     email: Mapped[str] = mapped_column(String(320), index=True)
+    but: Mapped[str] = mapped_column(String(20), default="confirmation", server_default="connexion")
     suite: Mapped[str] = mapped_column(String(500), default="/")
     cree_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     expire_le: Mapped[datetime] = mapped_column(DateTime)
     utilise_le: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class LoginFailure(Base):
+    """Mot de passe refusé : limite les essais par adresse."""
+
+    __tablename__ = "login_failures"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String(320), index=True)
+    cree_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class Certificate(Base):

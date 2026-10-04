@@ -111,7 +111,7 @@ export function newEmail(): string {
 }
 
 /**
- * Journaux du service Comptes : sans SMTP, le lien de connexion y est écrit.
+ * Journaux du service Comptes : sans SMTP, les liens envoyés par e-mail y sont écrits.
  * COMPTES_LOGS remplace la commande (déploiement local).
  */
 function comptesLogs(): string {
@@ -125,21 +125,48 @@ export function sql(query: string): string {
   return execSync(cmd, { input: query, encoding: "utf8" }).trim();
 }
 
-/** Connexion par lien magique (lu dans les journaux) ; renvoie le nom de l'étudiant dans le Hub. */
-export async function loginStudent(page: Page, email: string, suite = "/"): Promise<string> {
-  await page.goto(`/connexion?suite=${encodeURIComponent(suite)}`);
-  await page.getByLabel("Adresse e-mail").fill(email);
-  await page.getByRole("button", { name: "Recevoir un lien de connexion" }).click();
-  await expect(page.getByText(`Un lien de connexion a été envoyé à ${email}`)).toBeVisible();
+/** Mot de passe des comptes créés par les tests. */
+export const E2E_PASSWORD = "mot-de-passe-e2e-solide";
+
+/** Dernier lien envoyé à cette adresse (confirmation ou réinitialisation), lu dans les journaux de Comptes. */
+async function mailedLink(email: string): Promise<string> {
   let link = "";
   await expect
     .poll(() => {
-      const lines = comptesLogs().split("\n").filter((l) => l.includes(`lien de connexion pour ${email}`));
+      const lines = comptesLogs()
+        .split("\n")
+        .filter((l) => /lien de (confirmation|réinitialisation) pour/.test(l) && l.includes(`pour ${email} : `));
       link = lines.at(-1)?.split(" : ").at(-1)?.trim() ?? "";
       return link;
     })
-    .toMatch(/\/connexion\/email\//);
-  await page.goto(new URL(link).pathname);
+    .toMatch(/\/connexion\/(confirmer|mot-de-passe)\//);
+  return link;
+}
+
+/**
+ * Connexion par mot de passe ; la première fois, inscription puis lien de confirmation (lu dans les journaux).
+ * Un compte déjà inscrit sans ce mot de passe en reçoit un par « Mot de passe oublié ». Renvoie le nom de
+ * l'étudiant dans le Hub.
+ */
+export async function loginStudent(page: Page, email: string, suite = "/"): Promise<string> {
+  await page.goto(`/connexion?suite=${encodeURIComponent(suite)}`);
+  await page.getByLabel("Adresse e-mail").fill(email);
+  await page.getByLabel("Mot de passe").fill(E2E_PASSWORD);
+  await page.getByRole("button", { name: "Se connecter" }).click();
+  await page.waitForLoadState();
+  if (new URL(page.url()).pathname.startsWith("/connexion")) {
+    await page.goto(`/connexion/inscription?suite=${encodeURIComponent(suite)}`);
+    await page.getByLabel("Adresse e-mail").fill(email);
+    await page.getByLabel("Mot de passe").fill(E2E_PASSWORD);
+    await page.getByRole("button", { name: "Créer mon compte" }).click();
+    await expect(page.getByRole("heading", { name: "Vérifiez votre boîte de réception" })).toBeVisible();
+    const link = await mailedLink(email);
+    await page.goto(new URL(link).pathname);
+    if (link.includes("/connexion/mot-de-passe/")) {
+      await page.getByLabel("Nouveau mot de passe").fill(E2E_PASSWORD);
+      await page.getByRole("button", { name: "Enregistrer et me connecter" }).click();
+    }
+  }
   const me = await page.request.get("/api/comptes/moi");
   expect(me.ok()).toBe(true);
   return ((await me.json()) as { hub: string }).hub;

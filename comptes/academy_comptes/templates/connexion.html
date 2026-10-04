@@ -3,7 +3,6 @@
 {% block content %}
 <section class="card login">
   <h1>Se connecter</h1>
-  <p class="muted">Un compte gratuit donne accès au lab ROS 2, enregistre vos exercices et vos QCM, et calcule votre note.</p>
   {% if erreur %}<p class="form-error" role="alert">{{ erreur }}</p>{% endif %}
   {% if github or google %}
   <div class="providers">
@@ -12,11 +11,14 @@
   </div>
   <p class="separator"><span>ou</span></p>
   {% endif %}
-  <form method="post" action="/connexion/email" class="stack">
+  <form method="post" action="/connexion" class="stack">
     <input type="hidden" name="suite" value="{{ suite }}">
-    <label>Adresse e-mail <input type="email" name="email" required autocomplete="email" placeholder="vous@exemple.fr"></label>
-    <button class="button primary" type="submit">Recevoir un lien de connexion</button>
+    <label>Adresse e-mail <input type="email" name="email" required autocomplete="email" value="{{ email or '' }}" placeholder="vous@exemple.fr"></label>
+    <label>Mot de passe <input type="password" name="mot_de_passe" required autocomplete="current-password"></label>
+    <button class="button primary" type="submit">Se connecter</button>
   </form>
-  <p class="muted small">Pas de mot de passe : nous vous envoyons un lien valable 15 minutes.</p>
+  <p class="small"><a href="/connexion/oubli?suite={{ suite | urlencode }}">Mot de passe oublié ?</a></p>
+  <p class="login-switch">Pas encore de compte ? <a href="/connexion/inscription?suite={{ suite | urlencode }}">Créer un compte gratuit</a></p>
+  <p class="muted small">Vous vous connectiez jusqu'ici par un lien reçu par e-mail ? Choisissez votre mot de passe avec « Mot de passe oublié ».</p>
 </section>
 {% endblock %}
