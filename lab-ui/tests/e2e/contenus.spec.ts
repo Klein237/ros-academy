@@ -70,7 +70,9 @@ test("module Nœud : « Ouvrir dans le lab » crée le fichier du cours sans jam
 
 test("module Nœud : l'exercice se fait entièrement dans le lab @ros", async ({ page }) => {
   students.push(await loginStudent(page, newEmail()));
-  // comme le bouton « Ouvrir l'exercice dans le lab » du site
+  // comme le bouton « Ouvrir l'exercice dans le lab » du site, sur un écran étroit : le lab seul
+  // (sur écran large, il s'ouvre à côté du cours : voir le test « Cours + lab »)
+  await page.setViewportSize({ width: 1000, height: 800 });
   await page.goto("/modules/02-noeud/");
   await page.getByRole("link", { name: "Ouvrir l'exercice dans le lab" }).click();
   await expect(page).toHaveURL(/\/lab\/\?module=02-noeud&exercice=1$/);
