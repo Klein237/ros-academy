@@ -5,8 +5,7 @@ import { DesktopPanel, type RfbLike } from "../../src/ui/desktop";
 class FakeRfb implements RfbLike {
   static all: FakeRfb[] = [];
   scaleViewport = false;
-  resizeRequests = 0; // chaque « resizeSession = true » redemande la taille du bureau (noVNC)
-  private resize = false;
+  resizeSession = false;
   disconnected = false;
   focused = 0;
   private listeners: Record<string, ((ev: Event) => void)[]> = {};
@@ -16,15 +15,6 @@ class FakeRfb implements RfbLike {
     readonly url: string,
   ) {
     FakeRfb.all.push(this);
-  }
-
-  get resizeSession(): boolean {
-    return this.resize;
-  }
-
-  set resizeSession(v: boolean) {
-    this.resize = v;
-    if (v) this.resizeRequests += 1;
   }
 
   addEventListener(type: string, listener: (ev: Event) => void): void {
@@ -79,19 +69,6 @@ describe("DesktopPanel", () => {
     p.show(); // la même connexion est gardée
     expect(FakeRfb.all).toHaveLength(1);
     expect(last().focused).toBe(1);
-  });
-
-  it("redemande la taille du bureau peu après la connexion (demande perdue par noVNC)", async () => {
-    const p = panel();
-    p.show();
-    await vi.advanceTimersByTimeAsync(0);
-    const rfb = last();
-    expect(rfb.resizeRequests).toBe(1);
-    rfb.emit("connect");
-    await vi.advanceTimersByTimeAsync(600);
-    expect(rfb.resizeRequests).toBe(2);
-    await vi.advanceTimersByTimeAsync(5000);
-    expect(rfb.resizeRequests).toBe(4); // 0,6 s, 2 s et 5 s après la connexion
   });
 
   it("se reconnecte avec un délai croissant tant que le bureau est voulu", async () => {

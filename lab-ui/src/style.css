@@ -104,6 +104,7 @@ code {
 #app {
   display: grid;
   grid-template-rows: auto auto 1fr;
+  grid-template-columns: minmax(0, 1fr); /* la largeur de la fenêtre, jamais celle du contenu */
 }
 
 .topbar {
@@ -340,6 +341,9 @@ button.link {
   display: flex;
   height: 100vh;
   min-height: 0;
+  /* sinon le canvas de noVNC garde sa largeur (élément de grille) : la fenêtre rétrécie, l'écran ne
+     rétrécissait pas et le bureau ne changeait jamais de largeur */
+  min-width: 0;
 }
 
 .bureau-seul .desktop {
