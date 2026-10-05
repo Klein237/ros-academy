@@ -2,6 +2,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { TerminalConnection, type ConnectionStatus, type TerminalsClient } from "../api/terminals";
+import { ShellReady } from "../shellReady";
 import { button, h, toast } from "./dom";
 
 interface Tab {
@@ -11,6 +12,8 @@ interface Tab {
   term: Terminal;
   fit: FitAddon;
   conn: TerminalConnection;
+  /** L'invite est affichée : une commande envoyée maintenant s'affiche après elle. */
+  shell: ShellReady;
   host: HTMLElement;
   tab: HTMLElement;
   label: HTMLElement;
@@ -51,7 +54,7 @@ export class TerminalPanel {
       await this.add();
       return;
     }
-    for (const name of names) this.attach(name);
+    for (const name of names) this.attach(name, undefined, false);
   }
 
   async add(): Promise<void> {
@@ -73,6 +76,7 @@ export class TerminalPanel {
     let tab = this.open.find((t) => t.title === title && t.conn.status !== "closed");
     if (tab) this.show(tab);
     else tab = this.attach(await this.opts.client.create(""), title);
+    await tab.shell.ready;
     const entry = tab;
     let output = "";
     return new Promise((resolve) => {
@@ -96,7 +100,8 @@ export class TerminalPanel {
     });
   }
 
-  private attach(name: string, title?: string): Tab {
+  /** `fresh` : terminal tout juste créé, dont le shell n'a pas encore affiché son invite. */
+  private attach(name: string, title?: string, fresh = true): Tab {
     const id = ++this.seq;
     const label0 = title ?? `Terminal ${id}`;
     const term = new Terminal({
@@ -127,13 +132,16 @@ export class TerminalPanel {
       cwd: this.opts.cwd,
       onData: (data) => {
         term.write(data);
+        entry.shell.data();
         for (const l of entry.listeners) l(data);
       },
       onStatus: (status) => this.status(entry, status),
       onReplaced: () => term.write("\r\n\x1b[33m[ancien terminal fermé, nouveau terminal ouvert]\x1b[0m\r\n"),
       isServerAlive: this.opts.isServerAlive,
     });
-    const entry: Tab = { id, title: label0, listeners: new Set(), term, fit, conn, host, tab, label };
+    const shell = new ShellReady();
+    if (!fresh) shell.finish();
+    const entry: Tab = { id, title: label0, listeners: new Set(), term, fit, conn, shell, host, tab, label };
     term.onData((data) => {
       conn.send(data);
       if (data.includes("\r")) this.opts.onCommand?.();
@@ -212,6 +220,8 @@ export class TerminalPanel {
     if (!this.active) await this.add();
     const tab = this.active!;
     this.show(tab);
+    tab.term.focus();
+    await tab.shell.ready;
     const text = command.replace(/\r?\n/g, "\r").replace(/\r*$/, "\r");
     const send = (tries: number) => {
       if (tab.conn.status === "open") {
@@ -220,6 +230,5 @@ export class TerminalPanel {
       } else if (tries > 0) setTimeout(() => send(tries - 1), 200);
     };
     send(50);
-    tab.term.focus();
   }
 }

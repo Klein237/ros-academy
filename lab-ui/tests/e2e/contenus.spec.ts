@@ -135,6 +135,11 @@ test("Cours + lab : le lab à côté du cours lance les commandes et ouvre les f
   await expect(term.locator(".xterm-rows")).toContainText("ros2 pkg create my_pkg_cpp", { timeout: 30_000 });
   // exécuté ligne par ligne : le « cd » a changé de dossier (les paquets existent déjà : lab guidé installé)
   await expect(term.locator(".xterm-rows")).toContainText("/ws/02-noeud/src$", { timeout: 60_000 });
+  // envoyée après l'invite : la commande n'est pas affichée une première fois avant elle
+  const rows = (await term.locator(".xterm-rows").innerText()).split("\n");
+  const cdRows = rows.filter((row) => row.includes("cd ~/ws/02-noeud/src"));
+  expect(cdRows).toHaveLength(1);
+  expect(cdRows[0]).toMatch(/\$ cd ~\/ws\/02-noeud\/src/);
   // « Ouvrir dans le lab » : le fichier du cours s'ouvre dans l'éditeur du panneau, la page ne change pas
   await page.locator('a.code-open[data-open$="diff_drive_node.py"]').first().click();
   await expect(page).toHaveURL(/\/modules\/02-noeud\/$/);
