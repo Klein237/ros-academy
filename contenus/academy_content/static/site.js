@@ -166,19 +166,11 @@ function setupSideBySide() {
     const handle = document.createElement("div");
     handle.className = "lab-dock-poignee";
     handle.title = "Glisser pour régler la largeur du lab";
-    const close = document.createElement("button");
-    close.type = "button";
-    close.textContent = "Fermer le lab";
-    close.addEventListener("click", () => shut());
-    const bar = document.createElement("div");
-    bar.className = "lab-dock-bar";
-    const title = document.createElement("strong");
-    title.textContent = "Lab";
-    bar.append(title, close);
+    // fermeture : « Masquer le lab » dans la barre du module (un seul bouton pour ça)
     dock = document.createElement("aside");
     dock.className = "lab-dock";
     dock.setAttribute("aria-label", "Lab à côté du cours");
-    dock.append(handle, bar, frame);
+    dock.append(handle, frame);
     document.body.append(dock);
     document.body.classList.add("cote-a-cote");
     const saved = Number(memoire.lire(LARGEUR_LAB));

@@ -87,11 +87,17 @@ export async function installExerciseFiles(contents: Contents, id: string, files
   for (const f of files) await contents.writeFile(joinPath(academyDir(id), f.path), f.content);
 }
 
-/** Réinitialiser : l'ancien dossier est renommé (rien n'est supprimé), puis lab/ est réinstallé. */
+/** Sauvegardes de « Réinitialiser » : dossier caché, pour ne pas encombrer ~/ws. */
+export const BACKUP_DIR = "ws/.anciens";
+
+/** Réinitialiser : l'ancien dossier est mis de côté (rien n'est supprimé), puis lab/ est réinstallé. */
 export async function resetLab(contents: Contents, id: string, files: ModuleFile[], now = new Date()): Promise<string> {
   const stamp = now.toISOString().slice(0, 19).replace(/[-:]/g, "").replace("T", "-");
-  const backup = `${labDir(id)}.ancien-${stamp}`;
-  if (await contents.exists(labDir(id))) await contents.rename(labDir(id), backup);
+  const backup = `${BACKUP_DIR}/${id}-${stamp}`;
+  if (await contents.exists(labDir(id))) {
+    await contents.mkdirp(BACKUP_DIR);
+    await contents.rename(labDir(id), backup);
+  }
   await installLab(contents, id, files);
   return backup;
 }

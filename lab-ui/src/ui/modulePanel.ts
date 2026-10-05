@@ -81,6 +81,11 @@ export class ModulePanel {
       ),
     );
     this.hintButton.disabled = this.hintCount === 0;
+    // Ouvert par « Ouvrir l'exercice dans le lab » : l'énoncé parle de ~/ws/<id>-exercice, il doit exister
+    if (!(await this.opts.contents.exists(exerciseDir(id)).catch(() => true))) {
+      if (this.opts.openExercise) void this.startExercise();
+      else this.show("info", "Exercice pas encore installé", `« Commencer l'exercice » crée ~/${exerciseDir(id)} avec la panne à trouver.`);
+    }
     if (!state) return;
     // retour sur le module : indices déjà vus (sans nouvelle pénalité) et réussite
     try {
@@ -240,7 +245,7 @@ export class ModulePanel {
 
   private async reset(): Promise<void> {
     const id = this.opts.moduleId;
-    if (!confirm(`Réinitialiser le lab guidé ? Votre dossier ~/${labDir(id)} sera renommé (rien n'est supprimé), puis le workspace de départ sera réinstallé.`)) {
+    if (!confirm(`Réinitialiser le lab guidé ? Votre dossier ~/${labDir(id)} sera mis de côté dans ~/ws/.anciens (rien n'est supprimé), puis le workspace de départ sera réinstallé.`)) {
       return;
     }
     try {

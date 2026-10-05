@@ -41,3 +41,9 @@ select { font: inherit; color: var(--text); background: var(--bg); border: 1px s
 .button.danger { color: var(--ko); border-color: var(--ko); }
 .login-switch { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--line); }
 .login .notice { margin: 16px 0; }
+/* Résultats (style v2) */
+.resultats-parcours h2 { font-size: 1.4rem; }
+.resultats-parcours .table-scroll { margin: 16px 0; }
+.resultats-parcours table.results th { color: var(--muted); font-weight: 600; font-size: 0.9rem; }
+.resultats-parcours table.results td, .resultats-parcours table.results th { padding: 10px 12px; }
+.resultats-parcours .final-grade { margin: 12px 0 0; }
