@@ -1,18 +1,25 @@
 {% extends "base.html" %}
 {% set nav_actif = "apprentissage" %}
 {% block title %}Résultats{% endblock %}
+{% block main_class %}page plein{% endblock %}
 {% block content %}
+<div class="conteneur tableau">
+<p class="breadcrumb"><a href="/compte/apprentissage">Mon apprentissage</a> › Résultats</p>
 <h1>Mes résultats</h1>
 {% for r in resultats %}
-<section class="card">
-  <h2>{{ r.parcours.titre }}</h2>
+<section class="encart resultats-parcours">
+  <div class="entete-section">
+    <h2>{{ r.parcours.titre }}</h2>
+    <a class="lien-fort" href="/parcours/{{ r.parcours.id }}/">Voir le programme →</a>
+  </div>
   {% if r.finale is not none %}
   <p class="final-grade">Note finale : <strong>{{ '%.2f' | format(r.finale) | replace('.', ',') }} / 20</strong></p>
   {% else %}
   <p class="muted">Note finale : disponible quand les {{ r.modules | length }} modules seront terminés ({{ r.termines }} terminé{{ 's' if r.termines > 1 }}).</p>
   {% endif %}
+  <div class="table-scroll">
   <table class="results">
-    <thead><tr><th>Module</th><th>Exercice</th><th>QCM</th><th>Note</th><th>Coef.</th></tr></thead>
+    <thead><tr><th>Module</th><th>Exercice</th><th>QCM</th><th>Note</th><th title="Les modules de poids 2 comptent double dans la note finale">Poids</th></tr></thead>
     <tbody>
     {% for m in r.modules %}
       <tr>
@@ -25,6 +32,7 @@
     {% endfor %}
     </tbody>
   </table>
+  </div>
   <div class="certificate-box" id="certificat">
   {% if r.certificat %}
     {% if r.certificat.revoque_le %}
@@ -47,9 +55,10 @@
     <p class="muted">Un certificat est délivré quand le parcours est terminé avec une note finale d'au moins {{ ('%g' | format(note_min)) | replace('.', ',') }} / 20.</p>
   {% endif %}
   </div>
-  <p class="muted small">Module sur 20 : 50 % QCM (meilleure des 2 tentatives) et 50 % exercice (−15 % par indice). Un module est terminé quand l'exercice est réussi et le QCM passé.</p>
+  <p class="muted small">Module sur 20 : moitié QCM (meilleure des 2 tentatives), moitié exercice (−15 % par indice). Un module est terminé quand l'exercice est réussi et le QCM passé. La note finale est la moyenne des modules, ceux de poids 2 comptant double.</p>
 </section>
 {% else %}
 <p class="muted">Aucun parcours publié.</p>
 {% endfor %}
+</div>
 {% endblock %}

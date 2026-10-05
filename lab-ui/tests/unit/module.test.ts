@@ -167,11 +167,11 @@ it("installe les fichiers de l'exercice dans ~/.academy/<id>", async () => {
   expect([...fs.files.keys()].sort()).toEqual([".academy/02-noeud/check.sh", ".academy/02-noeud/depart/src/a.py"]);
 });
 
-it("réinitialiser renomme l'ancien dossier puis réinstalle", async () => {
+it("réinitialiser met l'ancien dossier de côté dans ws/.anciens puis réinstalle", async () => {
   const fs = new FakeContents();
   await fs.writeFile("ws/02-noeud/src/my_pkg/setup.py", "mon travail\n");
   const backup = await resetLab(fs, "02-noeud", LAB, new Date("2026-10-02T09:15:30Z"));
-  expect(backup).toBe("ws/02-noeud.ancien-20261002-091530");
+  expect(backup).toBe("ws/.anciens/02-noeud-20261002-091530");
   expect(fs.files.get(`${backup}/src/my_pkg/setup.py`)).toBe("mon travail\n");
   expect(fs.files.get("ws/02-noeud/src/my_pkg/setup.py")).toBe("setup()\n");
 });

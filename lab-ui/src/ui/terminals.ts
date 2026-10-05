@@ -103,6 +103,8 @@ export class TerminalPanel {
       cursorBlink: true,
       fontFamily: '"JetBrains Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace',
       fontSize: 14,
+      // à 1.0, la ligne coupe le bas des caractères : les « _ » disparaissaient ($ROS_DISTRO → $ROS DISTRO)
+      lineHeight: 1.2,
       scrollback: 5000,
       theme: { background: "#0f141a", foreground: "#d8dee9", cursor: "#7fd4c1", selectionBackground: "#2f4a5a" },
     });

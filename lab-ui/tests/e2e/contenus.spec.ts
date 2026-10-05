@@ -80,7 +80,7 @@ test("module Nœud : l'exercice se fait entièrement dans le lab @ros", async ({
   const panel = page.locator(".module-panel");
   await expect(panel).toContainText("Écrire un nœud");
   await expect(panel.locator(".enonce")).toContainText("Le robot reste immobile");
-  await panel.getByRole("button", { name: "Commencer l'exercice" }).click();
+  // ouvert par « Ouvrir l'exercice dans le lab » : l'exercice s'installe tout seul (~/ws/02-noeud-exercice)
   await expect(panel.locator(".exercise-status")).toContainText("Exercice prêt", { timeout: 180_000 });
   await expect(page.locator('.tree-row[data-path="ws/02-noeud-exercice"]')).toBeVisible();
 
