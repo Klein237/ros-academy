@@ -87,8 +87,18 @@
 		reverse_proxy comptes:8300
 	}
 
-	# Site des formations, API des modules et éditeur d'administration
+	# Site des formations, API des modules et éditeur d'administration.
+	# Le cours d'un module (page et API) est réservé aux étudiants connectés : Comptes dit si la
+	# session est ouverte, Contenus lit l'en-tête X-Academy-Etudiant (celui du navigateur est retiré).
+	@cours path /modules/* /api/contenus/modules/*
 	handle {
-		reverse_proxy contenus:8200
+		route {
+			request_header -X-Academy-Etudiant
+			forward_auth @cours comptes:8300 {
+				uri /api/comptes/interne/session
+				copy_headers X-Academy-Etudiant
+			}
+			reverse_proxy contenus:8200
+		}
 	}
 }

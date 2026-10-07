@@ -521,3 +521,8 @@ li[data-etat="en_cours"] .etat-module { background: var(--amber-soft); color: va
 }
 .cours blockquote p, .module-contenu .card blockquote p { margin: 0; }
 .cours blockquote p + p { margin-top: 10px; }
+
+/* Module sans connexion : titre, plan et invitation à se connecter */
+.module-reserve { display: flex; flex-direction: column; gap: 24px; padding-top: 32px; padding-bottom: 48px; max-width: 860px; }
+.module-reserve .module-intro h1 { margin: 6px 0 10px; }
+.actions-reserve { display: flex; flex-wrap: wrap; gap: 12px; }

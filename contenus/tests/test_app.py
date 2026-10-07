@@ -15,6 +15,7 @@ from conftest import make_module, make_parcours
 SECRET = "s" * 40
 HOST = "testserver"
 ORIGIN = {"Origin": f"http://{HOST}"}
+ETUDIANT = {"X-Academy-Etudiant": "1"}  # posé par Caddy quand Comptes reconnaît la session
 INTERNE = {"X-Academy-Interne": hmac.new(SECRET.encode(), b"contenus-interne", hashlib.sha256).hexdigest()}
 
 
@@ -44,8 +45,15 @@ def store(tmp_path):
 
 
 @pytest.fixture
-def client(store):
+def anonyme(store):
     return TestClient(create_app(store, Runner(), SECRET, cookie_secure=False))
+
+
+@pytest.fixture
+def client(anonyme):
+    """Étudiant connecté."""
+    anonyme.headers.update(ETUDIANT)
+    return anonyme
 
 
 @pytest.fixture
@@ -71,6 +79,28 @@ def test_public_pages(client):
     assert "Quelle commande compile un workspace ?" in page
     assert 'aria-label="Étapes du module"' in page and 'href="/parcours/demo/"' in page
     assert page.count("<h1>") == 1  # plus de titre en double
+
+
+def test_course_is_reserved_to_connected_students(anonyme):
+    for path in ("/", "/catalogue/", "/decouvrir/", "/parcours/demo/", "/api/contenus/parcours"):
+        assert anonyme.get(path).status_code == 200, path
+    assert "Démo" in anonyme.get("/parcours/demo/").text  # titres des modules : publics
+    for headers in ({}, {"X-Academy-Etudiant": "0"}, {"X-Academy-Etudiant": "oui"}):
+        page = anonyme.get("/modules/01-demo/", headers=headers)
+        assert page.status_code == 200
+        assert "Cours réservé aux inscrits" in page.text and "<h1>Démo</h1>" in page.text
+        assert 'href="/connexion?suite=/modules/01-demo/"' in page.text
+        assert "print(1)" not in page.text and "Quelle commande" not in page.text and "Le nœud ne démarre" not in page.text
+        assert page.headers["Cache-Control"] == "private, no-cache"
+        for suffix in ("", "/lab", "/cours-fichiers", "/exercice", "/qcm"):
+            r = anonyme.get(f"/api/contenus/modules/01-demo{suffix}", headers=headers)
+            assert r.status_code == 401, (suffix, headers)
+            assert "print(1)" not in r.text and "README" not in r.text
+    # connecté : le cours ; le service Comptes (secret interne) lit aussi l'exercice
+    page = anonyme.get("/modules/01-demo/", headers=ETUDIANT).text
+    assert "print(1)" in page and "Cours réservé" not in page
+    assert anonyme.get("/api/contenus/modules/01-demo/exercice", headers=INTERNE).status_code == 200
+    assert anonyme.get("/modules/99-absent/").status_code == 404
 
 
 def test_answers_never_reach_the_browser(client):

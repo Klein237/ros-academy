@@ -52,7 +52,16 @@ export class ModulePanel {
 
   async start(): Promise<void> {
     const id = this.opts.moduleId;
-    const [info, exercise] = await Promise.all([this.opts.client.info(), this.opts.client.exercise()]);
+    let info, exercise;
+    try {
+      [info, exercise] = await Promise.all([this.opts.client.info(), this.opts.client.exercise()]);
+    } catch (e) {
+      if (!(e instanceof NoAccount)) throw e;
+      // le cours est réservé aux étudiants connectés : session de Comptes expirée
+      this.el.append(h("div", { class: "panel-header" }, h("h2", { text: "Module" })), h("div", { class: "module-body" }, this.account));
+      this.askLogin("Votre session a expiré : reconnectez-vous pour afficher le module et son exercice. ");
+      return;
+    }
     this.hintCount = exercise.indices;
     const state = await this.opts.comptes.exercise(id).catch((e: unknown) => {
       if (e instanceof NoAccount) this.askLogin();
@@ -99,10 +108,10 @@ export class ModulePanel {
     }
   }
 
-  private askLogin(): void {
+  private askLogin(message = "Vous n'êtes pas connecté : vos indices et votre réussite ne seront pas enregistrés. "): void {
     this.noAccount = true;
     this.account.replaceChildren(
-      "Vous n'êtes pas connecté : vos indices et votre réussite ne seront pas enregistrés. ",
+      message,
       h("a", { text: "Se connecter", attrs: { href: reloginUrl() } }),
     );
     this.account.hidden = false;

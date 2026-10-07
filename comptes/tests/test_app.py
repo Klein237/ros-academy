@@ -292,6 +292,20 @@ def test_logout_revokes_session(client, env):
     assert client.get("/api/comptes/session").json() == {"connecte": False}
 
 
+def test_caddy_asks_whether_the_course_may_be_shown(client, env):
+    """forward_auth avant le cours d'un module : toujours 200, l'en-tête dit si la session est ouverte."""
+    url = "/api/comptes/interne/session"
+    r = client.get(url)
+    assert r.status_code == 200 and r.headers["X-Academy-Etudiant"] == "0"
+    client.cookies.set("academy_session", "faux")
+    assert client.get(url).headers["X-Academy-Etudiant"] == "0"
+    client.cookies.clear()
+    login(client, env)
+    assert client.get(url).headers["X-Academy-Etudiant"] == "1"
+    client.post("/deconnexion", headers=ORIGIN)
+    assert client.get(url).headers["X-Academy-Etudiant"] == "0"
+
+
 def test_forged_cookie_is_refused(client):
     client.cookies.set("academy_session", "faux")
     assert client.get("/api/comptes/moi").status_code == 401

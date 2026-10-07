@@ -90,7 +90,7 @@ class ContenusClient:
                                          json={"etudiant": student}, headers=self.headers, timeout=600))
 
     def exercise(self, module):
-        return self._json(self.http.get(f"{self.base}/api/contenus/modules/{module}/exercice"))
+        return self._json(self.http.get(f"{self.base}/api/contenus/modules/{module}/exercice", headers=self.headers))
 
     def parcours(self):
         return self._json(self.http.get(f"{self.base}/api/contenus/parcours"))["parcours"]

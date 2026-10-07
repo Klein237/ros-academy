@@ -7,7 +7,6 @@ import {
   mint,
   mintAdmin,
   newEmail,
-  newStudent,
   openLabViaAccount,
   run,
   waitReady,
@@ -29,11 +28,26 @@ test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
 });
 
-function student(): string {
-  const name = newStudent();
-  students.push(name);
-  return name;
-}
+test("sans connexion : catalogue, Découvrir ROS 2 et titres des modules, mais pas le cours", async ({ page }) => {
+  await page.goto("/parcours/ros2-fondamentaux/");
+  await expect(page.locator(".programme")).toContainText("Écrire un nœud");
+  await page.locator(".programme").getByRole("link", { name: "Découvrir ROS 2" }).click();
+  await expect(page.locator("h1")).toContainText("ROS");
+  await page.goBack();
+  await page.locator(".programme").getByRole("link", { name: "Écrire un nœud" }).click();
+  await expect(page.getByRole("heading", { name: "Cours réservé aux inscrits" })).toBeVisible();
+  await expect(page.locator(".module-reserve")).toContainText("Au programme");
+  await expect(page.locator(".cours, .code-tabs, #qcm")).toHaveCount(0);
+  // l'en-tête d'identité posé par Caddy ne se forge pas depuis le navigateur
+  for (const path of ["/modules/02-noeud/", "/api/contenus/modules/02-noeud/exercice", "/api/contenus/modules/02-noeud/lab"]) {
+    const r = await page.request.get(path, { headers: { "X-Academy-Etudiant": "1" } });
+    expect(await r.text(), path).not.toContain("class DiffDriveNode");
+    if (path.startsWith("/api/")) expect(r.status(), path).toBe(401);
+  }
+  // « Se connecter » ramène au module
+  await page.getByRole("link", { name: "Créer un compte" }).click();
+  await expect(page).toHaveURL(/\/connexion\/inscription\?suite=\/modules\/02-noeud\/$/);
+});
 
 test("le site présente le parcours et corrige le QCM sans exposer les réponses", async ({ page }) => {
   await loginStudent(page, newEmail());
@@ -51,11 +65,10 @@ test("le site présente le parcours et corrige le QCM sans exposer les réponses
 });
 
 test("module Nœud : « Ouvrir dans le lab » crée le fichier du cours sans jamais l'écraser", async ({ page }) => {
-  const name = student();
+  // le cours est réservé aux étudiants connectés : le lab passe par la session de Comptes
+  students.push(await loginStudent(page, newEmail()));
   const file = "ws/02-noeud/src/my_pkg/my_pkg/diff_drive_node.py";
-  const next = `/lab/?module=02-noeud&open=${encodeURIComponent(file)}`;
-  await page.goto(`/hub/jwt_login?token=${mint(name)}&next=${encodeURIComponent(next)}`);
-  await waitReady(page);
+  await openLabViaAccount(page, `?module=02-noeud&open=${encodeURIComponent(file)}`);
   await expect(page.locator(".editor .tab.active")).toContainText("diff_drive_node.py");
   await expect(page.locator(".monaco-editor")).toContainText("class DiffDriveNode");
   // lab seul ouvert depuis un module : retour au cours visible, dans le même onglet
