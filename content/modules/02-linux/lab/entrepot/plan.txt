@@ -1,0 +1,7 @@
+# Plan de l'entrepôt (une case = 1 m) : # mur, . allée, Q quai, R rayonnage
+##########
+#Q.......#
+#..RR.RR.#
+#..RR.RR.#
+#........#
+##########

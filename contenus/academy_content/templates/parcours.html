@@ -38,11 +38,14 @@
         </div>
       </li>
       {% for m in parcours.modules %}
-      <li data-module="{{ m.id }}">
+      {% if m.partie and (loop.first or m.partie != loop.previtem.partie) %}
+      <li class="partie"><span>{{ m.partie }}</span></li>
+      {% endif %}
+      <li data-module="{{ m.id }}"{% if m.bonus %} class="bonus"{% endif %}>
         <span class="pastille-numero">{{ loop.index }}</span>
         <div class="programme-texte">
           <a href="/modules/{{ m.id }}/">{{ m.titre }}</a>
-          <span>{% if m.duree %}{{ m.duree }} · {% endif %}{{ m.resume }}</span>
+          <span>{% if m.bonus %}<strong class="etiquette-bonus">Bonus</strong> · {% endif %}{% if m.duree %}{{ m.duree }} · {% endif %}{% if not m.exercice %}cours et QCM · {% endif %}{{ m.resume }}</span>
         </div>
       </li>
       {% endfor %}
@@ -64,7 +67,7 @@
     {% endif %}
     <section class="encart encart-ambre" aria-labelledby="certificat">
       <h2 id="certificat">Comment c'est noté</h2>
-      <p>Chaque module est noté sur 20 : moitié QCM, moitié exercice (chaque indice utilisé retire 15 % de l'exercice). {% if coefs_varies %}Certains modules comptent davantage que d'autres dans la moyenne. {% endif %}Avec une moyenne suffisante, vous obtenez un certificat vérifiable par un lien.</p>
+      <p>Chaque module est noté sur 20 : moitié QCM, moitié exercice (chaque indice utilisé retire 15 % de l'exercice){% if avec_cours %} ; un module de cours, sans exercice, est noté sur son QCM{% endif %}. {% if avec_bonus %}Les modules bonus ne comptent pas dans la note finale. {% endif %}{% if coefs_varies %}Certains modules comptent davantage que d'autres dans la moyenne. {% endif %}Avec une moyenne suffisante, vous obtenez un certificat vérifiable par un lien.</p>
     </section>
   </aside>
 </div>

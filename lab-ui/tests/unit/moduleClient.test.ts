@@ -18,3 +18,9 @@ it("401 : session absente ou expirée", async () => {
   const other = new ModuleClient("02-noeud", async () => json(404));
   await expect(other.info()).rejects.not.toBeInstanceOf(NoAccount);
 });
+
+it("module de cours : pas d'exercice (404) → null", async () => {
+  const client = new ModuleClient("03-ros2", async () => json(404, { erreur: "Ce module n'a pas d'exercice" }));
+  expect(await client.exercise()).toBeNull();
+  await expect(client.labFiles()).rejects.toThrow("404");
+});

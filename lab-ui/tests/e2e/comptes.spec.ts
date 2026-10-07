@@ -63,8 +63,10 @@ test("parcours terminé : la note finale pondérée s'affiche sur la page Résul
   await loginStudent(page, newEmail(), "/modules/01-initiation/");
   const origin = { Origin: new URL(page.url()).origin };
   const parcours = (await (await page.request.get("/api/contenus/parcours")).json()).parcours[0];
-  const modules: { id: string; coef: number }[] = parcours.modules;
-  expect(modules.map((m) => m.id)).toEqual(["01-initiation", "02-noeud", "03-service", "04-action", "05-urdf", "06-parametres", "07-tf2", "08-gazebo"]);
+  const modules: { id: string; coef: number; exercice: boolean; bonus: boolean }[] = parcours.modules;
+  expect(modules.map((m) => m.id)).toEqual(["01-robot-mobile", "02-linux", "01-initiation", "02-noeud", "03-service", "04-action",
+    "05-urdf", "06-parametres", "07-tf2", "08-gazebo"]);
+  expect(modules.filter((m) => !m.exercice).map((m) => m.id)).toEqual(["01-robot-mobile"]); // module de cours : QCM seul
 
   // module 01 : QCM sur le site, un indice, exercice réussi
   await page.locator("fieldset[data-question] input").first().check();
@@ -85,18 +87,20 @@ test("parcours terminé : la note finale pondérée s'affiche sur la page Résul
   done("01-initiation");
 
   const notes: Record<string, number> = { "01-initiation": 0.5 * qcm01 + 0.5 * 20 * 0.85 };
-  for (const m of modules.slice(1)) {
+  for (const m of modules.filter((x) => x.id !== "01-initiation")) {
     const r = await page.request.post(`/api/comptes/qcm/${m.id}`, { data: { reponses: {} }, headers: origin });
     const qcm = (await r.json()).note as number;
-    done(m.id);
-    notes[m.id] = 0.5 * qcm + 0.5 * 20;
+    if (m.exercice) done(m.id);
+    notes[m.id] = m.exercice ? 0.5 * qcm + 0.5 * 20 : qcm;
   }
 
   await page.goto("/compte/resultats");
-  const total = modules.reduce((acc, m) => acc + m.coef, 0);
-  const finale = modules.reduce((acc, m) => acc + m.coef * Math.round(notes[m.id] * 100) / 100, 0) / total;
+  const comptes = modules.filter((m) => !m.bonus); // les bonus restent hors note finale
+  const total = comptes.reduce((acc, m) => acc + m.coef, 0);
+  const finale = comptes.reduce((acc, m) => acc + m.coef * Math.round(notes[m.id] * 100) / 100, 0) / total;
   await expect(page.locator(".final-grade")).toHaveText(`Note finale : ${finale.toFixed(2).replace(".", ",")} / 20`);
   await expect(page.getByRole("row", { name: /Initiation/ })).toContainText("réussi (1 indice) · 17,0");
+  await expect(page.getByRole("row", { name: /Le robot mobile/ })).toContainText("sans exercice");
 
   // certificat (si la note atteint le seuil) : nom imprimé, page publique de vérification, PDF
   const seuil = Number(process.env.CERTIFICAT_NOTE_MIN ?? 10);

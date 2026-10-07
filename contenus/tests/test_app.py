@@ -9,8 +9,9 @@ from fastapi.testclient import TestClient
 
 from academy_content.app import create_app, duree_minutes, format_minutes
 from academy_content.store import ContentStore
+from academy_content.model import ContentError, load_module
 from academy_content.testing import Rapport
-from conftest import make_module, make_parcours
+from conftest import COURS_SEUL, make_module, make_parcours
 
 SECRET = "s" * 40
 HOST = "testserver"
@@ -158,6 +159,35 @@ def test_internal_routes_require_the_shared_secret(client, method, path):
         assert r.status_code == 403, headers
         assert "Regardez" not in r.text and "colcon" not in r.text and "manquait" not in r.text
     assert client.request(method, path, headers=INTERNE, **body).status_code == 200
+
+
+def test_course_only_module_parts_and_bonus(tmp_path):
+    seed = tmp_path / "seed"
+    make_module(seed)
+    make_module(seed, "02-cours", **{**COURS_SEUL, "index.md": "---\ntitre: Notions\nresume: R\nduree: 30 min\n---\n## A\n\nTexte.\n"})
+    make_module(seed, "03-bonus", **{"index.md": "---\ntitre: En plus\nresume: R\nduree: 2 h\n---\nTexte.\n"})
+    make_parcours(seed, modules=("01-demo", "02-cours", "03-bonus"),
+                  extra={"01-demo": ["partie: Les bases"], "02-cours": ["partie: Les bases"],
+                         "03-bonus": ["partie: Bonus", "bonus: true"]})
+    client = TestClient(create_app(ContentStore(tmp_path / "store", seed=seed), Runner(), SECRET, cookie_secure=False))
+    client.headers.update(ETUDIANT)
+    mods = client.get("/api/contenus/parcours").json()["parcours"][0]["modules"]
+    assert [(m["id"], m["exercice"], m["bonus"], m["partie"]) for m in mods] == [
+        ("01-demo", True, False, "Les bases"), ("02-cours", False, False, "Les bases"), ("03-bonus", True, True, "Bonus")]
+    # module de cours : pas d'étape Exercice, le QCM fait la note
+    page = client.get("/modules/02-cours/").text
+    assert 'id="exercice"' not in page and 'data-etape="exercice"' not in page and "exercice=1" not in page
+    assert "ce module de cours n'a pas d'exercice" in page and 'href="#qcm" data-suivante' in page
+    assert client.get("/api/contenus/modules/02-cours/exercice").status_code == 404
+    assert client.get("/api/contenus/modules/02-cours/indices/1", headers=INTERNE).status_code == 404
+    assert client.get("/api/contenus/modules/02-cours/lab").json() == {"files": []}
+    # parcours : parties regroupées, bonus signalé et hors durée totale
+    parcours = client.get("/parcours/demo/").text
+    assert parcours.count('class="partie"') == 2 and "Les bases" in parcours
+    assert 'class="bonus"' in parcours and "Bonus</strong>" in parcours
+    assert "un module de cours, sans exercice, est noté sur son QCM" in parcours
+    assert "Les modules bonus ne comptent pas dans la note finale" in parcours
+    assert "40 min" in parcours  # 10 min + 30 min, sans les 2 h du bonus
 
 
 def test_catalogue_announces_upcoming_parcours(store, client):
@@ -351,3 +381,42 @@ def test_history_and_restore(admin):
 def test_author_guide(admin, client):
     r = admin.get("/admin/guide/")
     assert r.status_code == 200 and "Guide de rédaction des formations" in r.text
+
+
+SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>\n'
+
+
+def test_course_images(tmp_path):
+    seed = tmp_path / "seed"
+    make_module(seed, **{"index.md": "---\ntitre: Démo\n---\n## A\n\n![Le graphe du robot](images/graphe.svg)\n",
+                         "images/graphe.svg": SVG})
+    make_parcours(seed)
+    store = ContentStore(tmp_path / "store", seed=seed)
+    anonyme = TestClient(create_app(store, Runner(), SECRET, cookie_secure=False))
+    page = anonyme.get("/modules/01-demo/", headers=ETUDIANT).text
+    assert '<img class="schema" src="/modules/01-demo/images/graphe.svg" alt="Le graphe du robot"' in page
+    r = anonyme.get("/modules/01-demo/images/graphe.svg", headers=ETUDIANT)
+    assert r.status_code == 200 and r.headers["content-type"].startswith("image/svg+xml")
+    assert "sandbox" in r.headers["Content-Security-Policy"] and "script-src" not in r.headers["Content-Security-Policy"]
+    # réservé comme le cours ; seuls les fichiers images/ autorisés
+    assert anonyme.get("/modules/01-demo/images/graphe.svg").status_code == 404
+    for name in ("absent.svg", "graphe.svg.exe", "..%2Findex.md", "Graphe.svg"):
+        assert anonyme.get(f"/modules/01-demo/images/{name}", headers=ETUDIANT).status_code == 404, name
+    # aperçu de l'administrateur : images du brouillon
+    anonyme.get("/admin/login", params={"token": token()})
+    assert anonyme.get("/admin/apercu/modules/01-demo/images/graphe.svg").status_code == 200
+    html = anonyme.post("/admin/api/apercu", json={"module": "01-demo", "markdown": "![x](images/graphe.svg)"},
+                        headers=ORIGIN).json()["html"]
+    assert 'src="/admin/apercu/modules/01-demo/images/graphe.svg"' in html
+
+
+@pytest.mark.parametrize("markdown, message", [
+    ("![Le graphe](images/absent.svg)", "introuvable dans le module"),
+    ("![](images/graphe.svg)", "décrivez-la entre les crochets"),
+    ("![Ailleurs](https://exemple.fr/x.png)", "seules les images du dossier images/"),
+])
+def test_course_images_are_checked(tmp_path, markdown, message):
+    make_module(tmp_path, **{"index.md": f"---\ntitre: Démo\n---\n{markdown}\n", "images/graphe.svg": SVG})
+    with pytest.raises(ContentError) as e:
+        load_module(tmp_path, "01-demo")
+    assert message in str(e.value)

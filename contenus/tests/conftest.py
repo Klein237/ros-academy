@@ -50,11 +50,17 @@ def make_module(root, module_id="01-demo", **overrides):
     return base
 
 
-def make_parcours(root, parcours_id="demo", modules=("01-demo",)):
+COURS_SEUL = {f"exercice/{f}": None for f in ("enonce.md", "setup.sh", "check.sh", "indices.md", "explication.md",
+                                               "solution/ok")}
+COURS_SEUL["lab/README.md"] = None
+
+
+def make_parcours(root, parcours_id="demo", modules=("01-demo",), extra=None):
+    """extra : {module_id: lignes YAML supplémentaires de l'entrée (partie, bonus…)}."""
     p = Path(root) / "parcours" / parcours_id / "parcours.yaml"
     p.parent.mkdir(parents=True, exist_ok=True)
     lines = ["titre: Parcours démo", "description: Pour les tests", "modules:"]
-    lines += [f"  - id: {m}\n    coef: 1" for m in modules]
+    lines += [f"  - id: {m}\n    coef: 1" + "".join(f"\n    {x}" for x in (extra or {}).get(m, [])) for m in modules]
     p.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return p
 

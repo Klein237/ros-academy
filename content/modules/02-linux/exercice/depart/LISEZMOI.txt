@@ -1,0 +1,8 @@
+Robot de livraison : démarrage
+==============================
+
+Depuis ce dossier :
+
+    ./demarrer_robot.sh
+
+Le script lit la configuration du robot dans config/robot.env.

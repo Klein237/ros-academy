@@ -19,6 +19,7 @@ jobs:
       - run: cd contenus && python -m pytest -v
       - run: cd comptes && python -m pytest -v
       - run: cd veille && python -m pytest -v
+      - run: python3 scripts/schemas/generer.py --verifier  # les schémas des cours sont à jour
       - run: shellcheck -S warning scripts/*.sh tests/scripts/*.sh
       - run: bash tests/scripts/test_installer.sh
       - run: bash tests/scripts/test_demarrer_local.sh

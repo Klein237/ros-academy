@@ -1,0 +1,7 @@
+Il y avait deux pannes à la suite, et chaque message d'erreur menait à la suivante.
+
+**1. Le script n'avait pas le droit d'exécution.** Sous Linux, chaque fichier porte des droits : lecture (`r`), écriture (`w`), exécution (`x`), pour son propriétaire, son groupe et les autres. `ls -l` les affiche : `-rw-r--r--` signifie « lisible, pas exécutable ». Pour lancer un script avec `./`, il faut `x` : `chmod +x demarrer_robot.sh` donne `-rwxr-xr-x`. Ce droit se perd souvent en route : fichier téléchargé, extrait d'une archive, copié depuis une clé USB ou un autre système. Un réflexe utile : `bash demarrer_robot.sh` lance un script même sans le droit `x`, ce qui aide à savoir si le problème vient des droits ou du script.
+
+**2. Le fichier de configuration n'existait pas encore.** Le dossier ne contenait que `config/robot.env.exemple`. C'est une pratique courante : on partage un **modèle**, et chacun crée son vrai fichier de configuration, propre à son robot, qui n'est pas partagé (il peut contenir des réglages personnels ou des mots de passe). Le script lit ensuite ce fichier avec `source`, qui exécute ses lignes dans le shell courant : les variables `ROBOT_NOM` et `ROS_DOMAIN_ID` deviennent disponibles pour la suite du script.
+
+**À retenir :** lisez chaque message d'erreur jusqu'au bout. « Permission denied » parle de droits, « No such file or directory » d'un fichier ou d'un chemin introuvable. Vous retrouverez exactement ces réflexes avec ROS 2 : `source install/setup.bash` fonctionne comme ce `source config/robot.env`.

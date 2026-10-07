@@ -4,7 +4,9 @@ Conventions d'écriture :
 - ```python fichier=src/my_pkg/my_pkg/diff_drive_node.py : bloc contenant un fichier
   complet du lab guidé ; il reçoit un bouton « Ouvrir dans le lab » et sert aux tests
   (le lab guidé doit compiler avec ces fichiers) ;
-- des blocs ```python et ```cpp qui se suivent sont présentés en onglets Python / C++.
+- des blocs ```python et ```cpp qui se suivent sont présentés en onglets Python / C++ ;
+- ![texte qui décrit le schéma](images/graphe.svg) : un schéma du dossier images/ du module
+  (svg, png, jpg ou webp ; le texte entre crochets est obligatoire, pour l'accessibilité).
 """
 
 import html
@@ -23,6 +25,7 @@ LANG_LABELS = {
     "yaml": "YAML", "cmake": "CMake", "text": "Texte", "srv": "Service (.srv)", "action": "Action (.action)",
     "msg": "Message (.msg)",
 }
+IMAGE_RE = re.compile(r"^images/[a-z0-9][a-z0-9_-]{0,80}\.(?:svg|png|jpg|jpeg|webp)$")
 SAFE_REL_RE = re.compile(r"^(?!/)(?!.*(?:^|/)\.\.?(?:/|$))[A-Za-z0-9_./+-]{1,255}$")
 
 
@@ -68,6 +71,16 @@ def code_files(markdown):
             if path:
                 files[path] = tok.content
     return files
+
+
+def course_images(markdown):
+    """Images du cours, dans l'ordre : [(src, texte alternatif)]."""
+    out = []
+    for tok in _md().parse(markdown):
+        for child in tok.children or []:
+            if child.type == "image":
+                out.append((child.attrGet("src") or "", "".join(c.content for c in child.children or []).strip()))
+    return out
 
 
 def _group_tabs(tokens):
@@ -122,8 +135,21 @@ def cours_sommaire(markdown):
     return _prepare(_md(), markdown)[1]
 
 
-def render_cours(markdown, module_id):
+def render_cours(markdown, module_id, images_base=None):
+    """images_base : préfixe des schémas (images/…) ; par défaut, ceux du module publié."""
     md = _md()
+    base = images_base if images_base is not None else f"/modules/{module_id}/"
+
+    def image(renderer, tokens, idx, options, env):
+        tok = tokens[idx]
+        src = tok.attrGet("src") or ""
+        alt = renderer.renderInlineAsText(tok.children or [], options, env)
+        if not IMAGE_RE.fullmatch(src):
+            return html.escape(alt)  # refusée à la publication ; ici, le texte seul
+        return (f'<img class="schema" src="{html.escape(base + src)}" alt="{html.escape(alt)}" '
+                'loading="lazy" decoding="async">')
+
+    md.add_render_rule("image", image)
     tokens, _ = _prepare(md, markdown)
     _group_tabs(tokens)
 

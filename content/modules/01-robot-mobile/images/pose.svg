@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 370" role="img" aria-labelledby="t d">
+<title id="t">La pose d&#x27;un robot : position et orientation</title>
+<desc id="d">Vue de dessus avec une grille d&#x27;un mètre. Le repère odom est fixe ; le robot est en x = 2,5 m, y = 1,5 m, tourné de θ = 35° par rapport à l&#x27;axe x d&#x27;odom. Son propre repère, base_link, le suit.</desc>
+<style>
+.fond { fill: #fbfbf9; stroke: #c9cfc9; stroke-width: 1.5; }
+.grille { stroke: #e7eae6; stroke-width: 1; }
+.boite { fill: #ffffff; stroke: #c9cfc9; stroke-width: 1.5; }
+.calcul { fill: #e3f1ee; stroke: #0b5e57; stroke-width: 2; }
+.capteur { fill: #fff8e8; stroke: #d39a2c; stroke-width: 2; }
+.actionneur { fill: #eef1f5; stroke: #56606a; stroke-width: 2; }
+.robot { fill: #e3f1ee; stroke: #0b5e57; stroke-width: 2; }
+.roue { fill: #12171c; }
+.roulette { fill: #ffffff; stroke: #12171c; stroke-width: 1.5; }
+.nez { fill: #0b5e57; }
+.ax-x { stroke: #d64545; stroke-width: 3; fill: none; } .ax-y { stroke: #2f9e44; stroke-width: 3; fill: none; }
+.px { fill: #d64545; } .py { fill: #2f9e44; }
+.trait { stroke: #56606a; stroke-width: 2; fill: none; }
+.tirets { stroke: #8a949c; stroke-width: 1.5; stroke-dasharray: 5 5; fill: none; }
+.trajet { stroke: #d39a2c; stroke-width: 3; fill: none; stroke-linecap: round; }
+.trajet-pointe { fill: #d39a2c; }
+.vitesse { stroke: #0b5e57; stroke-width: 3; fill: none; }
+.vitesse-pointe { fill: #0b5e57; }
+.pointe { fill: #56606a; }
+.cir { fill: #d39a2c; }
+.t { fill: #12171c; font: 400 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-gras { fill: #12171c; font: 600 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-titre { fill: #12171c; font: 600 16px "IBM Plex Sans", system-ui, sans-serif; }
+.t-petit { fill: #56606a; font: 400 12.5px "IBM Plex Sans", system-ui, sans-serif; }
+.t-sur { fill: #56606a; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; letter-spacing: 0.08em; }
+.t-math { fill: #12171c; font: italic 500 15px "IBM Plex Serif", Georgia, serif; }
+.t-code { fill: #12171c; font: 500 13px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+.t-accent { fill: #0b5e57; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-ambre { fill: #8a5d10; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-x { fill: #d64545; font: 600 13px "JetBrains Mono", monospace; } .t-y { fill: #2f9e44; font: 600 13px "JetBrains Mono", monospace; }
+.badge { fill: #0b5e57; } .t-badge { fill: #ffffff; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; }
+.sep { stroke: #e2e5e1; stroke-width: 1.5; }
+@media (prefers-color-scheme: dark) {
+  .fond { fill: #0f161d; stroke: #34424f; } .grille { stroke: #1b2630; }
+  .boite { fill: #121a22; stroke: #34424f; }
+  .calcul, .robot { fill: #12302d; stroke: #4fb3a7; }
+  .capteur { fill: #2a2212; stroke: #f2b544; }
+  .actionneur { fill: #1a222b; stroke: #8a99a8; }
+  .roue { fill: #c9d3dc; } .roulette { fill: #121a22; stroke: #c9d3dc; } .nez { fill: #4fb3a7; }
+  .ax-x { stroke: #ff6b6b; } .ax-y { stroke: #51cf66; } .px, .t-x { fill: #ff6b6b; } .py, .t-y { fill: #51cf66; }
+  .trait { stroke: #8a99a8; } .tirets { stroke: #5d6b78; } .pointe { fill: #8a99a8; }
+  .trajet { stroke: #f2b544; } .trajet-pointe, .cir { fill: #f2b544; }
+  .vitesse { stroke: #4fb3a7; } .vitesse-pointe { fill: #4fb3a7; }
+  .t, .t-gras, .t-titre, .t-math, .t-code { fill: #e3e8ee; }
+  .t-petit, .t-sur { fill: #8a99a8; } .t-accent { fill: #4fb3a7; } .t-ambre { fill: #f2b544; }
+  .badge { fill: #4fb3a7; } .t-badge { fill: #0b1015; } .sep { stroke: #22303c; }
+}
+</style>
+<defs>
+<marker id="m-trait" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-trajet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="trajet-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-vitesse" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="vitesse-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-x" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="px" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-y" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="py" d="M0 0 L10 5 L0 10 z"/></marker>
+</defs>
+<rect class="fond" x="20.0" y="20.0" width="480.0" height="330.0" rx="12"/>
+<line class="grille" x1="70.0" y1="30.0" x2="70.0" y2="340.0"/>
+<line class="grille" x1="170.0" y1="30.0" x2="170.0" y2="340.0"/>
+<line class="grille" x1="270.0" y1="30.0" x2="270.0" y2="340.0"/>
+<line class="grille" x1="370.0" y1="30.0" x2="370.0" y2="340.0"/>
+<line class="grille" x1="470.0" y1="30.0" x2="470.0" y2="340.0"/>
+<line class="grille" x1="30.0" y1="300.0" x2="490.0" y2="300.0"/>
+<line class="grille" x1="30.0" y1="200.0" x2="490.0" y2="200.0"/>
+<line class="grille" x1="30.0" y1="100.0" x2="490.0" y2="100.0"/>
+<line class="ax-x" x1="70.0" y1="300.0" x2="130.0" y2="300.0" marker-end="url(#m-x)"/>
+<line class="ax-y" x1="70.0" y1="300.0" x2="70.0" y2="240.0" marker-end="url(#m-y)"/>
+<text class="t-x" x="136.0" y="304.0" text-anchor="middle">x</text>
+<text class="t-y" x="70.0" y="236.0" text-anchor="middle">y</text>
+<circle class="roue" cx="70.0" cy="300.0" r="3.5"/>
+<text class="t-code" x="60.0" y="326.0" text-anchor="start">odom</text>
+<line class="tirets" x1="320.0" y1="300.0" x2="320.0" y2="150.0"/>
+<line class="tirets" x1="70.0" y1="150.0" x2="320.0" y2="150.0"/>
+<text class="t-math" x="195.0" y="322.0" text-anchor="middle">x = 2,5 m</text>
+<text class="t-math" x="78.0" y="221.0" text-anchor="start">y = 1,5 m</text>
+<g transform="translate(320.0 150.0) rotate(-35.0)"><rect class="roue" x="-19.2" y="-37.2" width="38.4" height="10.8" rx="3.6"/><rect class="roue" x="-19.2" y="26.4" width="38.4" height="10.8" rx="3.6"/><rect class="robot" x="-31.2" y="-26.4" width="79.2" height="52.8" rx="12.0"/><circle class="roulette" cx="-20.4" cy="0" r="5.4"/><path class="nez" d="M36.0 0 l-10.8 -7.2 v14.4 z"/></g>
+<line class="tirets" x1="320.0" y1="150.0" x2="415.0" y2="150.0"/>
+<path class="trajet" d="M398.0 150.0 A78.0 78.0 0 0 0 383.9 105.3" marker-end="url(#m-trajet)"/>
+<text class="t-math" x="408.0" y="128.0" text-anchor="start">θ = 35°</text>
+<line class="ax-x" x1="320.0" y1="150.0" x2="362.6" y2="120.2" marker-end="url(#m-x)"/>
+<line class="ax-y" x1="320.0" y1="150.0" x2="290.2" y2="107.4" marker-end="url(#m-y)"/>
+<text class="t-x" x="367.5" y="120.7" text-anchor="middle">x</text>
+<text class="t-y" x="285.6" y="104.9" text-anchor="middle">y</text>
+<circle class="roue" cx="320.0" cy="150.0" r="3.5"/>
+<text class="t-code" x="280.0" y="214.0" text-anchor="start">base_link</text>
+<text class="t-petit" x="260.0" y="44.0" text-anchor="middle">la pose (x, y, θ) : où est le robot, et vers où il regarde</text>
+</svg>

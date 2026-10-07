@@ -62,6 +62,7 @@ export class ModulePanel {
       this.askLogin("Votre session a expiré : reconnectez-vous pour afficher le module et son exercice. ");
       return;
     }
+    if (!exercise) return this.courseOnly(info.titre);
     this.hintCount = exercise.indices;
     const state = await this.opts.comptes.exercise(id).catch((e: unknown) => {
       if (e instanceof NoAccount) this.askLogin();
@@ -108,6 +109,21 @@ export class ModulePanel {
     }
   }
 
+  /** Module de cours : pas d'exercice, la note est celle du QCM, sur la page du cours. */
+  private courseOnly(titre: string): void {
+    const id = this.opts.moduleId;
+    this.el.append(
+      h("div", { class: "panel-header" },
+        h("h2", { text: "Module" }),
+        h("a", { class: "small", text: "Retour au cours", attrs: { href: `/modules/${encodeURIComponent(id)}/`, target: "_blank", rel: "noopener" } })),
+      h("div", { class: "module-body" },
+        h("p", { class: "module-title", text: titre }),
+        h("p", { class: "muted small" }, "Lab guidé : ", h("code", { text: `~/${labDir(id)}` })),
+        h("p", { class: "muted small", text: "Ce module de cours n'a pas d'exercice : il est noté sur son QCM, en bas de la page du cours." }),
+      ),
+    );
+  }
+
   private askLogin(message = "Vous n'êtes pas connecté : vos indices et votre réussite ne seront pas enregistrés. "): void {
     this.noAccount = true;
     this.account.replaceChildren(
@@ -148,6 +164,7 @@ export class ModulePanel {
     this.show("info", "Installation de l'exercice…", "Le workspace est copié puis compilé : comptez jusqu'à une minute.");
     try {
       const exercise = await this.opts.client.exercise();
+      if (!exercise) throw new Error("module sans exercice"); // le bouton n'existe que si l'exercice existe
       await installExerciseFiles(this.opts.contents, id, exercise.files);
       const n = nonce();
       const { code, output } = await this.opts.terminals.run("Exercice", scriptCommand(id, "setup.sh", n),

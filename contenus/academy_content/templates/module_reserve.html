@@ -16,7 +16,7 @@
   <section class="encart encart-primaire" aria-labelledby="reserve">
     <div>
       <h2 id="reserve">Cours réservé aux inscrits</h2>
-      <p>Connectez-vous pour suivre ce module : le cours, le lab ROS 2 dans votre navigateur, l'exercice et le QCM.</p>
+      <p>Connectez-vous pour suivre ce module : le cours, le lab ROS 2 dans votre navigateur{% if module.exercice %}, l'exercice{% endif %} et le QCM.</p>
     </div>
     <div class="actions-reserve">
       <a class="button amber grand" href="/connexion/inscription?suite={{ suite | urlencode }}">Créer un compte</a>
@@ -29,7 +29,7 @@
     <h2 id="au-programme">Au programme</h2>
     <ul class="liste-cochee">
       {% for s in sommaire %}<li>{{ coche() }}{{ s.titre }}</li>{% endfor %}
-      <li>{{ coche() }}Exercice : situation réelle</li>
+      {% if module.exercice %}<li>{{ coche() }}Exercice : situation réelle</li>{% endif %}
       <li>{{ coche() }}QCM</li>
     </ul>
   </section>

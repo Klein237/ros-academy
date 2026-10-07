@@ -8,7 +8,7 @@
 {% macro liens_sommaire() %}
   <ol class="sommaire-liste">
     {% for s in sommaire %}<li><a href="#{{ s.id }}" data-section="{{ s.id }}">{{ s.titre }}</a></li>{% endfor %}
-    <li class="etape-lien"><a href="#exercice" data-section="exercice">Exercice : situation réelle</a></li>
+    {% if module.exercice %}<li class="etape-lien"><a href="#exercice" data-section="exercice">Exercice : situation réelle</a></li>{% endif %}
     <li class="etape-lien"><a href="#qcm" data-section="qcm">QCM</a></li>
   </ol>
 {% endmacro %}
@@ -22,7 +22,7 @@
     {% endif %}
     <nav class="etapes-module" aria-label="Étapes du module">
       <a href="#cours" data-etape="cours">Cours</a>
-      <a href="#exercice" data-etape="exercice">Exercice</a>
+      {% if module.exercice %}<a href="#exercice" data-etape="exercice">Exercice</a>{% endif %}
       <a href="#qcm" data-etape="qcm">QCM</a>
     </nav>
     <div class="module-actions">
@@ -31,7 +31,7 @@
       {# Écran large (site.js) : le lab s'ouvre à côté du cours ; le lab seul reste possible, dans un autre onglet #}
       <button type="button" class="button primary cote-a-cote" hidden
               data-lab="{{ lab_link(module.id, integre=1) }}"
-              data-exercice="{{ lab_link(module.id, exercice=1, integre=1) }}">Ouvrir le lab</button>
+              {% if module.exercice %}data-exercice="{{ lab_link(module.id, exercice=1, integre=1) }}"{% endif %}>Ouvrir le lab</button>
       <a class="button lab-plein-ecran" href="{{ lab_link(module.id) }}" target="_blank" rel="noopener" hidden>Lab en plein écran</a>
     </div>
   </div>
@@ -59,6 +59,7 @@
       {{ cours_html | safe }}
     </section>
 
+    {% if module.exercice %}
     <section id="exercice" class="card exercise">
       <p class="eyebrow">Étape 2</p>
       <h2>Exercice : situation réelle</h2>
@@ -66,11 +67,12 @@
       <p><a class="button primary exercice-lab" href="{{ lab_link(module.id, exercice=1) }}">Ouvrir l'exercice dans le lab</a></p>
       <p class="muted small">Dans le lab : « Commencer l'exercice » installe le workspace avec la panne, « Vérifier » contrôle votre correction. Trois indices sont disponibles ; chacun retire 15 % de la note de l'exercice.</p>
     </section>
+    {% endif %}
 
     <section id="qcm" class="card">
-      <p class="eyebrow">Étape 3</p>
+      <p class="eyebrow">Étape {{ 3 if module.exercice else 2 }}</p>
       <h2>QCM</h2>
-      <p class="muted small">Deux tentatives ; la meilleure note est retenue. Elle compte pour la moitié de la note du module.</p>
+      <p class="muted small">Deux tentatives ; la meilleure note est retenue. {% if module.exercice %}Elle compte pour la moitié de la note du module.{% else %}C'est la note du module : ce module de cours n'a pas d'exercice.{% endif %}</p>
       <form class="qcm" data-module="{{ module.id }}">
         <p class="qcm-status" role="status" hidden></p>
         {% for q in qcm %}
@@ -97,6 +99,6 @@
 
 <div class="barre-mobile">
   <a class="button" href="{{ lab_link(module.id) }}">Ouvrir le lab</a>
-  <a class="button primary" href="#exercice" data-suivante>Aller à l'exercice</a>
+  {% if module.exercice %}<a class="button primary" href="#exercice" data-suivante>Aller à l'exercice</a>{% else %}<a class="button primary" href="#qcm" data-suivante>Aller au QCM</a>{% endif %}
 </div>
 {% endblock %}

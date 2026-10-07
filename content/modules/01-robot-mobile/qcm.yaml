@@ -1,0 +1,99 @@
+questions:
+  - id: boucle
+    question: Dans quel ordre fonctionne la boucle d'un robot mobile ?
+    choix:
+      - texte: Percevoir, décider, agir, puis recommencer
+        correct: true
+      - texte: Agir, puis percevoir une seule fois à la fin de la mission
+      - texte: Décider une fois pour toutes, puis agir sans mesurer
+    explication: Le robot mesure (capteurs), décide (calcul), agit (actionneurs) ; il a alors bougé, les mesures changent et la boucle recommence, des dizaines de fois par seconde.
+  - id: proprio
+    question: Quels capteurs sont proprioceptifs, c'est-à-dire qu'ils mesurent le robot lui-même ?
+    choix:
+      - texte: Les encodeurs de roue
+        correct: true
+      - texte: La centrale inertielle (IMU)
+        correct: true
+      - texte: Le lidar
+      - texte: La caméra
+    explication: Encodeurs et centrale inertielle mesurent le mouvement du robot ; lidar et caméra mesurent son environnement (extéroceptifs).
+  - id: niveau
+    question: Où s'exécute ROS 2 sur un robot mobile typique ?
+    choix:
+      - texte: Sur l'ordinateur embarqué de haut niveau, qui localise, planifie et décide
+        correct: true
+      - texte: Dans le microcontrôleur qui asservit les moteurs des milliers de fois par seconde
+      - texte: Dans les capteurs eux-mêmes
+    explication: Le bas niveau (microcontrôleur) asservit les moteurs en temps réel ; ROS 2 fait communiquer les programmes du haut niveau.
+  - id: differentiel
+    question: Qu'est-ce qui distingue un robot différentiel d'une voiture (Ackermann) ?
+    choix:
+      - texte: Il tourne en donnant des vitesses différentes à ses deux roues, et peut tourner sur place
+        correct: true
+      - texte: Il braque ses roues avant
+      - texte: Il ne peut pas reculer
+    explication: "Le différentiel n'a pas de direction : la différence de vitesse entre ses deux roues le fait tourner, jusqu'à pivoter sur place quand v = 0."
+  - id: pose
+    question: Que contient la pose d'un robot qui roule sur un sol plat ?
+    choix:
+      - texte: Sa position x, y et son orientation θ
+        correct: true
+      - texte: Sa vitesse linéaire et sa vitesse angulaire
+      - texte: La vitesse de chacune de ses roues
+    explication: La pose dit où est le robot (x, y) et vers où il regarde (θ), dans un repère fixe ; v et ω sont des vitesses, pas une pose.
+  - id: unites
+    question: Quelles unités utilise ROS pour les distances et les angles ?
+    choix:
+      - texte: Des mètres et des radians
+        correct: true
+      - texte: Des centimètres et des degrés
+      - texte: Des pixels et des tours
+    explication: "C'est la convention REP 103 : mètres, radians, et des angles qui augmentent dans le sens trigonométrique."
+  - id: base-link
+    question: Dans le repère du robot base_link, vers où pointe l'axe y ?
+    choix:
+      - texte: Vers la gauche du robot
+        correct: true
+      - texte: Vers l'avant du robot
+      - texte: Vers la droite du robot
+    explication: x vers l'avant, y vers la gauche, z vers le haut.
+  - id: tourner-gauche
+    question: On envoie v = 0 et ω = 1 rad/s. Que fait le robot différentiel ?
+    choix:
+      - texte: Il tourne sur place, vers la gauche
+        correct: true
+      - texte: Il avance tout droit à 1 m/s
+      - texte: Il tourne sur place, vers la droite
+    explication: Sans vitesse linéaire, il pivote ; une vitesse angulaire positive le fait tourner dans le sens trigonométrique, vers la gauche.
+  - id: rayon
+    question: Le robot reçoit en continu v = 0,3 m/s et ω = 0,6 rad/s. Quelle trajectoire suit-il ?
+    choix:
+      - texte: Un cercle de rayon 0,5 m, vers la gauche
+        correct: true
+      - texte: Un cercle de rayon 2 m, vers la gauche
+      - texte: Une ligne droite
+    explication: R = v / ω = 0,3 / 0,6 = 0,5 m ; ω positif fait tourner à gauche.
+  - id: roues
+    question: Pour tourner à gauche en avançant, que doivent faire les roues d'un robot différentiel ?
+    choix:
+      - texte: La roue droite tourne plus vite que la roue gauche
+        correct: true
+      - texte: La roue gauche tourne plus vite que la roue droite
+      - texte: Les deux roues tournent à la même vitesse
+    explication: v_d = v + ω·L/2 et v_g = v − ω·L/2 ; avec ω positif, la roue droite, à l'extérieur du virage, va plus vite.
+  - id: odometrie
+    question: Pourquoi l'odométrie seule ne suffit-elle pas à un robot qui navigue longtemps ?
+    choix:
+      - texte: Ses petites erreurs s'accumulent et la pose estimée dérive
+        correct: true
+      - texte: Elle ne donne pas l'orientation du robot
+      - texte: Elle a besoin d'un GPS pour fonctionner
+    explication: Glissements et imprécisions s'ajoutent à chaque pas ; on corrige la dérive avec d'autres capteurs, comme un laser comparé à une carte.
+  - id: navigation
+    question: Quelles sont les trois briques de la navigation autonome ?
+    choix:
+      - texte: Localisation, planification et commande
+        correct: true
+      - texte: Compilation, publication et souscription
+      - texte: Téléopération, odométrie et GPS
+    explication: "Savoir où l'on est, choisir un chemin, le suivre en ajustant v et ω : c'est ce que fait Nav2."

@@ -1,0 +1,6 @@
+Dossier d'entraînement du module Linux
+======================================
+
+entrepot/   le plan de l'entrepôt et la liste des livraisons
+journaux/   le journal du robot (robot.log)
+scripts/    un petit script à rendre exécutable
