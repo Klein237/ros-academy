@@ -92,7 +92,7 @@ pip install PyJWT==2.9.0
 TOKEN=$(python scripts/mint_token.py --sub essai --plan free)
 echo "https://$DOMAIN/hub/jwt_login?token=$TOKEN"
 ```
-Ouvrir le lien : connexion, redirection vers le Lab UI (`/lab/`), écran d'attente pendant le démarrage du conteneur, puis terminal, éditeur et vue 2D. Pour ouvrir directement un fichier ou un dossier (bouton « Ouvrir dans le lab » du site), ajouter `&next=` avec l'URL encodée de `/lab/?open=ws/module-02/talker.py&dossier=ws/module-02`.
+Ouvrir le lien : connexion, redirection vers le Lab UI (`/lab/`), écran d'attente pendant le démarrage du conteneur, puis terminal, éditeur et vue 2D. Sans session de Comptes, le lab fonctionne mais le cours des modules reste réservé : le panneau Module invite à se connecter. Pour ouvrir directement un fichier ou un dossier (bouton « Ouvrir dans le lab » du site), ajouter `&next=` avec l'URL encodée de `/lab/?open=ws/module-02/talker.py&dossier=ws/module-02`.
 
 Vérifier aussi la session par l'API :
 ```bash

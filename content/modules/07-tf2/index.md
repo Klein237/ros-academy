@@ -13,13 +13,15 @@ duree: 1 h 30
 - diffuser une transformation mobile et une transformation fixe ;
 - convertir la position d'un obstacle d'un repère à l'autre avec un `Buffer` et un `TransformListener`.
 
-## 1. Pourquoi des repères ?
+## L'essentiel en théorie
 
 **Constat :** un capteur ne mesure jamais « dans le monde ». Le laser du robot voit un obstacle *à 1 m devant lui* ; pour l'éviter ou le placer sur une carte, il faut sa position *dans la pièce*. Entre les deux : la position du laser sur le robot, et la position du robot dans la pièce, qui change à chaque instant.
 
-**Solution :** chaque élément a son **repère** (*frame*) : une origine et trois axes. ROS 2 relie les repères par des **transformations** (translation + rotation) et la bibliothèque **TF2** calcule pour vous n'importe quelle transformation entre deux repères, en chaînant celles qui les séparent.
+**Solution :** chaque élément a son **repère** (*frame*) : une origine et trois axes. ROS 2 relie les repères par des **transformations** (translation + rotation), et la bibliothèque **TF2** calcule pour vous n'importe quelle transformation entre deux repères, en chaînant celles qui les séparent.
 
-Les repères de notre robot, selon les conventions de ROS ([REP 105](https://www.ros.org/reps/rep-0105.html)) :
+### Un arbre de repères
+
+Les transformations forment un **arbre** : chaque repère a un seul parent. Les repères de notre robot suivent les conventions de ROS ([REP 105](https://www.ros.org/reps/rep-0105.html)) :
 
 | Repère | Ce qu'il représente | Publié par |
 |---|---|---|
@@ -27,11 +29,29 @@ Les repères de notre robot, selon les conventions de ROS ([REP 105](https://www
 | `base_link` | le robot lui-même, entre ses roues | `diff_drive_node` (mobile) |
 | `laser` | le capteur, 15 cm devant et 12 cm au-dessus de `base_link` | `static_transform_publisher` (fixe) |
 
-Les transformations forment un **arbre** : chaque repère a un seul parent (`odom → base_link → laser`). Conventions à retenir : `x` vers l'avant, `y` vers la gauche, `z` vers le haut ; distances en mètres, angles en radians.
+Pour connaître la position d'un point du laser dans `odom`, TF2 compose `odom → base_link` puis `base_link → laser`. Avec une carte, un repère `map` viendra au-dessus d'`odom` : c'est le travail de la localisation, dans le parcours Nav2.
+
+Conventions à retenir : `x` vers l'avant, `y` vers la gauche, `z` vers le haut ; distances en mètres, angles en radians.
+
+### Fixes ou mobiles
+
+- Une transformation **mobile** change sans cesse, comme la position du robot dans `odom`. Elle est publiée en continu sur le topic `/tf`, avec l'heure de chaque mesure.
+- Une transformation **statique** ne change jamais, comme la position du laser sur le châssis. Elle est publiée une seule fois sur `/tf_static`, et chaque nœud qui écoute la garde.
+
+### Diffuser, écouter, dater
+
+- Un **broadcaster** publie des transformations : il dit où se trouve un repère enfant par rapport à son parent.
+- Un **listener** les reçoit et les range dans un **buffer**, une mémoire de quelques secondes. On demande ensuite au buffer « où est ce point, exprimé dans tel repère ? ».
+
+Chaque transformation est **horodatée**. Pour un robot qui roule, la position d'un obstacle dépend de l'instant de la mesure. Le buffer interpole entre deux transformations connues, mais refuse de deviner l'avenir : demander une transformation plus récente que la dernière reçue provoque une erreur d'**extrapolation**. C'est pourquoi on attend un peu, avec un délai maximal.
+
+### Les rotations en quaternions
+
+Une rotation est exprimée par un **quaternion** `(x, y, z, w)` plutôt que par trois angles : aucun blocage de cardan, et des rotations faciles à composer. Pour un robot au sol, seul compte l'angle autour de `z` : la section suivante montre comment passer de l'un à l'autre.
 
 Tutoriels officiels : [Introducing tf2](https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Tf2/Introduction-To-Tf2.html), [Writing a broadcaster (Python)](https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Tf2/Writing-A-Tf2-Broadcaster-Py.html).
 
-## 2. Les rotations en quaternions
+## 1. Les rotations en quaternions
 
 Une transformation contient une rotation, exprimée par un **quaternion** `(x, y, z, w)` plutôt que par trois angles (pas de blocage de cardan, composition simple). Pour un robot au sol, seule compte la rotation autour de `z`, l'angle `θ` (*yaw*) :
 
@@ -41,7 +61,7 @@ x = 0    y = 0    z = sin(θ / 2)    w = cos(θ / 2)
 
 Attention au **demi-angle** : un robot tourné de 90° (`θ = π/2`) a `z = sin(π/4) ≈ 0.707` et `w ≈ 0.707`. Pour revenir à l'angle : `θ = atan2(2·(w·z + x·y), 1 − 2·(y² + z²))`.
 
-## 3. Diffuser la position du robot
+## 2. Diffuser la position du robot
 
 Votre workspace `~/ws/07-tf2` reprend le robot du module Paramètres. `diff_drive_node` publie déjà sa pose sur `/odom` ; on publie **la même pose** comme transformation `odom → base_link`, avec un `TransformBroadcaster`, à chaque mise à jour :
 
@@ -235,7 +255,7 @@ Une transformation publiée par un diffuseur part sur le topic `/tf`. Trois cham
 - `child_frame_id` : le repère **enfant** (`base_link`) ;
 - `header.stamp` : l'instant de la mesure. TF2 interpole entre les instants reçus ; un horodatage faux donne des transformations fausses ou refusées.
 
-## 4. Le repère fixe du laser
+## 3. Le repère fixe du laser
 
 Le laser ne bouge pas sur le robot : sa transformation est **statique**, publiée une fois sur `/tf_static` et gardée par tous les nœuds qui écoutent. Pas besoin de code : `tf2_ros` fournit `static_transform_publisher`. On l'ajoute au fichier launch :
 
@@ -280,7 +300,7 @@ def generate_launch_description():
 
 Avec la description URDF du module 5, c'est `robot_state_publisher` qui publierait ces transformations fixes, calculées à partir des `<joint>`.
 
-## 5. Écouter les transformations : placer un obstacle
+## 4. Écouter les transformations : placer un obstacle
 
 Le nœud `obstacle_locator` imagine un obstacle vu par le laser, à 1 m devant lui, et calcule sa position dans `odom`. Il ne fait aucun calcul de géométrie : il demande la transformation à TF2.
 
@@ -402,7 +422,7 @@ setup(
 </package>
 ```
 
-## 6. Pratique : observer l'arbre
+## 5. Pratique : observer l'arbre
 
 ```bash
 cd ~/ws/07-tf2
@@ -425,7 +445,7 @@ ros2 topic echo --once /tf_static             # la transformation fixe du laser
 
 Pour **voir** l'arbre : ouvrez le **Bureau (RViz, Gazebo)**, lancez `rviz2` dans un terminal, choisissez *Fixed Frame* `odom` et ajoutez l'affichage **TF** ; envoyez un goal et regardez `base_link` et `laser` se déplacer ensemble. Ajoutez aussi un affichage **PointStamped** sur `/obstacle` : le point doit rester 1,15 m devant le robot.
 
-## 7. Rappel
+## 6. Rappel
 
 - Un **repère** par élément ; les transformations forment un **arbre** (`odom → base_link → laser`).
 - Transformation **mobile** : un `TransformBroadcaster` sur `/tf`, à chaque mise à jour, avec le bon horodatage ; **fixe** : `static_transform_publisher` sur `/tf_static`.

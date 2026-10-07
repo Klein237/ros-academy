@@ -790,6 +790,15 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
             return {"connecte": False}
         return {"connecte": True, "nom": user.nom, "email": user.email}
 
+    @app.get("/api/comptes/interne/session")
+    def internal_session(user=Depends(current_user)):
+        """Caddy (forward_auth) avant le cours d'un module : session ouverte ou non.
+
+        Toujours 200 : le service Contenus affiche la page réservée sans session. Caddy bloque
+        /api/comptes/interne/ depuis le navigateur ; seul cet en-tête est recopié vers Contenus.
+        """
+        return Response(status_code=200, headers={"X-Academy-Etudiant": "1" if user else "0"})
+
     @app.get("/api/comptes/moi")
     def moi(user=Depends(require_user), db=Depends(get_db)):
         return {"nom": user.nom, "email": user.email, "formule": user.formule, "hub": user.hub_name,

@@ -38,6 +38,9 @@ HERE = Path(__file__).parent
 TEMPLATE_MODULE = HERE / "modele"
 
 INTERNAL_HEADER = "X-Academy-Interne"
+# Posé par Caddy après avoir demandé à Comptes si la session est ouverte (« 1 ») ; Caddy retire
+# celui qu'enverrait le navigateur. Sans lui, le cours est réservé : seuls les titres sont publics.
+STUDENT_HEADER = "X-Academy-Etudiant"
 
 CSP = ("default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; "
        "connect-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'self'; object-src 'none'")
@@ -185,8 +188,19 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
 
     def internal(request: Request):
         """Routes appelées par le service Comptes seulement (Caddy les bloque aussi depuis l'extérieur)."""
-        if not hmac.compare_digest(request.headers.get(INTERNAL_HEADER, ""), internal_token):
+        if not is_internal(request):
             raise HTTPException(403, "Route interne")
+
+    def is_internal(request: Request):
+        return hmac.compare_digest(request.headers.get(INTERNAL_HEADER, ""), internal_token)
+
+    def connected(request: Request):
+        return request.headers.get(STUDENT_HEADER) == "1"
+
+    def student(request: Request):
+        """Contenu du cours (API) : étudiant connecté, ou le service Comptes."""
+        if not (connected(request) or is_internal(request)):
+            raise HTTPException(401, "Connexion requise")
 
     sessions = Sessions(secret)
     app.mount("/static/contenus", StaticFiles(directory=str(HERE / "static")), name="static")
@@ -199,6 +213,9 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
         response.headers.setdefault("Referrer-Policy", "same-origin")
         if request.url.path.startswith(("/admin", "/api/")):
             response.headers["Cache-Control"] = "no-store"
+        elif request.url.path.startswith("/modules/"):
+            # cours ou page réservée selon la session : jamais servi depuis un cache partagé
+            response.headers["Cache-Control"] = "private, no-cache"
         return response
 
     def page(request, name, status=200, **ctx):
@@ -251,26 +268,35 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
 
     @app.get("/modules/{module_id}/", response_class=HTMLResponse)
     def module_public(request: Request, module_id: str):
+        if not connected(request):
+            return module_reserve(request, published(), module_id)
         return module_page(request, published(), module_id)
 
-    # --- API publique (utilisée par la page du module et par le Lab UI)
+    def module_reserve(request, root, module_id):
+        """Sans connexion : titre, résumé et plan du module, pas le cours."""
+        module = _module_or_404(root, module_id)
+        parcours, prev, nxt, numero = _parcours_of(root, module_id)
+        return page(request, "module_reserve.html", module=module, sommaire=cours_sommaire(module.cours),
+                    parcours=parcours, numero=numero, suite=f"/modules/{module.id}/")
 
-    @app.get("/api/contenus/modules/{module_id}")
+    # --- API du cours (page du module et Lab UI) : étudiant connecté
+
+    @app.get("/api/contenus/modules/{module_id}", dependencies=[Depends(student)])
     def api_module(module_id: str):
         m = _module_or_404(published(), module_id)
         return {"id": m.id, "titre": m.en_tete.titre, "resume": m.en_tete.resume, "duree": m.en_tete.duree}
 
-    @app.get("/api/contenus/modules/{module_id}/lab")
+    @app.get("/api/contenus/modules/{module_id}/lab", dependencies=[Depends(student)])
     def api_lab(module_id: str):
         _module_or_404(published(), module_id)
         return {"files": _text_files(published() / "modules" / module_id / "lab")}
 
-    @app.get("/api/contenus/modules/{module_id}/cours-fichiers")
+    @app.get("/api/contenus/modules/{module_id}/cours-fichiers", dependencies=[Depends(student)])
     def api_course_files(module_id: str):
         m = _module_or_404(published(), module_id)
         return {"files": [{"path": p, "content": c} for p, c in code_files(m.cours).items()]}
 
-    @app.get("/api/contenus/modules/{module_id}/exercice")
+    @app.get("/api/contenus/modules/{module_id}/exercice", dependencies=[Depends(student)])
     def api_exercise(module_id: str):
         m = _module_or_404(published(), module_id)
         base = published() / "modules" / module_id / "exercice"
@@ -310,7 +336,7 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
         except Busy:
             raise HTTPException(429, "Le serveur de vérification est occupé : réessayez dans un instant") from None
 
-    @app.get("/api/contenus/modules/{module_id}/qcm")
+    @app.get("/api/contenus/modules/{module_id}/qcm", dependencies=[Depends(student)])
     def api_qcm(module_id: str):
         return {"questions": _public_qcm(_module_or_404(published(), module_id))}
 

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "partiels/icones.html" import coche %}
+{% set nav_actif = "catalogue" %}
+{% block title %}{{ module.en_tete.titre }} · ROS Academy{% endblock %}
+{% block content %}
+<div class="conteneur module-reserve">
+  {% if parcours %}
+  <nav class="breadcrumb" aria-label="Fil d'Ariane"><a href="/catalogue/">Catalogue</a> › <a href="/parcours/{{ parcours.id }}/">{{ parcours.titre }}</a> › {{ module.en_tete.titre }}</nav>
+  {% endif %}
+  <header class="module-intro">
+    <p class="eyebrow">{% if numero %}Module {{ numero }}{% if parcours %} sur {{ parcours.modules | length }}{% endif %}{% endif %}{% if module.en_tete.duree %} · {{ module.en_tete.duree }}{% endif %}</p>
+    <h1>{{ module.en_tete.titre }}</h1>
+    {% if module.en_tete.resume %}<p class="lead">{{ module.en_tete.resume }}</p>{% endif %}
+  </header>
+
+  <section class="encart encart-primaire" aria-labelledby="reserve">
+    <div>
+      <h2 id="reserve">Cours réservé aux inscrits</h2>
+      <p>Connectez-vous pour suivre ce module : le cours, le lab ROS 2 dans votre navigateur, l'exercice et le QCM.</p>
+    </div>
+    <div class="actions-reserve">
+      <a class="button amber grand" href="/connexion/inscription?suite={{ suite | urlencode }}">Créer un compte</a>
+      <a class="button grand" href="/connexion?suite={{ suite | urlencode }}">Se connecter</a>
+    </div>
+  </section>
+
+  {% if sommaire %}
+  <section class="encart" aria-labelledby="au-programme">
+    <h2 id="au-programme">Au programme</h2>
+    <ul class="liste-cochee">
+      {% for s in sommaire %}<li>{{ coche() }}{{ s.titre }}</li>{% endfor %}
+      <li>{{ coche() }}Exercice : situation réelle</li>
+      <li>{{ coche() }}QCM</li>
+    </ul>
+  </section>
+  {% endif %}
+
+  <p class="muted">Nouveau sur ROS ? <a href="/decouvrir/">Découvrir ROS 2</a> est en accès libre : 20 minutes sur l'histoire de ROS, ses usages et les liens utiles.</p>
+</div>
+{% endblock %}

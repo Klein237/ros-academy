@@ -16,6 +16,46 @@ duree: 1 h 15
 
 Ce nœud, `diff_drive_node`, est le fil rouge du parcours : les modules Service et Action l'enrichiront.
 
+## L'essentiel en théorie
+
+Écrire un nœud, c'est écrire un programme qui réagit à des événements. Voici le modèle à avoir en tête avant de lire le code ; la suite du module le met en pratique, en Python puis en C++.
+
+### Les bibliothèques clientes
+
+On écrit un nœud avec une **bibliothèque cliente** : `rclpy` en Python, `rclcpp` en C++. Les deux reposent sur la même couche commune, écrite en C (`rcl`) : les concepts, les noms des fonctions et le comportement sont les mêmes. Un nœud Python et un nœud C++ communiquent sans le savoir.
+
+- **Python** : rapide à écrire et à modifier, idéal pour prototyper, piloter et outiller.
+- **C++** : plus rapide à l'exécution et plus prévisible, préféré pour les traitements lourds et le temps réel.
+
+### Le cycle de vie d'un programme ROS
+
+Un programme ROS suit toujours les mêmes étapes :
+
+1. **Initialiser** ROS (`rclpy.init()`).
+2. **Créer** le nœud : dans son constructeur, il déclare ce qu'il publie, ce qu'il écoute et à quel rythme il travaille.
+3. **Tourner** (`spin`) : le programme attend les événements et y répond, jusqu'à **Ctrl+C**.
+4. **Arrêter** proprement : détruire le nœud, puis `rclpy.shutdown()`.
+
+### Une programmation par événements
+
+Dans un nœud, on n'écrit pas de grande boucle `while`. On enregistre des **callbacks** (fonctions de rappel) :
+
+- un **abonnement** appelle son callback à chaque message reçu ;
+- un **timer** appelle le sien à intervalle régulier : c'est lui qui donne la fréquence de travail, pas un `sleep` ;
+- plus tard, les **services** et les **actions** fonctionneront de la même façon.
+
+C'est l'**exécuteur**, lancé par `spin`, qui appelle ces callbacks au bon moment. Par défaut, il les exécute **un par un** : un callback trop long retarde tous les autres. Gardez-les courts.
+
+### Éditeurs, abonnés et qualité de service
+
+Un **éditeur** (`create_publisher`) et un **abonné** (`create_subscription`) se retrouvent par le **nom** du topic et le **type** du message. Le dernier argument, souvent `10`, règle la **qualité de service** (QoS) : ici, une file de 10 messages en attente. La QoS règle aussi la fiabilité (tout livrer, ou privilégier les données récentes). Deux réglages incompatibles empêchent toute communication, sans erreur : c'est une cause classique de « je ne reçois rien ».
+
+Un nom sans `/` (`cmd_vel`) est **relatif** : il se range sous l'espace de noms du nœud. On peut ainsi faire tourner deux robots côte à côte, `/robot1/cmd_vel` et `/robot2/cmd_vel`, avec le même code.
+
+### L'odométrie à l'estime
+
+Le nœud du fil rouge estime la position du robot **à l'estime** (*dead reckoning*) : à chaque pas de temps, il ajoute le petit déplacement causé par les vitesses commandées. C'est simple et immédiat, mais les petites erreurs s'**accumulent** : la position dérive avec le temps. Un vrai robot corrige cette dérive avec ses capteurs (roues codeuses, centrale inertielle, laser), ce que vous préparerez avec TF2 et la simulation.
+
 ## 1. Le robot à conduite différentielle
 
 Un robot à conduite différentielle a deux roues motrices indépendantes. On le commande avec deux vitesses :

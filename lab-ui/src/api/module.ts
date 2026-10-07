@@ -1,4 +1,4 @@
-/** API publique du service Contenus (même origine, sans jeton). Indices et explication : voir comptes.ts. */
+/** API du cours (service Contenus, même origine, session de l'étudiant). Indices et explication : voir comptes.ts. */
 
 export interface ModuleFile {
   path: string;
@@ -19,6 +19,8 @@ export interface ExerciseInfo {
   indices: number;
 }
 
+import { NoAccount } from "./comptes";
+
 type FetchFn = (input: string, init?: RequestInit) => Promise<Response>;
 
 export class ModuleClient {
@@ -29,8 +31,9 @@ export class ModuleClient {
 
   private async get<T>(suffix: string): Promise<T> {
     const r = await this.fetchFn(`/api/contenus/modules/${encodeURIComponent(this.moduleId)}${suffix}`, {
-      credentials: "omit",
+      credentials: "same-origin", // le cours est réservé aux étudiants connectés (session de Comptes)
     });
+    if (r.status === 401) throw new NoAccount("session de Comptes absente ou expirée");
     if (!r.ok) throw new Error(`module ${this.moduleId} : ${r.status}`);
     return (await r.json()) as T;
   }

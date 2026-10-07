@@ -13,17 +13,39 @@ duree: 1 h 15
 - ajouter un serveur de service au nœud `diff_drive_node` ;
 - appeler le service en ligne de commande et vérifier la réponse quand le robot bouge.
 
-## 1. Introduction aux services
+## L'essentiel en théorie
 
-**Concept :** un service est une communication **synchrone** : un client envoie une requête et attend une réponse unique.
+Un **service** est une communication **synchrone** : un client envoie une requête et attend une réponse unique. Là où un topic diffuse un flux que chacun lit quand il veut, un service répond à une question précise, au moment où on la pose.
 
-Dans un nœud serveur, on déclare le type du service, son nom et une fonction de rappel qui construit la réponse.
+### Client et serveur
 
-**Utilité :** récupérer un état, exécuter une action ponctuelle ou retourner un résultat qui n'a pas de sens en continu. Une position publiée en continu sur `/odom` convient à un affichage ; un programme qui a besoin de la position *à un instant précis* l'obtient plus simplement par un service.
+- Le **serveur** annonce un service (un nom et un type) et lui associe un callback. Ce callback reçoit la requête, remplit la réponse et la renvoie.
+- Un ou plusieurs **clients** appellent ce service par son nom. Pour un nom donné, il ne doit exister qu'**un seul** serveur.
+- Le client vérifie d'abord que le serveur est disponible (`wait_for_service`), puis envoie sa requête.
 
-Dans ce module, on écrit un service `get_pose` qui renvoie la pose actuelle `(x, y, θ)` du robot. Tutoriel officiel : [Writing a simple service and client (Python)](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Py-Service-And-Client.html).
+Rien ne circule tant que personne ne demande : un service ne coûte rien entre deux appels.
 
-## 2. Préparation
+### L'interface `.srv`
+
+Le type d'un service est décrit dans un fichier `.srv` en deux parties séparées par `---` : la **requête** au-dessus, la **réponse** en dessous. À partir de ce fichier, ROS 2 génère deux classes, par exemple `GetPose.Request` et `GetPose.Response`, en Python comme en C++.
+
+Ce code est produit par les générateurs `rosidl`, qui s'appuient sur CMake. C'est pourquoi on range les interfaces dans un package **dédié**, de type `ament_cmake`, même quand les nœuds sont écrits en Python. Ce package d'interfaces peut ensuite être partagé par tous les packages du robot.
+
+### Appeler sans bloquer
+
+En Python, le client appelle le service avec `call_async`, qui renvoie aussitôt un *future* : la réponse y arrivera plus tard. Attendre la réponse **à l'intérieur** d'un callback bloquerait l'exécuteur, qui ne pourrait plus traiter cette réponse : le nœud se figerait. Côté serveur, le callback doit être **rapide** : pendant qu'il travaille, le nœud ne fait rien d'autre.
+
+### Topic ou service ?
+
+| Besoin | Choix |
+|---|---|
+| Une donnée produite en continu (position, mesure d'un capteur) | topic |
+| Une question ponctuelle : un état, une configuration, un calcul court | service |
+| Une tâche qui dure et dont on veut suivre l'avancement | action (module suivant) |
+
+Une position publiée en continu sur `/odom` convient à un affichage ; un programme qui a besoin de la position *à un instant précis* l'obtient plus simplement par un service. Dans ce module, on écrit le service `get_pose`, qui renvoie la pose actuelle `(x, y, θ)` du robot. Tutoriel officiel : [Writing a simple service and client (Python)](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Py-Service-And-Client.html).
+
+## 1. Préparation
 
 Votre workspace `~/ws/03-service` reprend le package `my_pkg` et le nœud `diff_drive_node` du module précédent. On crée un nouveau package dédié aux interfaces :
 
@@ -108,7 +130,7 @@ ros2 interface show my_interface/srv/GetPose
 
 `ros2 interface show` affiche la définition générée : c'est la preuve que le service est connu de ROS 2.
 
-## 3. Le serveur `get_pose`
+## 2. Le serveur `get_pose`
 
 On reprend le nœud `diff_drive_node`. Le package `my_pkg` utilise maintenant `my_interface` : déclarez-le dans son `package.xml`.
 
@@ -354,7 +376,7 @@ source install/setup.bash
 ros2 run my_pkg diff_drive_node
 ```
 
-## 4. Le client, en ligne de commande
+## 3. Le client, en ligne de commande
 
 Dans un deuxième terminal :
 
@@ -368,7 +390,7 @@ Une requête (vide) est envoyée au serveur, et la réponse s'affiche : `x`, `y`
 
 `ros2 service call` attend que le service existe avant d'envoyer la requête (*waiting for service to become available…*). Si ce message ne disparaît pas, le service n'existe pas sous ce nom : vérifiez avec `ros2 service list`.
 
-## 5. Amélioration et pratique
+## 4. Amélioration et pratique
 
 - Écrire un service qui renvoie la distance parcourue par le robot.
 - Écrire un nœud client (`create_client`, `call_async`) qui interroge `get_pose` une fois par seconde et affiche la réponse.

@@ -26,16 +26,15 @@ test.afterEach(async () => {
 
 const QCM = "/modules/02-noeud/";
 
-test("le QCM du site demande une connexion, puis compte 2 tentatives au plus", async ({ page }) => {
+test("le module demande une connexion, puis le QCM compte 2 tentatives au plus", async ({ page }) => {
+  // sans connexion, le cours et son QCM sont réservés
   await page.goto(QCM);
-  const status = page.locator(".qcm-status");
-  await expect(status).toContainText("Connectez-vous pour que votre note soit enregistrée");
-  await expect(page.getByRole("button", { name: "Valider mes réponses" })).toBeDisabled();
-
-  await status.getByRole("link", { name: "se connecter" }).click();
-  await expect(page).toHaveURL(/\/connexion\?suite=/);
+  await expect(page.locator(".qcm")).toHaveCount(0);
+  await page.locator(".module-reserve").getByRole("link", { name: "Se connecter" }).click();
+  await expect(page).toHaveURL(/\/connexion\?suite=\/modules\/02-noeud\/$/);
   await loginStudent(page, newEmail(), `${QCM}#qcm`);
   await expect(page).toHaveURL(new RegExp(`${QCM}#qcm$`));
+  const status = page.locator(".qcm-status");
   await expect(status).toContainText("Tentatives restantes : 2 sur 2.");
 
   await page.locator('input[name="spin"]').first().check();

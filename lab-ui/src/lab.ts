@@ -1,5 +1,5 @@
 /** Le lab complet : arborescence, éditeur, terminaux, bureau graphique, vue 2D, module du parcours. */
-import { ComptesClient } from "./api/comptes";
+import { ComptesClient, NoAccount } from "./api/comptes";
 import { ContentsClient } from "./api/contents";
 import { HubClient } from "./api/hub";
 import { ModuleClient } from "./api/module";
@@ -182,7 +182,8 @@ async function prepareModule(): Promise<string> {
     await installLabWithRetry(contents, id, () => client.labFiles());
   } catch (e) {
     console.warn(`Module ${id} non installé :`, e);
-    toast(`Le module ${id} n'a pas pu être chargé.`, "error");
+    // sans session de Comptes, le panneau du module invite à se reconnecter
+    if (!(e instanceof NoAccount)) toast(`Le module ${id} n'a pas pu être chargé.`, "error");
     return "";
   }
   if (config.exercice && (await contents.exists(exerciseDir(id)).catch(() => false))) return exerciseDir(id);

@@ -13,21 +13,42 @@ duree: 1 h 45
 - ajouter à Gazebo les roues motrices et le laser ;
 - relier Gazebo et ROS 2 avec `ros_gz_bridge`, puis piloter et observer le robot simulé.
 
-## 1. Simuler, visualiser : deux outils
+## L'essentiel en théorie
 
 **Constat :** jusqu'ici, notre robot était soit un calcul (`diff_drive_node` intègre les vitesses), soit une description immobile (URDF dans RViz). Rien ne vérifie qu'il tient debout, que ses roues adhèrent au sol ou que son laser voit les murs.
 
-**Gazebo** est un simulateur : il calcule la **physique** (gravité, contacts, frottements, moteurs) et les **capteurs** (laser, caméra, IMU) dans un monde 3D. Nous utilisons **Gazebo Harmonic** (commande `gz sim`), la version associée à ROS 2 Jazzy ; l'ancien « Gazebo Classic » (`gazebo`, `gzserver`) n'est plus maintenu depuis 2025.
+### Simuler et visualiser : deux outils
 
-Gazebo a ses **propres topics** (bibliothèque gz-transport, commande `gz topic`), distincts de ceux de ROS 2. Un **pont**, `ros_gz_bridge`, les relie : le robot simulé reçoit `/cmd_vel` et publie `/odom`, `/scan`, `/tf`… comme le ferait le vrai.
+- **Gazebo** est un simulateur. Il calcule la **physique** (gravité, contacts, frottements, moteurs) et les **capteurs** (laser, caméra, centrale inertielle) dans un monde 3D. Nous utilisons **Gazebo Harmonic** (commande `gz sim`), la version associée à ROS 2 Jazzy ; l'ancien « Gazebo Classic » (`gazebo`, `gzserver`) n'est plus maintenu depuis 2025.
+- **RViz2**, lui, ne simule rien : il **affiche** ce que ROS sait (TF, modèle, points du laser). On utilise les deux ensemble : Gazebo produit les données, RViz montre ce que le robot en comprend.
 
-**RViz2**, lui, ne simule rien : il **affiche** ce que ROS sait (TF, modèle, points du laser). On utilise les deux ensemble.
+### Ce que la physique exige
+
+Pour être simulé, un link a besoin de plus qu'une apparence : une **collision** (la forme qui touche le sol et les murs), une **inertie** (sa masse et sa répartition) et des **frottements**. Une inertie manquante ou absurde fait trembler, glisser ou s'envoler le robot.
+
+Gazebo lit l'URDF et le convertit dans son propre format, **SDF**. Les **mondes** (le sol, les murs, la lumière, les objets) s'écrivent directement en SDF.
+
+### Les systèmes Gazebo
+
+Les comportements s'ajoutent sous forme de **systèmes** (des *plugins*) :
+
+- **DiffDrive** fait tourner les roues à partir d'une commande de vitesse, comme le pilote moteur d'un vrai robot ;
+- le **capteur laser** lance ses rayons dans le monde simulé et mesure les distances ;
+- d'autres systèmes publient l'état des joints et l'odométrie.
+
+### Le pont entre deux mondes
+
+Gazebo a ses **propres topics** (bibliothèque gz-transport, commande `gz topic`), distincts de ceux de ROS 2. Un **pont**, `ros_gz_bridge`, les relie : le robot simulé reçoit `/cmd_vel` et publie `/odom`, `/scan`, `/tf`… comme le ferait le vrai. Pour le reste du système, rien ne distingue la simulation du robot réel.
+
+### Le temps simulé
+
+La simulation a sa propre horloge, qui peut aller plus vite ou plus lentement que la réalité. Gazebo la publie sur `/clock`, et les nœuds lancés avec `use_sim_time: true` l'utilisent à la place de l'heure de la machine. Sans cela, les horodatages des TF et des mesures ne correspondent plus, et TF2 refuse de les combiner.
 
 Dans le lab, le simulateur tourne **sans fenêtre** (`gz sim -s`), avec un rendu logiciel pour le laser. On regarde le résultat dans RViz2 ou dans la fenêtre de Gazebo, sur le **Bureau (RViz, Gazebo)**, et avec la **vue 2D** du lab, qui lit `/odom`.
 
 Documentation : [ROS 2 et Gazebo](https://docs.ros.org/en/jazzy/Tutorials/Advanced/Simulators/Gazebo/Gazebo.html), [Gazebo Harmonic](https://gazebosim.org/docs/harmonic/getstarted/), [ros_gz_bridge](https://gazebosim.org/docs/harmonic/ros2_integration/).
 
-## 2. Ce que Gazebo demande à un URDF
+## 1. Ce que Gazebo demande à un URDF
 
 Votre workspace `~/ws/08-gazebo` reprend `my_robot_description` du module URDF. Gazebo convertit l'URDF en **SDF**, son propre format. Pour lui, chaque link qui a une masse doit avoir :
 
@@ -170,7 +191,7 @@ On ajoute d'abord le **laser** à la description, au même endroit qu'au module 
 
 L'`include` est à la fin : xacro lit le fichier dans l'ordre, et `my_robot.gazebo.xacro` utilise les propriétés (`chassis_width`, `wheel_radius`…) définies plus haut.
 
-## 3. Les extensions Gazebo
+## 2. Les extensions Gazebo
 
 Dans Gazebo Harmonic, tout ce qui agit sur la simulation est un **système** (plugin), désigné par sa bibliothèque (`filename`) et son nom (`name`). Ceux d'un robot vont dans des balises `<gazebo>` de sa description :
 
@@ -272,7 +293,7 @@ Dans Gazebo Harmonic, tout ce qui agit sur la simulation est un **système** (pl
 
 Les topics commencent par `/` : sans lui, Gazebo les rangerait sous le nom du modèle (`/model/my_robot/…`).
 
-## 4. Le monde
+## 3. Le monde
 
 Un monde Gazebo est un fichier **SDF** : les systèmes du simulateur, la physique, la lumière et les modèles. Le nôtre est une salle de 4 m × 4 m, avec une caisse droit devant le robot. Créez le dossier `worlds` :
 
@@ -379,7 +400,7 @@ Un monde Gazebo est un fichier **SDF** : les systèmes du simulateur, la physiqu
 
 Sans le système `Sensors`, le laser ne publie rien ; sans `UserCommands`, impossible de faire apparaître le robot. Tout est décrit dans le fichier, y compris le sol : les mondes d'exemple utilisent des modèles téléchargés depuis Internet (Gazebo Fuel), que le lab n'a pas.
 
-## 5. Le pont ROS 2 ↔ Gazebo
+## 4. Le pont ROS 2 ↔ Gazebo
 
 `ros_gz_bridge` relie un topic Gazebo à un topic ROS 2 et convertit les messages (`gz.msgs.Twist` ↔ `geometry_msgs/msg/Twist`…). La liste va dans un fichier de configuration :
 
@@ -424,7 +445,7 @@ Sans le système `Sensors`, le laser ne publie rien ; sans `UserCommands`, impos
 
 Un topic absent du pont existe dans Gazebo (`gz topic -l`) mais pas dans ROS 2 (`ros2 topic list`) : c'est la première chose à vérifier quand « rien n'arrive ».
 
-## 6. Le fichier launch
+## 5. Le fichier launch
 
 ```python fichier=src/my_robot_description/launch/gazebo.launch.py
 import os
@@ -521,7 +542,7 @@ ament_package()
 </package>
 ```
 
-## 7. Pratique
+## 6. Pratique
 
 ```bash
 cd ~/ws/08-gazebo
@@ -552,7 +573,7 @@ Faites tourner le robot : les points du laser restent sur les murs, le robot tou
 
 La fenêtre de Gazebo s'ouvre aussi sur le Bureau : `ros2 launch my_robot_description gazebo.launch.py gui:=true`. Sans carte graphique, elle est lente : fermez-la quand vous n'en avez pas besoin.
 
-## 8. Rappel
+## 7. Rappel
 
 - Gazebo **simule** (physique, capteurs), RViz **affiche** ce que ROS sait.
 - Chaque link avec une masse : `<collision>` et `<inertial>` réalistes.
