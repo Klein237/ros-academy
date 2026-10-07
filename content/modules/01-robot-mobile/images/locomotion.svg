@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 830 335" role="img" aria-labelledby="t d">
+<title id="t">Deux façons de tourner : différentiel et Ackermann</title>
+<desc id="d">À gauche, un robot différentiel : deux roues motrices indépendantes sur un même axe ; son centre de rotation est sur cet axe, il peut tourner sur place. À droite, une voiture (Ackermann) : les roues avant braquent pour viser un centre de rotation situé sur l&#x27;axe arrière.</desc>
+<style>
+.fond { fill: #fbfbf9; stroke: #c9cfc9; stroke-width: 1.5; }
+.grille { stroke: #e7eae6; stroke-width: 1; }
+.boite { fill: #ffffff; stroke: #c9cfc9; stroke-width: 1.5; }
+.calcul { fill: #e3f1ee; stroke: #0b5e57; stroke-width: 2; }
+.capteur { fill: #fff8e8; stroke: #d39a2c; stroke-width: 2; }
+.actionneur { fill: #eef1f5; stroke: #56606a; stroke-width: 2; }
+.robot { fill: #e3f1ee; stroke: #0b5e57; stroke-width: 2; }
+.roue { fill: #12171c; }
+.roulette { fill: #ffffff; stroke: #12171c; stroke-width: 1.5; }
+.nez { fill: #0b5e57; }
+.ax-x { stroke: #d64545; stroke-width: 3; fill: none; } .ax-y { stroke: #2f9e44; stroke-width: 3; fill: none; }
+.px { fill: #d64545; } .py { fill: #2f9e44; }
+.trait { stroke: #56606a; stroke-width: 2; fill: none; }
+.tirets { stroke: #8a949c; stroke-width: 1.5; stroke-dasharray: 5 5; fill: none; }
+.trajet { stroke: #d39a2c; stroke-width: 3; fill: none; stroke-linecap: round; }
+.trajet-pointe { fill: #d39a2c; }
+.vitesse { stroke: #0b5e57; stroke-width: 3; fill: none; }
+.vitesse-pointe { fill: #0b5e57; }
+.pointe { fill: #56606a; }
+.cir { fill: #d39a2c; }
+.t { fill: #12171c; font: 400 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-gras { fill: #12171c; font: 600 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-titre { fill: #12171c; font: 600 16px "IBM Plex Sans", system-ui, sans-serif; }
+.t-petit { fill: #56606a; font: 400 12.5px "IBM Plex Sans", system-ui, sans-serif; }
+.t-sur { fill: #56606a; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; letter-spacing: 0.08em; }
+.t-math { fill: #12171c; font: italic 500 15px "IBM Plex Serif", Georgia, serif; }
+.t-code { fill: #12171c; font: 500 13px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+.t-accent { fill: #0b5e57; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-ambre { fill: #8a5d10; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-x { fill: #d64545; font: 600 13px "JetBrains Mono", monospace; } .t-y { fill: #2f9e44; font: 600 13px "JetBrains Mono", monospace; }
+.badge { fill: #0b5e57; } .t-badge { fill: #ffffff; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; }
+.sep { stroke: #e2e5e1; stroke-width: 1.5; }
+@media (prefers-color-scheme: dark) {
+  .fond { fill: #0f161d; stroke: #34424f; } .grille { stroke: #1b2630; }
+  .boite { fill: #121a22; stroke: #34424f; }
+  .calcul, .robot { fill: #12302d; stroke: #4fb3a7; }
+  .capteur { fill: #2a2212; stroke: #f2b544; }
+  .actionneur { fill: #1a222b; stroke: #8a99a8; }
+  .roue { fill: #c9d3dc; } .roulette { fill: #121a22; stroke: #c9d3dc; } .nez { fill: #4fb3a7; }
+  .ax-x { stroke: #ff6b6b; } .ax-y { stroke: #51cf66; } .px, .t-x { fill: #ff6b6b; } .py, .t-y { fill: #51cf66; }
+  .trait { stroke: #8a99a8; } .tirets { stroke: #5d6b78; } .pointe { fill: #8a99a8; }
+  .trajet { stroke: #f2b544; } .trajet-pointe, .cir { fill: #f2b544; }
+  .vitesse { stroke: #4fb3a7; } .vitesse-pointe { fill: #4fb3a7; }
+  .t, .t-gras, .t-titre, .t-math, .t-code { fill: #e3e8ee; }
+  .t-petit, .t-sur { fill: #8a99a8; } .t-accent { fill: #4fb3a7; } .t-ambre { fill: #f2b544; }
+  .badge { fill: #4fb3a7; } .t-badge { fill: #0b1015; } .sep { stroke: #22303c; }
+}
+</style>
+<defs>
+<marker id="m-trait" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-trajet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="trajet-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-vitesse" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="vitesse-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-x" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="px" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-y" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="py" d="M0 0 L10 5 L0 10 z"/></marker>
+</defs>
+<text class="t-sur" x="30.0" y="30.0" text-anchor="start">DIFFÉRENTIEL</text>
+<text class="t-sur" x="440.0" y="30.0" text-anchor="start">ACKERMANN (VOITURE)</text>
+<line class="sep" x1="410.0" y1="20.0" x2="410.0" y2="330.0"/>
+<g transform="translate(210.0 220.0) rotate(-90.0)"><rect class="roue" x="-25.6" y="-49.6" width="51.2" height="14.4" rx="4.8"/><rect class="roue" x="-25.6" y="35.2" width="51.2" height="14.4" rx="4.8"/><rect class="robot" x="-41.6" y="-35.2" width="105.6" height="70.4" rx="16.0"/><circle class="roulette" cx="-27.2" cy="0" r="7.2"/><path class="nez" d="M48.0 0 l-14.4 -9.6 v19.2 z"/></g>
+<line class="tirets" x1="60.0" y1="220.0" x2="240.0" y2="220.0"/>
+<circle class="cir" cx="80" cy="220" r="5"/>
+<text class="t-ambre" x="80.0" y="242.0" text-anchor="middle">centre de rotation</text>
+<text class="t-petit" x="80.0" y="258.0" text-anchor="middle">sur l&#x27;axe des roues</text>
+<path class="trajet" d="M210.0 220.0 A130.0 130.0 0 0 0 171.9 128.1" marker-end="url(#m-trajet)"/>
+<text class="t-petit" x="30.0" y="300.0" text-anchor="start">2 roues motrices indépendantes + une roulette.</text>
+<text class="t-petit" x="30.0" y="318.0" text-anchor="start">Tourne sur place (v = 0). Le robot du parcours.</text>
+<rect class="robot" x="602.0" y="106.0" width="76.0" height="168.0" rx="14"/>
+<rect class="roue" x="603.0" y="236.0" width="10" height="28" rx="3"/>
+<rect class="roue" x="667.0" y="236.0" width="10" height="28" rx="3"/>
+<rect class="roue" x="-5" y="-14" width="10" height="28" rx="3" transform="translate(608.0 130.0) rotate(-37.2)"/>
+<line class="tirets" x1="450.0" y1="250.0" x2="608.0" y2="130.0"/>
+<rect class="roue" x="-5" y="-14" width="10" height="28" rx="3" transform="translate(672.0 130.0) rotate(-28.4)"/>
+<line class="tirets" x1="450.0" y1="250.0" x2="672.0" y2="130.0"/>
+<line class="tirets" x1="450.0" y1="250.0" x2="692.0" y2="250.0"/>
+<circle class="cir" cx="450" cy="250" r="5"/>
+<text class="t-ambre" x="454.0" y="272.0" text-anchor="middle">centre de rotation</text>
+<text class="t-petit" x="454.0" y="288.0" text-anchor="middle">sur l&#x27;axe arrière</text>
+<text class="t-petit" x="440.0" y="300.0" text-anchor="start">Les roues avant braquent, chacune d&#x27;un angle différent.</text>
+<text class="t-petit" x="440.0" y="318.0" text-anchor="start">Ne tourne pas sur place : il lui faut un rayon minimal.</text>
+</svg>

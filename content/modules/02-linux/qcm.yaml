@@ -1,0 +1,99 @@
+questions:
+  - id: tilde
+    question: Que désigne ~ dans un chemin ?
+    choix:
+      - texte: Votre dossier personnel, par exemple /home/etudiant
+        correct: true
+      - texte: La racine du système
+      - texte: Le dossier courant
+    explication: "~ est l'abréviation de votre dossier personnel ; la racine est /, le dossier courant est ."
+  - id: relatif
+    question: Vous êtes dans ~/ws/02-linux. Quel chemin désigne le même fichier que /home/etudiant/ws/02-linux/journaux/robot.log ?
+    choix:
+      - texte: journaux/robot.log
+        correct: true
+      - texte: /journaux/robot.log
+      - texte: ../journaux/robot.log
+    explication: Un chemin relatif part du dossier courant ; un chemin qui commence par / part de la racine.
+  - id: cp-dossier
+    question: Quelle commande copie le dossier entrepot et tout son contenu vers sauvegarde ?
+    choix:
+      - texte: cp -r entrepot sauvegarde
+        correct: true
+      - texte: cp entrepot sauvegarde
+      - texte: mv entrepot sauvegarde
+    explication: "Sans -r, cp refuse de copier un dossier ; mv déplace au lieu de copier."
+  - id: grep
+    question: Comment compter les lignes contenant ERREUR dans journaux/robot.log ?
+    choix:
+      - texte: grep ERREUR journaux/robot.log | wc -l
+        correct: true
+      - texte: grep -c ERREUR journaux/robot.log
+        correct: true
+      - texte: cat ERREUR journaux/robot.log
+    explication: grep -c compte directement ; le tube | envoie les lignes trouvées à wc -l, qui les compte.
+  - id: redirection
+    question: Que fait commande > resultat.txt ?
+    choix:
+      - texte: Elle écrit la sortie de la commande dans resultat.txt, en écrasant son contenu
+        correct: true
+      - texte: Elle ajoute la sortie à la fin de resultat.txt
+      - texte: Elle envoie resultat.txt en entrée de la commande
+    explication: "> écrase le fichier, >> ajoute à la fin."
+  - id: droits
+    question: "ls -l affiche -rw-r--r-- pour demarrer.sh. Que répond ./demarrer.sh ?"
+    choix:
+      - texte: Permission denied, car le fichier n'a pas le droit d'exécution
+        correct: true
+      - texte: Le script s'exécute normalement
+      - texte: No such file or directory
+    explication: "Aucun x dans les droits : le fichier se lit, mais ne s'exécute pas avec ./ ; chmod +x demarrer.sh le corrige."
+  - id: shebang
+    question: À quoi sert la première ligne #!/usr/bin/env bash d'un script ?
+    choix:
+      - texte: Elle indique quel programme doit exécuter le script
+        correct: true
+      - texte: C'est un simple commentaire, sans effet
+      - texte: Elle donne le droit d'exécution au fichier
+    explication: "Le shebang choisit l'interpréteur (bash, python3…) ; le droit d'exécution, lui, se donne avec chmod +x."
+  - id: path
+    question: Pourquoi le shell trouve-t-il la commande ros2 sans qu'on donne son chemin complet ?
+    choix:
+      - texte: Parce que son dossier fait partie de la variable PATH
+        correct: true
+      - texte: Parce que toutes les commandes sont dans le dossier courant
+      - texte: Parce que ros2 est intégré à bash
+    explication: Le shell cherche les programmes dans chacun des dossiers listés par PATH, dans l'ordre.
+  - id: source
+    question: Pourquoi charge-t-on ROS 2 avec source /opt/ros/jazzy/setup.bash plutôt qu'en exécutant ce fichier ?
+    choix:
+      - texte: source l'exécute dans le shell courant, donc les variables qu'il définit restent disponibles
+        correct: true
+      - texte: Parce que setup.bash n'a pas le droit d'exécution
+      - texte: Parce que source est plus rapide
+    explication: Exécuté normalement, le fichier tournerait dans un nouveau shell, et ses variables disparaîtraient avec lui.
+  - id: bashrc
+    question: À quoi sert d'ajouter source /opt/ros/jazzy/setup.bash à la fin de ~/.bashrc ?
+    choix:
+      - texte: À charger ROS 2 automatiquement dans chaque nouveau terminal
+        correct: true
+      - texte: À installer ROS 2
+      - texte: À charger ROS 2 pour tous les utilisateurs de la machine, une fois pour toutes
+    explication: bash exécute ~/.bashrc à chaque ouverture d'un terminal ; une variable définie dans un terminal n'existe pas dans les autres.
+  - id: ctrl-c
+    question: academy-diffbot tourne dans un terminal, qui ne rend plus la main. Comment l'arrêter ?
+    choix:
+      - texte: Ctrl+C dans ce terminal
+        correct: true
+      - texte: kill avec son numéro de processus, depuis un autre terminal
+        correct: true
+      - texte: Fermer le cours
+    explication: Ctrl+C interrompt le programme au premier plan ; kill PID demande l'arrêt d'un processus depuis n'importe quel terminal.
+  - id: apt
+    question: Comment s'appelle le paquet Ubuntu du package ROS 2 turtlesim, pour la distribution Jazzy ?
+    choix:
+      - texte: ros-jazzy-turtlesim
+        correct: true
+      - texte: turtlesim-ros2
+      - texte: jazzy/turtlesim
+    explication: "Les paquets ROS 2 suivent la convention ros-<distribution>-<package>, les tirets bas devenant des tirets."

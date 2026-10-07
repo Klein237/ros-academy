@@ -1,0 +1,12 @@
+2026-10-07 08:00:01 INFO  livreur-01 démarré
+2026-10-07 08:00:02 INFO  batterie 98 %
+2026-10-07 08:03:15 INFO  colis C-101 pris en charge
+2026-10-07 08:05:40 WARN  obstacle détecté allée 2, contournement
+2026-10-07 08:06:12 INFO  colis C-101 livré au rayon-A3
+2026-10-07 08:10:03 INFO  colis C-102 pris en charge
+2026-10-07 08:12:47 ERREUR roue gauche : patinage détecté
+2026-10-07 08:12:48 WARN  vitesse réduite à 0,1 m/s
+2026-10-07 08:15:30 INFO  colis C-102 livré au quai-1
+2026-10-07 08:20:00 INFO  batterie 71 %
+2026-10-07 08:31:09 ERREUR laser : pas de mesure depuis 2 s
+2026-10-07 08:31:11 INFO  laser : mesures rétablies
