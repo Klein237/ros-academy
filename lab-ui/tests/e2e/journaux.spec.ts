@@ -46,7 +46,7 @@ test("l'administrateur retrouve les journaux des services et d'un lab arrêté",
   const name = await loginStudent(page, newEmail());
   students.push(name);
   await openLabViaAccount(page);
-  await run(page, "echo lab-ok", "lab-ok");
+  await run(page, "echo lab-\"\"ok", "lab-ok");
 
   await page.context().clearCookies();
   await page.goto(`/admin/login?token=${mintAdmin()}`);

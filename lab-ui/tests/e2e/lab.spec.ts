@@ -115,7 +115,8 @@ test("coupure réseau → le terminal se reconnecte au même shell", async ({ pa
 test("conteneur arrêté pendant la session → Relancer, fichiers conservés", async ({ page }) => {
   const name = student();
   await openLab(page, name);
-  await run(page, "echo conserve > ~/persistant.txt && echo ok-ecrit", "ok-ecrit");
+  // ok-""ecrit : le texte attendu n'apparaît qu'à l'exécution, pas dans la commande tapée
+  await run(page, 'echo conserve > ~/persistant.txt && echo ok-""ecrit', "ok-ecrit");
   await api.delete(`/hub/api/users/${name}/server`);
   await expect(page.locator(".overlay")).toHaveAttribute("data-state", "stopped", { timeout: 90_000 });
   await expect(page.getByText("Vos fichiers sont conservés.")).toBeVisible();
