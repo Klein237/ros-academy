@@ -1,0 +1,98 @@
+questions:
+  - id: middleware
+    question: Qu'apporte un middleware comme ROS 2 aux programmes d'un robot ?
+    choix:
+      - texte: Une façon standard de communiquer, des types de données communs et des outils
+        correct: true
+      - texte: Un nouveau système d'exploitation qui remplace Linux
+      - texte: Un langage de programmation dédié aux robots
+    explication: "ROS 2 s'installe sur Linux et fait communiquer des programmes écrits en Python ou en C++, avec des types et des outils partagés."
+  - id: ros1
+    question: Quel problème de ROS 1 l'architecture de ROS 2 supprime-t-elle ?
+    choix:
+      - texte: Le serveur central roscore, dont l'arrêt empêchait les programmes de se trouver
+        correct: true
+      - texte: L'impossibilité d'écrire des programmes en Python
+      - texte: L'absence de topics
+    explication: En ROS 2, DDS assure une découverte automatique, sans serveur central.
+  - id: domaine
+    question: Deux robots partagent le même réseau Wi-Fi. Comment éviter que leurs nœuds se mélangent ?
+    choix:
+      - texte: Leur donner deux valeurs différentes de ROS_DOMAIN_ID
+        correct: true
+      - texte: Leur donner deux distributions de ROS différentes
+      - texte: C'est impossible, il faut deux réseaux
+    explication: Les nœuds d'un domaine ne voient pas ceux d'un autre ; on peut aussi utiliser des espaces de noms.
+  - id: noeud
+    question: Qu'est-ce qu'un nœud ROS 2 ?
+    choix:
+      - texte: Un programme qui remplit une seule tâche et communique avec les autres par ROS
+        correct: true
+      - texte: Un ordinateur du réseau
+      - texte: Un message échangé entre deux programmes
+    explication: "Un robot est découpé en nœuds à une seule responsabilité : laser, moteurs, localisation…"
+  - id: graphe
+    question: Que représente le graphe ROS ?
+    choix:
+      - texte: Les nœuds en cours d'exécution et les canaux qui les relient
+        correct: true
+      - texte: La carte de l'entrepôt
+      - texte: La liste des packages installés
+    explication: Il change dès qu'un nœud démarre ou s'arrête ; rqt_graph le dessine.
+  - id: capteur
+    question: Un laser envoie 20 mesures par seconde à qui veut les lire. Quel moyen de communication utiliser ?
+    choix:
+      - texte: Un topic
+        correct: true
+      - texte: Un service
+      - texte: Une action
+    explication: "Un flux continu, sans réponse attendue, avec des lecteurs inconnus de l'éditeur : c'est un topic."
+  - id: action
+    question: Pourquoi utiliser une action plutôt qu'un service pour « aller au point (2, 1) » ?
+    choix:
+      - texte: Parce que la tâche dure, et qu'on veut suivre l'avancement et pouvoir annuler
+        correct: true
+      - texte: Parce qu'un service ne peut pas transporter de nombres
+      - texte: Parce qu'une action est plus rapide
+    explication: L'action ajoute des feedbacks pendant l'exécution et l'annulation à la requête-réponse d'un service.
+  - id: anonyme
+    question: Un nœud publie sur /odom. Que sait-il de ses abonnés ?
+    choix:
+      - texte: Rien de particulier, la communication par topic est anonyme
+        correct: true
+      - texte: Il connaît leur nom et attend leur accusé de réception
+      - texte: Il doit en avoir exactement un
+    explication: L'éditeur publie sans savoir qui lit ; des abonnés peuvent arriver ou partir à tout moment.
+  - id: node-info
+    question: Quelle commande montre ce qu'un nœud publie, écoute, et ses services ?
+    choix:
+      - texte: ros2 node info /nom_du_noeud
+        correct: true
+      - texte: ros2 node list
+      - texte: ros2 topic hz /nom_du_noeud
+    explication: node list liste les nœuds ; node info détaille l'un d'eux.
+  - id: interface
+    question: Comment se lit le type geometry_msgs/msg/Twist ?
+    choix:
+      - texte: Le message Twist, défini dans le package geometry_msgs
+        correct: true
+      - texte: Le topic Twist du nœud geometry_msgs
+      - texte: Le service msg du package Twist
+    explication: Un type se nomme package/genre/Nom ; genre vaut msg, srv ou action.
+  - id: srv
+    question: Que contient un fichier .srv ?
+    choix:
+      - texte: La structure de la requête, une ligne ---, puis celle de la réponse
+        correct: true
+      - texte: Le code du serveur
+      - texte: La liste des clients autorisés
+    explication: Un .action ajoute une troisième partie, le feedback.
+  - id: langages
+    question: Un nœud écrit en C++ publie un message ; un nœud écrit en Python peut-il le lire ?
+    choix:
+      - texte: Oui, les deux utilisent le code généré à partir de la même interface
+        correct: true
+      - texte: Non, il faut que les deux nœuds soient écrits dans le même langage
+      - texte: Seulement si les deux tournent sur la même machine
+    explication: ROS 2 génère le code de chaque interface en Python et en C++ ; les langages se mélangent librement.
+

@@ -218,9 +218,9 @@ test("l'administrateur modifie un module et le publie après les tests", async (
   const marque = `Introduction — édition ${Date.now()}`;
   await page.goto(`/admin/login?token=${mintAdmin()}`);
   await expect(page.locator("h1")).toHaveText("Formations");
-  await page.locator("#modules").getByRole("row", { name: /01-initiation/ }).getByRole("link", { name: "Éditer" }).click();
+  await page.locator("#modules").getByRole("row", { name: /04-workspace/ }).getByRole("link", { name: "Éditer" }).click();
   const area = page.locator("#contenu");
-  await expect(area).toHaveValue(/titre: Initiation à ROS 2/);
+  await expect(area).toHaveValue(/titre: Organiser son code/);
   const text = await area.inputValue();
   // le titre « # » de tête n'est pas affiché (la page montre celui de l'en-tête) : on modifie une section
   await area.fill(text.replace(/^## 1\. .*$/m, `## 1. ${marque}`));
@@ -229,15 +229,15 @@ test("l'administrateur modifie un module et le publie après les tests", async (
   await expect(page.locator("#apercu")).toContainText(marque);
 
   // pas encore visible des étudiants
-  const before = await page.request.get("/modules/01-initiation/");
+  const before = await page.request.get("/modules/04-workspace/");
   expect(await before.text()).not.toContain(marque);
 
   await page.getByRole("link", { name: "Tableau de bord" }).click();
-  await expect(page.locator("#modules").getByRole("row", { name: /01-initiation/ })).toContainText("modifié, non publié");
+  await expect(page.locator("#modules").getByRole("row", { name: /04-workspace/ })).toContainText("modifié, non publié");
   await page.getByRole("button", { name: "Publier le brouillon" }).click();
   await expect(page.locator("#pub-etat")).toContainText("Dernière publication réussie", { timeout: 540_000 });
   await expect(page.locator("#pub-rapports")).toContainText("tests réussis");
-  const after = await page.request.get("/modules/01-initiation/");
+  const after = await page.request.get("/modules/04-workspace/");
   expect(await after.text()).toContain(marque);
 });
 

@@ -75,7 +75,7 @@ En ROS 2, les commandes de vitesse circulent sur le topic `/cmd_vel` (type `geom
 
 ## 2. Le workspace et le package
 
-Votre workspace de travail est `~/ws/02-noeud`. Il contient déjà deux packages, créés pour vous avec les commandes du module Initiation :
+Votre workspace de travail est `~/ws/02-noeud`. Il contient déjà deux packages, créés pour vous avec les commandes du module « Organiser son code » :
 
 ```bash
 cd ~/ws/02-noeud/src

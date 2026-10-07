@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 360" role="img" aria-labelledby="t d">
+<title id="t">Topic, service, action : trois façons de communiquer</title>
+<desc id="d">Topic : un éditeur diffuse un flux de messages à des abonnés, sans réponse. Service : un client envoie une requête et attend la réponse du serveur. Action : le client envoie un goal, reçoit des feedbacks pendant l&#x27;exécution, puis un résultat ; il peut annuler en cours de route.</desc>
+<style>
+.fond { fill: #fbfbf9; stroke: #c9cfc9; stroke-width: 1.5; }
+.grille { stroke: #e7eae6; stroke-width: 1; }
+.boite { fill: #ffffff; stroke: #c9cfc9; stroke-width: 1.5; }
+.calcul { fill: #e3f1ee; stroke: #0b5e57; stroke-width: 2; }
+.capteur { fill: #fff8e8; stroke: #d39a2c; stroke-width: 2; }
+.actionneur { fill: #eef1f5; stroke: #56606a; stroke-width: 2; }
+.robot { fill: #e3f1ee; stroke: #0b5e57; stroke-width: 2; }
+.roue { fill: #12171c; }
+.roulette { fill: #ffffff; stroke: #12171c; stroke-width: 1.5; }
+.nez { fill: #0b5e57; }
+.ax-x { stroke: #d64545; stroke-width: 3; fill: none; } .ax-y { stroke: #2f9e44; stroke-width: 3; fill: none; }
+.px { fill: #d64545; } .py { fill: #2f9e44; }
+.trait { stroke: #56606a; stroke-width: 2; fill: none; }
+.tirets { stroke: #8a949c; stroke-width: 1.5; stroke-dasharray: 5 5; fill: none; }
+.trajet { stroke: #d39a2c; stroke-width: 3; fill: none; stroke-linecap: round; }
+.trajet-pointe { fill: #d39a2c; }
+.vitesse { stroke: #0b5e57; stroke-width: 3; fill: none; }
+.vitesse-pointe { fill: #0b5e57; }
+.pointe { fill: #56606a; }
+.cir { fill: #d39a2c; }
+.t { fill: #12171c; font: 400 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-gras { fill: #12171c; font: 600 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-titre { fill: #12171c; font: 600 16px "IBM Plex Sans", system-ui, sans-serif; }
+.t-petit { fill: #56606a; font: 400 12.5px "IBM Plex Sans", system-ui, sans-serif; }
+.t-sur { fill: #56606a; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; letter-spacing: 0.08em; }
+.t-math { fill: #12171c; font: italic 500 15px "IBM Plex Serif", Georgia, serif; }
+.t-code { fill: #12171c; font: 500 13px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+.t-accent { fill: #0b5e57; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-ambre { fill: #8a5d10; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-x { fill: #d64545; font: 600 13px "JetBrains Mono", monospace; } .t-y { fill: #2f9e44; font: 600 13px "JetBrains Mono", monospace; }
+.badge { fill: #0b5e57; } .t-badge { fill: #ffffff; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; }
+.sep { stroke: #e2e5e1; stroke-width: 1.5; }
+@media (prefers-color-scheme: dark) {
+  .fond { fill: #0f161d; stroke: #34424f; } .grille { stroke: #1b2630; }
+  .boite { fill: #121a22; stroke: #34424f; }
+  .calcul, .robot { fill: #12302d; stroke: #4fb3a7; }
+  .capteur { fill: #2a2212; stroke: #f2b544; }
+  .actionneur { fill: #1a222b; stroke: #8a99a8; }
+  .roue { fill: #c9d3dc; } .roulette { fill: #121a22; stroke: #c9d3dc; } .nez { fill: #4fb3a7; }
+  .ax-x { stroke: #ff6b6b; } .ax-y { stroke: #51cf66; } .px, .t-x { fill: #ff6b6b; } .py, .t-y { fill: #51cf66; }
+  .trait { stroke: #8a99a8; } .tirets { stroke: #5d6b78; } .pointe { fill: #8a99a8; }
+  .trajet { stroke: #f2b544; } .trajet-pointe, .cir { fill: #f2b544; }
+  .vitesse { stroke: #4fb3a7; } .vitesse-pointe { fill: #4fb3a7; }
+  .t, .t-gras, .t-titre, .t-math, .t-code { fill: #e3e8ee; }
+  .t-petit, .t-sur { fill: #8a99a8; } .t-accent { fill: #4fb3a7; } .t-ambre { fill: #f2b544; }
+  .badge { fill: #4fb3a7; } .t-badge { fill: #0b1015; } .sep { stroke: #22303c; }
+}
+</style>
+<defs>
+<marker id="m-trait" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-trajet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="trajet-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-vitesse" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="vitesse-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-x" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="px" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-y" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="py" d="M0 0 L10 5 L0 10 z"/></marker>
+</defs>
+<rect class="fond" x="20.0" y="20.0" width="260.0" height="330.0" rx="12"/>
+<text class="t-sur" x="38.0" y="48.0" text-anchor="start">TOPIC</text>
+<text class="t-petit" x="38.0" y="68.0" text-anchor="start">un flux, sans réponse</text>
+<rect class="fond" x="300.0" y="20.0" width="260.0" height="330.0" rx="12"/>
+<text class="t-sur" x="318.0" y="48.0" text-anchor="start">SERVICE</text>
+<text class="t-petit" x="318.0" y="68.0" text-anchor="start">une question, une réponse</text>
+<rect class="fond" x="580.0" y="20.0" width="260.0" height="330.0" rx="12"/>
+<text class="t-sur" x="598.0" y="48.0" text-anchor="start">ACTION</text>
+<text class="t-petit" x="598.0" y="68.0" text-anchor="start">une mission suivie, annulable</text>
+<rect class="calcul" x="40.0" y="90.0" width="100.0" height="36.0" rx="8"/>
+<text class="t-gras" x="90.0" y="113.0" text-anchor="middle">éditeur</text>
+<rect class="calcul" x="160.0" y="170.0" width="100.0" height="36.0" rx="8"/>
+<text class="t-gras" x="210.0" y="193.0" text-anchor="middle">abonné</text>
+<rect class="calcul" x="160.0" y="250.0" width="100.0" height="36.0" rx="8"/>
+<text class="t-gras" x="210.0" y="273.0" text-anchor="middle">abonné</text>
+<circle class="cir" cx="78" cy="148" r="5"/>
+<circle class="cir" cx="78" cy="172" r="5"/>
+<circle class="cir" cx="78" cy="196" r="5"/>
+<circle class="cir" cx="78" cy="220" r="5"/>
+<path class="trait" d="M90 128 C 90 240, 120 188, 156 188" marker-end="url(#m-trait)"/>
+<path class="trait" d="M90 128 C 90 300, 120 268, 156 268" marker-end="url(#m-trait)"/>
+<text class="t-petit" x="40.0" y="320.0" text-anchor="start">/odom, 20 messages par seconde</text>
+<text class="t-gras" x="350.0" y="104.0" text-anchor="middle">client</text>
+<text class="t-gras" x="500.0" y="104.0" text-anchor="middle">serveur</text>
+<line class="tirets" x1="350.0" y1="112.0" x2="350.0" y2="320.0"/>
+<line class="tirets" x1="500.0" y1="112.0" x2="500.0" y2="320.0"/>
+<line class="trait" x1="350.0" y1="150.0" x2="496.0" y2="180.0" marker-end="url(#m-trait)"/>
+<text class="t-petit" x="425.0" y="150.0" text-anchor="middle">requête</text>
+<rect class="calcul" x="494.0" y="182.0" width="12.0" height="50.0" rx="3"/>
+<line class="trait" x1="500.0" y1="236.0" x2="354.0" y2="266.0" marker-end="url(#m-trait)"/>
+<text class="t-petit" x="425.0" y="270.0" text-anchor="middle">réponse</text>
+<text class="t-petit" x="358.0" y="214.0" text-anchor="start">attend…</text>
+<text class="t-petit" x="320.0" y="340.0" text-anchor="start">« où es-tu ? » → (x, y, θ)</text>
+<text class="t-gras" x="630.0" y="104.0" text-anchor="middle">client</text>
+<text class="t-gras" x="780.0" y="104.0" text-anchor="middle">serveur</text>
+<line class="tirets" x1="630.0" y1="112.0" x2="630.0" y2="320.0"/>
+<line class="tirets" x1="780.0" y1="112.0" x2="780.0" y2="320.0"/>
+<line class="trait" x1="630.0" y1="135.0" x2="776.0" y2="150.0" marker-end="url(#m-trait)"/>
+<text class="t-petit" x="705.0" y="132.0" text-anchor="middle">goal</text>
+<rect class="calcul" x="774.0" y="152.0" width="12.0" height="140.0" rx="3"/>
+<line class="tirets" x1="780.0" y1="180.0" x2="634.0" y2="190.0" marker-end="url(#m-trait)"/>
+<line class="tirets" x1="780.0" y1="210.0" x2="634.0" y2="220.0" marker-end="url(#m-trait)"/>
+<line class="tirets" x1="780.0" y1="240.0" x2="634.0" y2="250.0" marker-end="url(#m-trait)"/>
+<text class="t-petit" x="705.0" y="205.0" text-anchor="middle">feedbacks</text>
+<line class="trait" x1="780.0" y1="294.0" x2="634.0" y2="308.0" marker-end="url(#m-trait)"/>
+<text class="t-petit" x="705.0" y="296.0" text-anchor="middle">résultat</text>
+<text class="t-petit" x="600.0" y="340.0" text-anchor="start">« va au point (2, 1) »</text>
+</svg>
