@@ -1,0 +1,57 @@
+questions:
+  - id: dix
+    question: "Que signifie le 10 de create_publisher(Twist, 'cmd_vel', 10) ?"
+    choix:
+      - texte: Le profil de QoS par défaut, RELIABLE et VOLATILE, avec une file de 10 messages
+        correct: true
+      - texte: La fréquence de publication, 10 messages par seconde
+      - texte: Le nombre maximal d'abonnés au topic
+    explication: "Un entier à la place d'un profil, c'est la profondeur d'historique du profil par défaut : fiable, volatile, KEEP_LAST 10."
+  - id: best_effort
+    question: Pourquoi publie-t-on les scans d'un laser en BEST_EFFORT ?
+    choix:
+      - texte: Un scan perdu sera vite remplacé par un plus récent ; le renvoyer ne ferait qu'ajouter du retard
+        correct: true
+      - texte: Parce que BEST_EFFORT garantit que tous les scans arrivent
+      - texte: Parce que RELIABLE est interdit pour les messages volumineux
+    explication: Pour un flux de capteur, une donnée récente vaut mieux qu'une donnée complète mais en retard.
+  - id: incompatible
+    question: Un éditeur publie en BEST_EFFORT, un abonné demande RELIABLE. Que se passe-t-il ?
+    choix:
+      - texte: Aucun message ne passe ; chacun affiche un avertissement « incompatible QoS »
+        correct: true
+      - texte: Les messages passent, mais sans garantie de livraison
+      - texte: Le nœud abonné s'arrête avec une erreur
+    explication: L'abonné ne peut pas exiger plus que l'offre de l'éditeur. Rien ne plante, mais rien ne passe.
+  - id: compatible
+    question: Un éditeur publie en RELIABLE, un abonné demande BEST_EFFORT. Que se passe-t-il ?
+    choix:
+      - texte: Les messages passent ; l'offre est meilleure que la demande
+        correct: true
+      - texte: Aucun message ne passe
+      - texte: Seul un message sur deux passe
+    explication: "C'est pourquoi un abonné doit demander le minimum dont il a besoin : BEST_EFFORT reçoit les deux sortes d'éditeurs."
+  - id: transient
+    question: "Un nœud publie la carte une seule fois, au démarrage. Un nœud lancé ensuite doit la recevoir. Que faut-il ?"
+    choix:
+      - texte: TRANSIENT_LOCAL côté éditeur et côté abonné
+        correct: true
+      - texte: RELIABLE côté abonné suffit
+      - texte: Une profondeur d'historique plus grande côté abonné
+    explication: "L'éditeur garde alors son dernier message et l'envoie aux abonnés qui le demandent en TRANSIENT_LOCAL."
+  - id: volatile_abonne
+    question: Un éditeur offre TRANSIENT_LOCAL et un abonné VOLATILE arrive après la publication. Que reçoit-il ?
+    choix:
+      - texte: Seulement les messages publiés après son arrivée
+        correct: true
+      - texte: Le dernier message publié, puis les suivants
+      - texte: Rien du tout, les deux sont incompatibles
+    explication: C'est compatible, mais l'abonné n'a pas demandé l'historique.
+  - id: diagnostic
+    question: ros2 topic echo affiche les messages d'un topic, mais votre nœud abonné ne reçoit rien. Quelle commande compare les QoS ?
+    choix:
+      - texte: ros2 topic info -v
+        correct: true
+      - texte: ros2 topic hz
+      - texte: ros2 node list
+    explication: "echo s'adapte aux éditeurs ; ros2 topic info -v affiche la QoS de chaque éditeur et de chaque abonné."

@@ -1,0 +1,65 @@
+questions:
+  - id: methode
+    question: Le robot ne réagit pas à vos commandes, sans aucune erreur. Par quoi commencer ?
+    choix:
+      - texte: Vérifier que les nœuds tournent et qu'ils sont reliés (ros2 node list, ros2 topic info -v)
+        correct: true
+      - texte: Relire tout le code de chaque nœud
+      - texte: Réinstaller ROS 2
+    explication: "On va du général au particulier : le graphe d'abord, puis les données, puis les journaux."
+  - id: deux_types
+    question: "ros2 topic list -t affiche /cmd_vel [geometry_msgs/msg/Twist, geometry_msgs/msg/TwistStamped]. Qu'en déduire ?"
+    choix:
+      - texte: Un éditeur et un abonné n'utilisent pas le même type ; ils ne communiquent pas
+        correct: true
+      - texte: Le topic accepte les deux types, c'est normal
+      - texte: ROS 2 convertit automatiquement un TwistStamped en Twist
+    explication: Un éditeur et un abonné ne sont reliés que si le nom et le type correspondent.
+  - id: frequence
+    question: Quelle commande mesure à quelle fréquence un topic est publié ?
+    choix:
+      - texte: ros2 topic hz
+        correct: true
+      - texte: ros2 topic bw
+      - texte: ros2 topic echo --once
+    explication: "hz donne la fréquence, bw le débit en octets par seconde."
+  - id: debug
+    question: "Comment afficher les messages DEBUG de patrouille_node, sans modifier son code ?"
+    choix:
+      - texte: "ros2 run my_pkg patrouille_node --ros-args --log-level patrouille_node:=debug"
+        correct: true
+      - texte: En remplaçant get_logger().debug par print dans le code
+      - texte: "C'est impossible : les messages DEBUG ne s'affichent jamais"
+    explication: "Le niveau des journaux se règle au lancement, pour tout le processus ou pour un seul nœud."
+  - id: niveau_defaut
+    question: "Quel est le niveau de journal affiché par défaut ?"
+    choix:
+      - texte: INFO, et les niveaux au-dessus (WARN, ERROR, FATAL)
+        correct: true
+      - texte: DEBUG, tous les messages
+      - texte: ERROR seulement
+    explication: Les messages DEBUG sont cachés tant qu'on ne baisse pas le niveau.
+  - id: bag
+    question: Une panne survient une fois par heure. Comment l'étudier tranquillement ?
+    choix:
+      - texte: Enregistrer les topics utiles avec ros2 bag record, puis rejouer le bag avec ros2 bag play
+        correct: true
+      - texte: Laisser ros2 topic echo tourner dans un terminal et le relire
+      - texte: Augmenter la profondeur d'historique de tous les topics
+    explication: "Un bag capture les messages avec leurs dates ; on le rejoue autant de fois qu'il faut, en entier ou topic par topic."
+  - id: pub
+    question: "À quoi sert ros2 topic pub pendant un diagnostic ?"
+    choix:
+      - texte: À remplacer un nœud en publiant un message à la main, pour tester la suite de la chaîne
+        correct: true
+      - texte: À afficher les messages qui circulent
+      - texte: À publier un package
+    explication: Si le robot obéit à une commande publiée à la main mais pas à votre nœud, le problème est dans votre nœud.
+  - id: tf
+    question: "tf2_echo odom laser répète « Invalid frame ID \"laser\" ». Que faut-il en conclure ?"
+    choix:
+      - texte: Aucun nœud ne publie le repère laser
+        correct: true
+      - texte: Le laser est en panne
+      - texte: Le repère odom est mal orienté
+    explication: "tf2_echo attend tant que la transformation n'existe pas ; view_frames montre l'arbre réellement publié."

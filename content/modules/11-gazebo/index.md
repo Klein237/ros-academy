@@ -581,4 +581,4 @@ La fenêtre de Gazebo s'ouvre aussi sur le Bureau : `ros2 launch my_robot_descri
 - Gazebo a ses propres topics : `ros_gz_bridge` les relie à ROS 2, topic par topic.
 - Un monde SDF autonome, avec ses systèmes ; un launch qui démarre `gz sim`, `robot_state_publisher`, `create` et le pont ; `use_sim_time` pour les nœuds de la simulation.
 
-**Et maintenant ?** Vous avez construit, pas à pas, le logiciel complet d'un robot mobile. Pour aller plus loin : la navigation autonome avec Nav2, qui s'appuie sur tout ce que vous venez d'apprendre.
+**Et maintenant ?** Vous avez construit, pas à pas, le logiciel complet d'un robot mobile. Deux modules bonus, hors note, complètent le parcours : la qualité de service des topics, puis les outils de débogage. Ensuite, la navigation autonome avec Nav2 s'appuie sur tout ce que vous venez d'apprendre.
