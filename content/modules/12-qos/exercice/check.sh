@@ -17,8 +17,12 @@ for _ in $(seq 1 20); do
   grep -q "Batterie : " "$LOG" && break
   sleep 1
 done
-fiabilite=$(timeout 10 ros2 topic info -v /battery_state 2>/dev/null \
-  | awk '/Endpoint type: PUBLISHER/ {p=1} p && /Reliability:/ {print $2; exit}')
+for _ in $(seq 1 10); do  # juste après le démarrage, l'éditeur peut ne pas encore être visible
+  fiabilite=$(timeout 10 ros2 topic info -v /battery_state 2>/dev/null \
+    | awk '/Endpoint type: PUBLISHER/ {p=1} p && /Reliability:/ {print $2; exit}')
+  [ -n "$fiabilite" ] && break
+  sleep 1
+done
 if [ "$fiabilite" != "BEST_EFFORT" ]; then
   echo "Le pilote de batterie ne publie plus en BEST_EFFORT (${fiabilite:-introuvable}) : c'est le code du fabricant, ne le modifiez pas."
   exit 1
