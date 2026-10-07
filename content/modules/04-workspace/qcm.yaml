@@ -1,0 +1,97 @@
+questions:
+  - id: dossiers
+    question: Quels dossiers colcon build crée-t-il à la racine du workspace ?
+    choix:
+      - texte: build, install et log
+        correct: true
+      - texte: src, build et install
+      - texte: bin, lib et include
+    explication: src contient vos sources et existe avant la compilation ; colcon crée build, install et log.
+  - id: racine
+    question: Depuis quel dossier lance-t-on colcon build ?
+    choix:
+      - texte: Depuis la racine du workspace, au-dessus de src
+        correct: true
+      - texte: Depuis src
+      - texte: Depuis le dossier du package
+    explication: "Lancé depuis src, colcon crée build, install et log au mauvais endroit."
+  - id: package-xml
+    question: Quel fichier fait d'un dossier un package ROS 2 et déclare ses dépendances ?
+    choix:
+      - texte: package.xml
+        correct: true
+      - texte: setup.cfg
+      - texte: install/setup.bash
+    explication: package.xml porte le nom, la version, les dépendances et le type de compilation du package.
+  - id: types
+    question: Quel type de compilation utilise un package Python ?
+    choix:
+      - texte: ament_python
+        correct: true
+      - texte: ament_cmake
+      - texte: catkin
+    explication: ament_cmake sert au C++ et aux packages d'interfaces ; catkin était l'outil de ROS 1.
+  - id: niveaux
+    question: Dans ros2 run mon_premier_pkg mon_noeud, que désigne mon_noeud ?
+    choix:
+      - texte: Un exécutable fourni par le package mon_premier_pkg
+        correct: true
+      - texte: Un topic
+      - texte: Le nom du workspace
+    explication: ros2 run lance un exécutable d'un package ; cet exécutable crée un ou plusieurs nœuds.
+  - id: entry-points
+    question: Dans un package Python, où déclare-t-on qu'un fichier .py fournit un exécutable ?
+    choix:
+      - texte: Dans setup.py, liste console_scripts de entry_points
+        correct: true
+      - texte: Il suffit que le fichier soit dans le dossier du package
+      - texte: Dans package.xml, balise depend
+    explication: Sans cette déclaration, colcon installe le code mais aucun exécutable.
+  - id: not-found
+    question: Après colcon build, ros2 run mon_pkg mon_noeud répond « Package 'mon_pkg' not found ». Cause la plus probable ?
+    choix:
+      - texte: Le workspace n'a pas été sourcé dans ce terminal
+        correct: true
+      - texte: Le nœud n'est pas déclaré dans setup.py
+      - texte: Il manque une dépendance dans package.xml
+    explication: "source install/setup.bash, dans chaque nouveau terminal ; un exécutable non déclaré donnerait « No executable found »."
+  - id: no-executable
+    question: ros2 run trouve le package, mais répond « No executable found ». Quelle commande aide à le diagnostiquer ?
+    choix:
+      - texte: ros2 pkg executables mon_pkg
+        correct: true
+      - texte: ros2 topic list
+      - texte: colcon list
+    explication: Elle liste les exécutables réellement installés ; si elle ne renvoie rien, aucun n'est déclaré.
+  - id: symlink
+    question: Que permet colcon build --symlink-install pour un package Python ?
+    choix:
+      - texte: Qu'une modification d'un fichier .py existant soit prise en compte sans recompiler
+        correct: true
+      - texte: D'ajouter un nouvel exécutable sans relancer colcon build
+      - texte: De ne plus avoir besoin de source install/setup.bash
+    explication: install pointe vers les sources ; mais un nouvel exécutable ou un nouveau package demande toujours colcon build.
+  - id: overlay
+    question: Qu'est-ce que l'overlay ?
+    choix:
+      - texte: Votre workspace compilé, superposé à l'installation de ROS (l'underlay)
+        correct: true
+      - texte: Le dossier /opt/ros/jazzy
+      - texte: Une interface graphique de ROS
+    explication: Un package de l'overlay masque celui du même nom dans l'underlay.
+  - id: create
+    question: Que fait l'option --node-name mon_noeud de ros2 pkg create ?
+    choix:
+      - texte: Elle crée un nœud d'exemple, déjà déclaré comme exécutable
+        correct: true
+      - texte: Elle renomme le package
+      - texte: Elle lance le nœud après la création
+    explication: Le fichier du nœud est créé et sa ligne console_scripts est ajoutée à setup.py.
+  - id: cpp
+    question: Vous modifiez un fichier .cpp d'un package déjà compilé. Que faire pour que le changement soit pris en compte ?
+    choix:
+      - texte: Relancer colcon build, puis relancer le nœud
+        correct: true
+      - texte: Rien, --symlink-install suffit
+      - texte: Seulement relancer source install/setup.bash
+    explication: "Le C++ est compilé : seul un nouveau colcon build produit le nouvel exécutable."

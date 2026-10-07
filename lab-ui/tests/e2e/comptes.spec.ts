@@ -60,13 +60,13 @@ test("le module demande une connexion, puis le QCM compte 2 tentatives au plus",
 });
 
 test("parcours terminé : la note finale pondérée s'affiche sur la page Résultats", async ({ page }) => {
-  await loginStudent(page, newEmail(), "/modules/01-initiation/");
+  await loginStudent(page, newEmail(), "/modules/04-workspace/");
   const origin = { Origin: new URL(page.url()).origin };
   const parcours = (await (await page.request.get("/api/contenus/parcours")).json()).parcours[0];
   const modules: { id: string; coef: number; exercice: boolean; bonus: boolean }[] = parcours.modules;
-  expect(modules.map((m) => m.id)).toEqual(["01-robot-mobile", "02-linux", "01-initiation", "02-noeud", "03-service", "04-action",
+  expect(modules.map((m) => m.id)).toEqual(["01-robot-mobile", "02-linux", "03-ros2", "04-workspace", "02-noeud", "03-service", "04-action",
     "05-urdf", "06-parametres", "07-tf2", "08-gazebo"]);
-  expect(modules.filter((m) => !m.exercice).map((m) => m.id)).toEqual(["01-robot-mobile"]); // module de cours : QCM seul
+  expect(modules.filter((m) => !m.exercice).map((m) => m.id)).toEqual(["01-robot-mobile", "03-ros2"]); // modules de cours : QCM seul
 
   // module 01 : QCM sur le site, un indice, exercice réussi
   await page.locator("fieldset[data-question] input").first().check();
@@ -74,20 +74,20 @@ test("parcours terminé : la note finale pondérée s'affiche sur la page Résul
   await expect(page.locator(".qcm-result")).toContainText("/ 20");
   const result = await page.locator(".qcm-result").textContent();
   const qcm01 = Number(/Note : ([\d,]+) \/ 20/.exec(result ?? "")![1].replace(",", "."));
-  const hint = await page.request.post("/api/comptes/exercices/01-initiation/indices/1", { headers: origin });
+  const hint = await page.request.post("/api/comptes/exercices/04-workspace/indices/1", { headers: origin });
   expect(hint.ok()).toBe(true);
   // le navigateur ne peut pas déclarer une réussite : seule la vérification du serveur l'enregistre
-  const declared = await page.request.post("/api/comptes/exercices/01-initiation/reussite", { headers: origin });
+  const declared = await page.request.post("/api/comptes/exercices/04-workspace/reussite", { headers: origin });
   expect([404, 405]).toContain(declared.status());
   // réussites enregistrées directement en base (l'exercice vérifié par le serveur : test @ros du module Nœud)
   const userId = Number(((await (await page.request.get("/api/comptes/moi")).json()).hub as string).slice(1));
   const done = (id: string) =>
     sql(`INSERT INTO exercises (user_id, module, indices, verifications, reussi_le) VALUES (${userId}, '${id}', 0, 1, now())
          ON CONFLICT (user_id, module) DO UPDATE SET reussi_le = now();`);
-  done("01-initiation");
+  done("04-workspace");
 
-  const notes: Record<string, number> = { "01-initiation": 0.5 * qcm01 + 0.5 * 20 * 0.85 };
-  for (const m of modules.filter((x) => x.id !== "01-initiation")) {
+  const notes: Record<string, number> = { "04-workspace": 0.5 * qcm01 + 0.5 * 20 * 0.85 };
+  for (const m of modules.filter((x) => x.id !== "04-workspace")) {
     const r = await page.request.post(`/api/comptes/qcm/${m.id}`, { data: { reponses: {} }, headers: origin });
     const qcm = (await r.json()).note as number;
     if (m.exercice) done(m.id);
@@ -99,7 +99,7 @@ test("parcours terminé : la note finale pondérée s'affiche sur la page Résul
   const total = comptes.reduce((acc, m) => acc + m.coef, 0);
   const finale = comptes.reduce((acc, m) => acc + m.coef * Math.round(notes[m.id] * 100) / 100, 0) / total;
   await expect(page.locator(".final-grade")).toHaveText(`Note finale : ${finale.toFixed(2).replace(".", ",")} / 20`);
-  await expect(page.getByRole("row", { name: /Initiation/ })).toContainText("réussi (1 indice) · 17,0");
+  await expect(page.getByRole("row", { name: /Organiser son code/ })).toContainText("réussi (1 indice) · 17,0");
   await expect(page.getByRole("row", { name: /Le robot mobile/ })).toContainText("sans exercice");
 
   // certificat (si la note atteint le seuil) : nom imprimé, page publique de vérification, PDF
@@ -208,10 +208,10 @@ test("le formateur suit un étudiant dans son tableau de bord ; un étudiant n'y
   test.skip(!trainerEmail, "ADMIN_EMAILS non défini");
   const student = await browser.newPage({ ignoreHTTPSErrors: true });
   const email = newEmail();
-  await loginStudent(student, email, "/modules/01-initiation/");
+  await loginStudent(student, email, "/modules/04-workspace/");
   const origin = { Origin: new URL(student.url()).origin };
-  await student.request.post("/api/comptes/qcm/01-initiation", { data: { reponses: {} }, headers: origin });
-  await student.request.post("/api/comptes/exercices/01-initiation/indices/1", { headers: origin });
+  await student.request.post("/api/comptes/qcm/04-workspace", { data: { reponses: {} }, headers: origin });
+  await student.request.post("/api/comptes/exercices/04-workspace/indices/1", { headers: origin });
   expect((await student.goto("/compte/formateur"))?.status()).toBe(403);
 
   const trainer = await browser.newPage({ ignoreHTTPSErrors: true });
@@ -221,7 +221,7 @@ test("le formateur suit un étudiant dans son tableau de bord ; un étudiant n'y
   await trainer.getByLabel("Rechercher un étudiant").fill(email);
   await trainer.getByRole("button", { name: "Rechercher" }).click();
   await trainer.getByRole("link", { name: email }).click();
-  const row = trainer.getByRole("row", { name: /Initiation/ });
+  const row = trainer.getByRole("row", { name: /Organiser son code/ });
   await expect(row).toContainText("(1/2)"); // une tentative de QCM
   await expect(row).toContainText("1 / 3"); // un indice
   await expect(row).toContainText("en cours");

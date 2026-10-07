@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 330" role="img" aria-labelledby="t d">
+<title id="t">Le graphe ROS du robot de livraison</title>
+<desc id="d">Trois nœuds et deux topics : la vue 2D publie des ordres de vitesse sur /cmd_vel ; le nœud /academy_diffbot s&#x27;y abonne et publie sa position sur /odom, que lisent la vue 2D et ros2 topic echo.</desc>
+<style>
+.fond { fill: #fbfbf9; stroke: #c9cfc9; stroke-width: 1.5; }
+.grille { stroke: #e7eae6; stroke-width: 1; }
+.boite { fill: #ffffff; stroke: #c9cfc9; stroke-width: 1.5; }
+.calcul { fill: #e3f1ee; stroke: #0b5e57; stroke-width: 2; }
+.capteur { fill: #fff8e8; stroke: #d39a2c; stroke-width: 2; }
+.actionneur { fill: #eef1f5; stroke: #56606a; stroke-width: 2; }
+.robot { fill: #e3f1ee; stroke: #0b5e57; stroke-width: 2; }
+.roue { fill: #12171c; }
+.roulette { fill: #ffffff; stroke: #12171c; stroke-width: 1.5; }
+.nez { fill: #0b5e57; }
+.ax-x { stroke: #d64545; stroke-width: 3; fill: none; } .ax-y { stroke: #2f9e44; stroke-width: 3; fill: none; }
+.px { fill: #d64545; } .py { fill: #2f9e44; }
+.trait { stroke: #56606a; stroke-width: 2; fill: none; }
+.tirets { stroke: #8a949c; stroke-width: 1.5; stroke-dasharray: 5 5; fill: none; }
+.trajet { stroke: #d39a2c; stroke-width: 3; fill: none; stroke-linecap: round; }
+.trajet-pointe { fill: #d39a2c; }
+.vitesse { stroke: #0b5e57; stroke-width: 3; fill: none; }
+.vitesse-pointe { fill: #0b5e57; }
+.pointe { fill: #56606a; }
+.cir { fill: #d39a2c; }
+.t { fill: #12171c; font: 400 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-gras { fill: #12171c; font: 600 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-titre { fill: #12171c; font: 600 16px "IBM Plex Sans", system-ui, sans-serif; }
+.t-petit { fill: #56606a; font: 400 12.5px "IBM Plex Sans", system-ui, sans-serif; }
+.t-sur { fill: #56606a; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; letter-spacing: 0.08em; }
+.t-math { fill: #12171c; font: italic 500 15px "IBM Plex Serif", Georgia, serif; }
+.t-code { fill: #12171c; font: 500 13px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+.t-accent { fill: #0b5e57; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-ambre { fill: #8a5d10; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-x { fill: #d64545; font: 600 13px "JetBrains Mono", monospace; } .t-y { fill: #2f9e44; font: 600 13px "JetBrains Mono", monospace; }
+.badge { fill: #0b5e57; } .t-badge { fill: #ffffff; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; }
+.sep { stroke: #e2e5e1; stroke-width: 1.5; }
+@media (prefers-color-scheme: dark) {
+  .fond { fill: #0f161d; stroke: #34424f; } .grille { stroke: #1b2630; }
+  .boite { fill: #121a22; stroke: #34424f; }
+  .calcul, .robot { fill: #12302d; stroke: #4fb3a7; }
+  .capteur { fill: #2a2212; stroke: #f2b544; }
+  .actionneur { fill: #1a222b; stroke: #8a99a8; }
+  .roue { fill: #c9d3dc; } .roulette { fill: #121a22; stroke: #c9d3dc; } .nez { fill: #4fb3a7; }
+  .ax-x { stroke: #ff6b6b; } .ax-y { stroke: #51cf66; } .px, .t-x { fill: #ff6b6b; } .py, .t-y { fill: #51cf66; }
+  .trait { stroke: #8a99a8; } .tirets { stroke: #5d6b78; } .pointe { fill: #8a99a8; }
+  .trajet { stroke: #f2b544; } .trajet-pointe, .cir { fill: #f2b544; }
+  .vitesse { stroke: #4fb3a7; } .vitesse-pointe { fill: #4fb3a7; }
+  .t, .t-gras, .t-titre, .t-math, .t-code { fill: #e3e8ee; }
+  .t-petit, .t-sur { fill: #8a99a8; } .t-accent { fill: #4fb3a7; } .t-ambre { fill: #f2b544; }
+  .badge { fill: #4fb3a7; } .t-badge { fill: #0b1015; } .sep { stroke: #22303c; }
+}
+</style>
+<defs>
+<marker id="m-trait" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-trajet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="trajet-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-vitesse" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="vitesse-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-x" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="px" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-y" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="py" d="M0 0 L10 5 L0 10 z"/></marker>
+</defs>
+<rect class="calcul" x="20.0" y="40.0" width="200.0" height="62.0" rx="10"/>
+<text class="t-gras" x="120.0" y="67.0" text-anchor="middle">Vue 2D du lab</text>
+<text class="t-petit" x="120.0" y="87.0" text-anchor="middle">flèches de téléopération</text>
+<rect class="calcul" x="560.0" y="40.0" width="220.0" height="62.0" rx="10"/>
+<text class="t-gras" x="670.0" y="67.0" text-anchor="middle">/academy_diffbot</text>
+<text class="t-petit" x="670.0" y="87.0" text-anchor="middle">le robot simulé</text>
+<rect class="calcul" x="20.0" y="210.0" width="200.0" height="62.0" rx="10"/>
+<text class="t-gras" x="120.0" y="237.0" text-anchor="middle">ros2 topic echo</text>
+<text class="t-petit" x="120.0" y="257.0" text-anchor="middle">votre terminal</text>
+<rect class="capteur" x="300.0" y="44.0" width="180.0" height="54.0" rx="27"/>
+<text class="t-code" x="390.0" y="68.0" text-anchor="middle">/cmd_vel</text>
+<text class="t-petit" x="390.0" y="86.0" text-anchor="middle">geometry_msgs/Twist</text>
+<rect class="capteur" x="300.0" y="214.0" width="180.0" height="54.0" rx="27"/>
+<text class="t-code" x="390.0" y="238.0" text-anchor="middle">/odom</text>
+<text class="t-petit" x="390.0" y="256.0" text-anchor="middle">nav_msgs/Odometry</text>
+<line class="trait" x1="222.0" y1="71.0" x2="296.0" y2="71.0" marker-end="url(#m-trait)"/>
+<text class="t-petit" x="259.0" y="62.0" text-anchor="middle">publie</text>
+<line class="trait" x1="482.0" y1="71.0" x2="556.0" y2="71.0" marker-end="url(#m-trait)"/>
+<text class="t-petit" x="519.0" y="62.0" text-anchor="middle">s&#x27;abonne</text>
+<path class="trait" d="M670 104 C 670 180, 560 241, 486 241" marker-end="url(#m-trait)"/>
+<text class="t-petit" x="640.0" y="190.0" text-anchor="middle">publie</text>
+<line class="trait" x1="298.0" y1="241.0" x2="224.0" y2="241.0" marker-end="url(#m-trait)"/>
+<text class="t-petit" x="261.0" y="232.0" text-anchor="middle">s&#x27;abonne</text>
+<path class="trait" d="M330 212 C 300 160, 160 160, 130 106" marker-end="url(#m-trait)"/>
+<text class="t-petit" x="232.0" y="150.0" text-anchor="middle">s&#x27;abonne</text>
+<rect class="calcul" x="20.0" y="300.0" width="26.0" height="18.0" rx="5"/>
+<text class="t-petit" x="54.0" y="314.0" text-anchor="start">nœud</text>
+<rect class="capteur" x="110.0" y="300.0" width="34.0" height="18.0" rx="9"/>
+<text class="t-petit" x="152.0" y="314.0" text-anchor="start">topic et type de message</text>
+<line class="trait" x1="330.0" y1="309.0" x2="370.0" y2="309.0" marker-end="url(#m-trait)"/>
+<text class="t-petit" x="380.0" y="314.0" text-anchor="start">sens des messages</text>
+</svg>

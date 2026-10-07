@@ -28,9 +28,12 @@ modules:
   - id: 02-linux
     coef: 1
     partie: Les bases
-  - id: 01-initiation
+  - id: 03-ros2
     coef: 1
-    partie: ROS 2 en pratique
+    partie: Comprendre ROS 2
+  - id: 04-workspace
+    coef: 1
+    partie: Comprendre ROS 2
   - id: 02-noeud
     coef: 2
     partie: ROS 2 en pratique

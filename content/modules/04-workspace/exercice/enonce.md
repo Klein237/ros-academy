@@ -3,7 +3,7 @@
 Une collègue vous confie le package `demo_pkg`, qui contient un nœud `talker` publiant sur `/bavardage`. Le workspace compile sans erreur, le package est bien trouvé… mais le nœud refuse de démarrer :
 
 ```bash
-cd ~/ws/01-initiation-exercice
+cd ~/ws/04-workspace-exercice
 source install/setup.bash
 ros2 run demo_pkg talker
 # No executable found
