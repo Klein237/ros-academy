@@ -1,0 +1,7 @@
+# Paramètres du robot pour la salle de démonstration
+diff_drive_node:
+  ros__parameters:
+    max_linear_speed: 0.3
+    max_angular_speed: 0.8
+    goal_tolerance: 0.03
+    update_rate: 20.0

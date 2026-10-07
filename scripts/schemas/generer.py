@@ -10,11 +10,12 @@ Chaque fichier de ce dossier décrit les schémas d'un module, avec le style com
 import sys
 from pathlib import Path
 
+import bonus
 import robot_mobile
 import ros2
 
 CONTENT = Path(__file__).resolve().parents[2] / "content" / "modules"
-SOURCES = [robot_mobile, ros2]
+SOURCES = [robot_mobile, ros2, bonus]
 
 
 def main():
