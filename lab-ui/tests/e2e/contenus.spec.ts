@@ -64,6 +64,53 @@ test("le site présente le parcours et corrige le QCM sans exposer les réponses
   await expect(page.locator('fieldset[data-question="spin"] .feedback')).toContainText("Juste");
 });
 
+test("module de cours : schémas, pas d'exercice, le QCM fait la note", async ({ page }) => {
+  students.push(await loginStudent(page, newEmail(), "/modules/01-robot-mobile/"));
+  await page.goto("/modules/01-robot-mobile/");
+  await expect(page.locator("h1")).toHaveText("Le robot mobile");
+  await expect(page.locator(".etapes-module [data-etape]")).toHaveText(["Cours", "QCM"]);
+  await expect(page.locator("#exercice")).toHaveCount(0);
+  await expect(page.locator("#qcm")).toContainText("ce module de cours n'a pas d'exercice");
+  // les schémas passent par Caddy, réservés comme le cours, et s'affichent vraiment
+  const schemas = page.locator(".cours img.schema");
+  await expect(schemas).toHaveCount(5);
+  for (const img of await schemas.all()) {
+    await img.scrollIntoViewIfNeeded();
+    await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth > 0)).toBe(true);
+  }
+  const src = await schemas.first().getAttribute("src");
+  const anonyme = await page.context().browser()!.newContext({ ignoreHTTPSErrors: true });
+  expect((await anonyme.request.get(new URL(src!, page.url()).href)).status()).toBe(404);
+  await anonyme.close();
+  // parcours : la partie « Les bases » et le module de cours signalé
+  await page.goto("/parcours/ros2-fondamentaux/");
+  await expect(page.locator(".programme li.partie").first()).toHaveText("Les bases");
+  await expect(page.locator('.programme li[data-module="01-robot-mobile"]')).toContainText("cours et QCM");
+});
+
+test("module Linux : l'exercice se corrige dans le terminal et le serveur le vérifie @ros", async ({ page }) => {
+  students.push(await loginStudent(page, newEmail()));
+  await page.setViewportSize({ width: 1000, height: 800 });
+  await page.goto("/modules/02-linux/");
+  await page.getByRole("link", { name: "Ouvrir l'exercice dans le lab" }).click();
+  await waitReady(page);
+  const panel = page.locator(".module-panel");
+  await expect(panel.locator(".exercise-status")).toContainText("Exercice prêt", { timeout: 180_000 });
+  // le lab guidé du module (fichiers d'entraînement) est installé
+  await expect(page.locator('.tree-row[data-path="ws/02-linux"]')).toBeVisible();
+  await panel.getByRole("button", { name: "Vérifier" }).click();
+  await expect(panel.locator(".exercise-status")).toContainText("Pas encore", { timeout: 180_000 });
+  await expect(panel.locator(".exercise-status")).toContainText("Permission denied");
+  await page.locator(".terminals .tab").first().click();
+  await expect(activeTerminal(page)).toHaveAttribute("data-status", "open");
+  await run(page, "cd ~/ws/02-linux-exercice && chmod +x demarrer_robot.sh && ./demarrer_robot.sh", "robot.env introuvable");
+  await run(page, `cp config/robot.env.exemple config/robot.env && sed -i 's/a-changer/livreur-01/' config/robot.env && ./demarrer_robot.sh`,
+    "Robot livreur-01 prêt");
+  await panel.getByRole("button", { name: "Vérifier" }).click();
+  await expect(panel.locator(".exercise-status")).toContainText("Exercice réussi", { timeout: 180_000 });
+  await expect(panel.locator(".explication")).toContainText("droit d'exécution");
+});
+
 test("module Nœud : « Ouvrir dans le lab » crée le fichier du cours sans jamais l'écraser", async ({ page }) => {
   // le cours est réservé aux étudiants connectés : le lab passe par la session de Comptes
   students.push(await loginStudent(page, newEmail()));

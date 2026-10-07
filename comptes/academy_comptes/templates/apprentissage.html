@@ -53,8 +53,8 @@
       <li class="suivi">
         <div class="suivi-texte">
           <a class="suivi-titre" href="/parcours/{{ r.parcours.id }}/">{{ r.parcours.titre }}</a>
-          <progress class="jauge" max="{{ r.modules | length }}" value="{{ r.termines }}" aria-label="Modules terminés">{{ r.termines }}</progress>
-          <span class="muted small">{{ r.termines }} module{{ "s" if r.termines > 1 }} sur {{ r.modules | length }}{% if r.finale is not none %} · note finale {{ ('%.2f' | format(r.finale)) | replace('.', ',') }} / 20{% elif r.prochain %} · prochain : {{ r.prochain.titre }}{% endif %}</span>
+          <progress class="jauge" max="{{ r.requis }}" value="{{ r.termines }}" aria-label="Modules terminés">{{ r.termines }}</progress>
+          <span class="muted small">{{ r.termines }} module{{ "s" if r.termines > 1 }} sur {{ r.requis }}{% if r.finale is not none %} · note finale {{ ('%.2f' | format(r.finale)) | replace('.', ',') }} / 20{% elif r.prochain %} · prochain : {{ r.prochain.titre }}{% endif %}</span>
         </div>
         <a class="lien-fort" href="/parcours/{{ r.parcours.id }}/">Voir le programme →</a>
       </li>

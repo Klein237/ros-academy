@@ -670,19 +670,22 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         rows, weighted = [], []
         for m in p["modules"]:
             notes, ex = progress(db, user, m["id"])
-            g = grading.module_grade(notes, bool(ex and ex.reussi_le), ex.indices if ex else 0)
-            weighted.append((m["coef"], g))
+            g = grading.grade_of(m, notes, bool(ex and ex.reussi_le), ex.indices if ex else 0)
+            if grading.counts(m):
+                weighted.append((m["coef"], g))
             commence = bool(notes) or ex is not None
             etat = "termine" if g.termine else ("en_cours" if commence else "a_faire")
             rows.append({"module": m, "grade": g, "tentatives": len(notes), "etat": etat,
                          "indices": ex.indices if ex else 0, "reussi": bool(ex and ex.reussi_le)})
-        termines = sum(1 for r in rows if r["etat"] == "termine")
+        # progression et note finale : les modules obligatoires (les bonus restent à part)
+        requis = [r for r in rows if grading.counts(r["module"])]
+        termines = sum(1 for r in requis if r["etat"] == "termine")
         # prochain module : le premier en cours, sinon le premier à faire
         prochain = next((r["module"] for r in rows if r["etat"] == "en_cours"),
                         next((r["module"] for r in rows if r["etat"] == "a_faire"), None))
         return {"parcours": p, "modules": rows, "finale": grading.final_grade(weighted), "termines": termines,
-                "commence": any(r["etat"] != "a_faire" for r in rows), "prochain": prochain,
-                "pourcentage": round(100 * termines / len(rows)) if rows else 0}
+                "requis": len(requis), "commence": any(r["etat"] != "a_faire" for r in rows), "prochain": prochain,
+                "pourcentage": round(100 * termines / len(requis)) if requis else 0}
 
     @app.get("/compte/resultats", response_class=HTMLResponse)
     def resultats(request: Request, erreur: str = "", user=Depends(current_user), db=Depends(get_db)):
@@ -723,7 +726,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         if not p:
             raise HTTPException(404, "Parcours introuvable")
         r = parcours_progress(db, user, p)
-        return {"connecte": True, "termines": r["termines"], "total": len(r["modules"]),
+        return {"connecte": True, "termines": r["termines"], "total": r["requis"],
                 "prochain": r["prochain"]["id"] if r["prochain"] else None,
                 "prochain_titre": r["prochain"]["titre"] if r["prochain"] else None,
                 "modules": {m["module"]["id"]: {"etat": m["etat"], "note": m["grade"].note if m["etat"] == "termine" else None}

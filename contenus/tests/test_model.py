@@ -10,7 +10,7 @@ from academy_content.model import (
     parse_indices,
     validate_tree,
 )
-from conftest import make_module, make_parcours
+from conftest import COURS_SEUL, make_module, make_parcours
 
 
 def messages(exc_info):
@@ -47,6 +47,28 @@ def test_missing_file_is_reported(tmp_path, missing):
     with pytest.raises(ContentError) as e:
         load_module(tmp_path, "01-demo")
     assert f"modules/01-demo/{missing} : fichier obligatoire manquant" in messages(e)
+
+
+def test_course_only_module_has_no_exercise_nor_lab(tmp_path):
+    """Module de cours : ni exercice/ ni lab/, noté sur son QCM."""
+    make_module(tmp_path, **COURS_SEUL)
+    m = load_module(tmp_path, "01-demo")
+    assert m.exercice is None and m.lab_files == []
+
+
+def test_partial_exercise_is_reported(tmp_path):
+    """exercice/ présent : tous ses fichiers restent obligatoires."""
+    make_module(tmp_path, **{**COURS_SEUL, "exercice/enonce.md": "Énoncé seul\n"})
+    with pytest.raises(ContentError) as e:
+        load_module(tmp_path, "01-demo")
+    assert "modules/01-demo/exercice/check.sh : fichier obligatoire manquant" in messages(e)
+
+
+def test_parcours_parts_and_bonus(tmp_path):
+    make_module(tmp_path)
+    make_parcours(tmp_path, extra={"01-demo": ["partie: Les bases", "bonus: true"]})
+    ref = load_parcours(tmp_path, "demo").modules[0]
+    assert ref.partie == "Les bases" and ref.bonus is True
 
 
 def test_missing_solution_is_reported(tmp_path):

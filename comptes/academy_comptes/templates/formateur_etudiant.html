@@ -22,11 +22,12 @@
     <tbody>
     {% for m in s.modules %}
       <tr>
-        <td>{{ m.module.titre }} <span class="muted small">coef. {{ m.module.coef | round(1) | replace('.0', '') }}</span></td>
+        <td>{{ m.module.titre }} <span class="muted small">{% if m.module.bonus %}bonus{% else %}coef. {{ m.module.coef | round(1) | replace('.0', '') }}{% endif %}</span></td>
         <td>{% if m.tentatives %}{{ m.tentatives | map('round', 1) | map('string') | map('replace', '.', ',') | join(' puis ') }} <span class="muted small">({{ m.tentatives | length }}/2)</span>{% else %}<span class="muted">pas tenté</span>{% endif %}</td>
+        {% if m.module.exercice is false %}<td class="muted" colspan="3">sans exercice</td>{% else %}
         <td>{% if m.reussi_le %}réussi le {{ m.reussi_le.strftime('%d/%m/%Y') }}{% elif m.bloque %}<strong class="warn">bloqué</strong>{% elif m.commence %}en cours{% else %}<span class="muted">pas commencé</span>{% endif %}</td>
         <td>{{ m.verifications }}</td>
-        <td>{{ m.indices }} / 3</td>
+        <td>{{ m.indices }} / 3</td>{% endif %}
         <td>{% if m.grade.termine %}<strong>{{ fr(m.grade.note, 2) }}</strong> / 20{% else %}<span class="muted">—</span>{% endif %}</td>
       </tr>
     {% endfor %}

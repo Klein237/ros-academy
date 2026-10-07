@@ -526,3 +526,12 @@ li[data-etat="en_cours"] .etat-module { background: var(--amber-soft); color: va
 .module-reserve { display: flex; flex-direction: column; gap: 24px; padding-top: 32px; padding-bottom: 48px; max-width: 860px; }
 .module-reserve .module-intro h1 { margin: 6px 0 10px; }
 .actions-reserve { display: flex; flex-wrap: wrap; gap: 12px; }
+
+/* Programme d'un parcours : parties et modules bonus */
+.programme li.partie { background: none; border: none; padding: 14px 4px 0; }
+.programme li.partie span { font: 600 0.8rem var(--font-titre); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.programme li.bonus { border-style: dashed; }
+.etiquette-bonus { color: var(--accent); font-weight: 600; }
+
+/* Schémas des cours (images/ du module) : le SVG suit lui-même le thème clair ou sombre */
+.cours img.schema { display: block; width: 100%; max-width: 860px; height: auto; margin: 24px auto; }

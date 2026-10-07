@@ -1,6 +1,6 @@
 """Tests d'un module dans un conteneur ros-lab jetable, sans réseau.
 
-Étapes (celles de la spec) :
+Étapes (celles de la spec), les trois premières pour un module avec exercice :
   1. setup.sh installe le workspace de l'exercice, avec le bug ;
   2. check.sh doit ÉCHOUER (le bug est bien là) ;
   3. solution/ est copiée par-dessus le workspace de l'exercice ;
@@ -39,26 +39,29 @@ ok() { echo "::etape:: $1 ok"; }
 ko() { echo "::etape:: $1 echec ${2:-}"; exit 1; }
 run() { (cd "$HOME" && timeout "${2:-300}" bash "$EXERCICE/$1"); }
 
-mkdir -p "$EXERCICE"
-cp -r "$M/exercice/." "$EXERCICE/"
-rm -rf "$EXERCICE/solution" "$EXERCICE/explication.md"
+if [ -d "$M/exercice" ]; then
+  mkdir -p "$EXERCICE"
+  cp -r "$M/exercice/." "$EXERCICE/"
+  rm -rf "$EXERCICE/solution" "$EXERCICE/explication.md"
 
-echo "--- setup.sh"
-run setup.sh 600 || ko setup "setup.sh a échoué"
-ok setup
+  echo "--- setup.sh"
+  run setup.sh 600 || ko setup "setup.sh a échoué"
+  ok setup
 
-echo "--- check.sh (bug présent)"
-if run check.sh; then ko bug "check.sh réussit alors que le bug est présent"; fi
-ok bug
+  echo "--- check.sh (bug présent)"
+  if run check.sh; then ko bug "check.sh réussit alors que le bug est présent"; fi
+  ok bug
 
-echo "--- check.sh (avec solution/)"
-cp -r "$M/exercice/solution/." "$WS/"
-run check.sh || ko solution "check.sh échoue avec la solution"
-ok solution
+  echo "--- check.sh (avec solution/)"
+  # --preserve=mode : un fichier remplacé prend les droits de la solution (un .sh y est exécutable)
+  cp -r --preserve=mode "$M/exercice/solution/." "$WS/"
+  run check.sh || ko solution "check.sh échoue avec la solution"
+  ok solution
+fi
 
 echo "--- lab guidé"
 mkdir -p "$LAB"
-cp -r "$M/lab/." "$LAB/"
+if [ -d "$M/lab" ]; then cp -r "$M/lab/." "$LAB/"; fi
 if [ -d "$M/.cours" ]; then cp -r "$M/.cours/." "$LAB/"; fi
 if [ -d "$LAB/src" ]; then
   (cd "$LAB" && timeout 900 colcon build --event-handlers console_direct-) || ko lab "colcon build échoue"

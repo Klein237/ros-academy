@@ -1,6 +1,6 @@
 import pytest
 
-from academy_comptes.grading import exercise_score, final_grade, module_grade
+from academy_comptes.grading import counts, exercise_score, final_grade, grade_of, module_grade
 
 
 @pytest.mark.parametrize("indices, expected", [(0, 20.0), (1, 17.0), (2, 14.0), (3, 11.0), (5, 11.0)])
@@ -33,3 +33,16 @@ def test_final_grade_weighted_by_coefficients():
 def test_final_grade_needs_every_module():
     assert final_grade([(1, module_grade([20.0], True, 0)), (1, module_grade([], False, 0))]) is None
     assert final_grade([]) is None
+
+
+def test_course_module_is_graded_on_its_qcm():
+    """Module de cours, sans exercice : la note est celle du QCM, terminé dès le QCM passé."""
+    g = grade_of({"id": "03-cours", "exercice": False}, [12.0, 15.0], False, 0)
+    assert g.exercice is None and g.note == 15.0 and g.termine
+    assert not grade_of({"id": "03-cours", "exercice": False}, [], False, 0).termine
+    # ancien format (sans la clé) : module avec exercice
+    assert grade_of({"id": "02-b"}, [20.0], False, 0).note == 10.0
+
+
+def test_bonus_modules_do_not_count():
+    assert counts({"id": "02-b"}) and not counts({"id": "12-qos", "bonus": True})

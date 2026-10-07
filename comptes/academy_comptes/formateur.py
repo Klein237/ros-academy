@@ -98,9 +98,10 @@ def students(db, parcours, admin_emails, now):
             mp = ModuleProgress(module=m, tentatives=notes[(u.id, m["id"])], indices=ex.indices if ex else 0,
                                 verifications=(ex.verifications or 0) if ex else 0,
                                 reussi_le=ex.reussi_le if ex else None)
-            mp.grade = grading.module_grade(mp.tentatives, bool(mp.reussi_le), mp.indices)
+            mp.grade = grading.grade_of(m, mp.tentatives, bool(mp.reussi_le), mp.indices)
             st.modules.append(mp)
-            weighted.append((m["coef"], mp.grade))
+            if grading.counts(m):
+                weighted.append((m["coef"], mp.grade))
         st.finale = grading.final_grade(weighted)
         out.append(st)
     return out

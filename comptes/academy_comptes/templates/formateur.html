@@ -39,10 +39,11 @@
       <tr>
         <td><a href="/modules/{{ m.module.id }}/">{{ m.module.titre }}</a></td>
         <td>{{ m.commences }}</td>
+        {% if m.module.exercice is false %}<td class="muted" colspan="4">sans exercice</td>{% else %}
         <td>{{ rate(m.reussis, m.commences) }}</td>
         <td>{% if m.bloques %}<strong class="warn">{{ m.bloques }}</strong>{% else %}0{% endif %}</td>
         <td>{{ fr(m.verifications_avant_reussite) }}</td>
-        <td>{{ m.indices | join(' / ') }}</td>
+        <td>{{ m.indices | join(' / ') }}</td>{% endif %}
         <td>{{ fr(m.qcm_moyen) }}{% if m.qcm_moyen is not none %} <span class="muted small">/ 20</span>{% endif %}</td>
         <td>{{ fr(m.note_moyenne, 2) }}{% if m.note_moyenne is not none %} <span class="muted small">/ 20</span>{% endif %}</td>
       </tr>

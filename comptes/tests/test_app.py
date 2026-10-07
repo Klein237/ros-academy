@@ -527,6 +527,28 @@ def test_results_page_and_final_grade(client, env):
     assert re.search(r"Note finale : <strong>15,1[23] / 20</strong>", page), expected
 
 
+def test_course_module_and_bonus_in_final_grade(client, env, monkeypatch):
+    """Module de cours noté sur son QCM ; module bonus suivi, mais hors note finale et hors progression."""
+    modules = [{"id": "01-a", "titre": "Module A", "coef": 1},
+               {"id": "03-c", "titre": "Notions", "coef": 1, "exercice": False},
+               {"id": "04-d", "titre": "En plus", "coef": 1, "bonus": True}]
+    monkeypatch.setattr(env["contenus"], "parcours", lambda: [{"id": "ros2", "titre": "ROS 2 Fondamentaux",
+                                                               "modules": modules}])
+    login(client, env)
+    page = client.get("/compte/resultats").text
+    assert "disponible quand les 2 modules seront terminés" in page
+    assert "sans exercice" in page and ">bonus<" in page
+    client.post("/api/comptes/qcm/01-a", json={"reponses": {"q1": [0], "q2": [1]}}, headers=ORIGIN)  # 20
+    succeed(env, "01-a")
+    client.post("/api/comptes/exercices/01-a/verification", headers=ORIGIN)  # module 20
+    client.post("/api/comptes/qcm/03-c", json={"reponses": {"q1": [0]}}, headers=ORIGIN)  # 10 : la note du module
+    page = client.get("/compte/resultats").text
+    assert "Note finale : <strong>15,00 / 20</strong>" in page  # (20 + 10) / 2, sans le bonus
+    progression = client.get("/api/comptes/progression/ros2").json()
+    assert progression["termines"] == 2 and progression["total"] == 2
+    assert progression["prochain"] == "04-d"
+
+
 def test_learning_dashboard_and_progress_api(client, env):
     assert client.get("/compte/apprentissage", follow_redirects=False).headers["location"].startswith("/connexion")
     assert client.get("/api/comptes/progression/ros2").json() == {"connecte": False}

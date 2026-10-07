@@ -265,7 +265,8 @@ function setupModule() {
   const barre = document.querySelector(".lecture-barre");
   const suivante = document.querySelector("[data-suivante]");
   const SUITES = {
-    cours: ["#exercice", "Aller à l'exercice"],
+    // module de cours, sans exercice : du cours directement au QCM
+    cours: document.getElementById("exercice") ? ["#exercice", "Aller à l'exercice"] : ["#qcm", "Aller au QCM"],
     exercice: ["#qcm", "Aller au QCM"],
     qcm: [document.querySelector(".prev-next .suivant")?.getAttribute("href") || "#cours", document.querySelector(".prev-next .suivant") ? "Module suivant" : "Revoir le cours"],
   };

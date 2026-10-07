@@ -10,7 +10,7 @@ from pathlib import Path
 
 import yaml
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, ValidationError
@@ -29,7 +29,7 @@ from .model import (
     load_parcours,
     module_files,
 )
-from .render import code_files, cours_sommaire, lab_link, render_cours, render_markdown
+from .render import IMAGE_RE, code_files, cours_sommaire, lab_link, render_cours, render_markdown
 from .store import ContentStore, StoreError
 from .verification import Busy, InvalidStudent
 
@@ -83,12 +83,13 @@ def _parcours_list(root):
             try:
                 m = load_module(root, ref.id)
                 mods.append({"id": m.id, "titre": m.en_tete.titre, "resume": m.en_tete.resume,
-                             "duree": m.en_tete.duree, "coef": ref.coef})
+                             "duree": m.en_tete.duree, "coef": ref.coef, "partie": ref.partie,
+                             "bonus": ref.bonus, "exercice": m.exercice is not None})
             except ContentError:
                 continue
         if p.statut == "disponible" and not mods:
             continue
-        total = sum(duree_minutes(m["duree"]) for m in mods)
+        total = sum(duree_minutes(m["duree"]) for m in mods if not m["bonus"])
         out.append({"id": p.id, "titre": p.titre, "description": p.description, "modules": mods,
                     "statut": p.statut, "niveau": p.niveau, "niveau_texte": NIVEAUX[p.niveau],
                     "accroche": p.accroche or p.description, "ordre": p.ordre,
@@ -109,6 +110,30 @@ def _parcours_of(root, module_id):
             i = ids.index(module_id)
             return p, (p["modules"][i - 1] if i > 0 else None), (p["modules"][i + 1] if i + 1 < len(ids) else None), i + 1
     return None, None, None, None
+
+
+def _exercise_or_404(root, module_id):
+    """Module et son exercice ; 404 pour un module de cours, sans exercice."""
+    m = _module_or_404(root, module_id)
+    if m.exercice is None:
+        raise HTTPException(404, "Ce module n'a pas d'exercice")
+    return m
+
+
+IMAGE_TYPES = {"svg": "image/svg+xml", "png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg", "webp": "image/webp"}
+# Un SVG ouvert directement (et non par <img>) pourrait exécuter un script : ni script ni contenu externe.
+IMAGE_CSP = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+
+
+def _image_response(root, module_id, name):
+    """Schéma images/<name> d'un module ; 404 si le nom n'est pas celui d'une image autorisée."""
+    rel = f"images/{name}"
+    path = Path(root) / "modules" / module_id / rel
+    if not MODULE_ID_RE.fullmatch(module_id) or not IMAGE_RE.fullmatch(rel) or not path.is_file() or path.is_symlink():
+        raise HTTPException(404, "Image introuvable")
+    response = FileResponse(path, media_type=IMAGE_TYPES[name.rsplit(".", 1)[1]])
+    response.headers["Content-Security-Policy"] = IMAGE_CSP
+    return response
 
 
 def _public_qcm(module):
@@ -241,8 +266,10 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
         parcours, prev, nxt, numero = _parcours_of(root, module_id)
         return page(
             request, "module.html",
-            module=module, cours_html=render_cours(module.cours, module.id), sommaire=cours_sommaire(module.cours),
-            enonce_html=render_markdown(module.exercice.enonce), qcm=_public_qcm(module),
+            module=module, sommaire=cours_sommaire(module.cours),
+            cours_html=render_cours(module.cours, module.id,
+                                    images_base=f"/admin/apercu/modules/{module.id}/" if apercu else None),
+            enonce_html=render_markdown(module.exercice.enonce) if module.exercice else "", qcm=_public_qcm(module),
             parcours=parcours, prev=prev, next=nxt, numero=numero, apercu=apercu,
         )
 
@@ -263,7 +290,9 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
         for p in _parcours_disponibles(published()):
             if p["id"] == parcours_id:
                 return page(request, "parcours.html", parcours=p,
-                            coefs_varies=len({m["coef"] for m in p["modules"]}) > 1)
+                            coefs_varies=len({m["coef"] for m in p["modules"] if not m["bonus"]}) > 1,
+                            avec_cours=any(not m["exercice"] for m in p["modules"]),
+                            avec_bonus=any(m["bonus"] for m in p["modules"]))
         raise HTTPException(404, "Parcours introuvable")
 
     @app.get("/modules/{module_id}/", response_class=HTMLResponse)
@@ -271,6 +300,13 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
         if not connected(request):
             return module_reserve(request, published(), module_id)
         return module_page(request, published(), module_id)
+
+    @app.get("/modules/{module_id}/images/{name}")
+    def module_image(request: Request, module_id: str, name: str):
+        """Schémas du cours : réservés aux étudiants connectés, comme le cours."""
+        if not connected(request):
+            raise HTTPException(404, "Image introuvable")  # pas de 401 : il renverrait vers la connexion admin
+        return _image_response(published(), module_id, name)
 
     def module_reserve(request, root, module_id):
         """Sans connexion : titre, résumé et plan du module, pas le cours."""
@@ -298,7 +334,7 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
 
     @app.get("/api/contenus/modules/{module_id}/exercice", dependencies=[Depends(student)])
     def api_exercise(module_id: str):
-        m = _module_or_404(published(), module_id)
+        m = _exercise_or_404(published(), module_id)
         base = published() / "modules" / module_id / "exercice"
         hidden = ("solution/", "explication.md", "indices.md")
         files = [f for f in _text_files(base) if not f["path"].startswith(hidden)]
@@ -313,20 +349,20 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
 
     @app.get("/api/contenus/modules/{module_id}/indices/{n}", dependencies=[Depends(internal)])
     def api_hint(module_id: str, n: int):
-        m = _module_or_404(published(), module_id)
+        m = _exercise_or_404(published(), module_id)
         if not 1 <= n <= len(m.exercice.indices):
             raise HTTPException(404, "Indice introuvable")
         return {"n": n, "html": render_markdown(m.exercice.indices[n - 1])}
 
     @app.get("/api/contenus/modules/{module_id}/explication", dependencies=[Depends(internal)])
     def api_explanation(module_id: str):
-        m = _module_or_404(published(), module_id)
+        m = _exercise_or_404(published(), module_id)
         return {"html": render_markdown(m.exercice.explication)}
 
     @app.post("/api/contenus/modules/{module_id}/verifier", dependencies=[Depends(internal)])
     def api_verify(module_id: str, body: VerifyBody):
         """check.sh officiel sur le workspace de l'étudiant, hors de son conteneur (appelé par Comptes)."""
-        _module_or_404(published(), module_id)
+        _exercise_or_404(published(), module_id)
         if verifier is None:
             raise HTTPException(503, "Vérification indisponible")
         try:
@@ -411,6 +447,10 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
     @app.get("/admin/apercu/modules/{module_id}/", response_class=HTMLResponse)
     def admin_preview_page(request: Request, module_id: str, admin=Depends(admin_user)):
         return module_page(request, draft(), module_id, apercu=True)
+
+    @app.get("/admin/apercu/modules/{module_id}/images/{name}")
+    def admin_preview_image(module_id: str, name: str, admin=Depends(admin_user)):
+        return _image_response(draft(), module_id, name)
 
     # --- Administration : API JSON
 
@@ -502,7 +542,7 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
     def api_preview(body: PreviewBody, admin=Depends(admin_write)):
         if not MODULE_ID_RE.fullmatch(body.module):
             raise HTTPException(400, "identifiant de module invalide")
-        return {"html": render_cours(body.markdown, body.module)}
+        return {"html": render_cours(body.markdown, body.module, images_base=f"/admin/apercu/modules/{body.module}/")}
 
     @app.get("/admin/api/parcours/{parcours_id}")
     def api_parcours_read(parcours_id: str, admin=Depends(admin_user)):

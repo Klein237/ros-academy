@@ -21,6 +21,15 @@ export interface ExerciseInfo {
 
 import { NoAccount } from "./comptes";
 
+export class ModuleHttpError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
 type FetchFn = (input: string, init?: RequestInit) => Promise<Response>;
 
 export class ModuleClient {
@@ -34,7 +43,7 @@ export class ModuleClient {
       credentials: "same-origin", // le cours est réservé aux étudiants connectés (session de Comptes)
     });
     if (r.status === 401) throw new NoAccount("session de Comptes absente ou expirée");
-    if (!r.ok) throw new Error(`module ${this.moduleId} : ${r.status}`);
+    if (!r.ok) throw new ModuleHttpError(r.status, `module ${this.moduleId} : ${r.status}`);
     return (await r.json()) as T;
   }
 
@@ -50,7 +59,13 @@ export class ModuleClient {
     return (await this.get<{ files: ModuleFile[] }>("/cours-fichiers")).files;
   }
 
-  exercise(): Promise<ExerciseInfo> {
-    return this.get("/exercice");
+  /** null : module de cours, sans exercice (noté sur son QCM). */
+  async exercise(): Promise<ExerciseInfo | null> {
+    try {
+      return await this.get<ExerciseInfo>("/exercice");
+    } catch (e) {
+      if (e instanceof ModuleHttpError && e.status === 404) return null;
+      throw e;
+    }
   }
 }

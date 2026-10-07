@@ -392,7 +392,7 @@ async function parcours() {
   const err = form.querySelector(".form-error");
   const [data, etat] = await Promise.all([api("GET", `/parcours/${pid}`), api("GET", "/etat")]);
   const titres = Object.fromEntries(etat.modules.map((m) => [m.id, m.titre]));
-  const modules = (data.modules || []).map((m) => ({ id: m.id, coef: m.coef ?? 1 }));
+  const modules = (data.modules || []).map((m) => ({ id: m.id, coef: m.coef ?? 1, partie: m.partie || "", bonus: !!m.bonus }));
   form.titre.value = data.titre || "";
   form.description.value = data.description || "";
   form.accroche.value = data.accroche || "";
@@ -409,6 +409,8 @@ async function parcours() {
         el("tr", {},
           el("td", {}, el("code", { text: m.id }), " ", titres[m.id] || ""),
           el("td", {}, el("input", { type: "number", min: "0.5", max: "10", step: "0.5", value: m.coef, "aria-label": `coefficient de ${m.id}`, oninput: (e) => (m.coef = Number(e.target.value)) })),
+          el("td", {}, el("input", { type: "text", maxlength: "80", value: m.partie, placeholder: "ex. Les bases", "aria-label": `partie de ${m.id}`, oninput: (e) => (m.partie = e.target.value) })),
+          el("td", {}, el("input", { type: "checkbox", checked: m.bonus, "aria-label": `${m.id} en bonus`, onchange: (e) => (m.bonus = e.target.checked) })),
           el("td", { class: "actions" },
             el("button", { type: "button", class: "link", text: "monter", disabled: i === 0, onclick: () => { [modules[i - 1], modules[i]] = [modules[i], modules[i - 1]]; draw(); } }), " ",
             el("button", { type: "button", class: "link", text: "descendre", disabled: i === modules.length - 1, onclick: () => { [modules[i + 1], modules[i]] = [modules[i], modules[i + 1]]; draw(); } }), " ",
@@ -424,7 +426,7 @@ async function parcours() {
   }
   document.getElementById("ajouter").addEventListener("click", () => {
     const id = document.getElementById("ajout-module").value;
-    if (id) { modules.push({ id, coef: 1 }); draw(); }
+    if (id) { modules.push({ id, coef: 1, partie: modules.at(-1)?.partie || "", bonus: false }); draw(); }
   });
   form.addEventListener("submit", async (ev) => {
     ev.preventDefault();

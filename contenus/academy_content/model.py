@@ -4,9 +4,11 @@ Arborescence d'un dépôt de contenu :
 
     parcours/<id>/parcours.yaml
     modules/<id>/index.md            en-tête YAML (titre, resume, duree) + cours
-    modules/<id>/lab/                workspace de départ du lab guidé
+    modules/<id>/lab/                workspace de départ du lab guidé (facultatif)
     modules/<id>/qcm.yaml
     modules/<id>/exercice/{enonce.md, setup.sh, check.sh, indices.md, explication.md, depart/, solution/}
+
+L'exercice est facultatif : un module de cours, sans dossier exercice/, est noté sur son QCM.
 """
 
 import re
@@ -17,20 +19,21 @@ from typing import Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
+from .render import IMAGE_RE, course_images
+
 MODULE_ID_RE = re.compile(r"^[0-9]{2}-[a-z0-9]+(?:-[a-z0-9]+)*$")
 PARCOURS_ID_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 MAX_FILE_BYTES = 1024 * 1024
 
-REQUIRED_FILES = (
-    "index.md",
-    "qcm.yaml",
+REQUIRED_FILES = ("index.md", "qcm.yaml")
+EXERCISE_FILES = (
     "exercice/enonce.md",
     "exercice/setup.sh",
     "exercice/check.sh",
     "exercice/indices.md",
     "exercice/explication.md",
 )
-REQUIRED_DIRS = ("lab", "exercice/solution")
+EXERCISE_DIRS = ("exercice/solution",)
 
 
 @dataclass(frozen=True)
@@ -96,6 +99,11 @@ class EnTete(_Strict):
 class ModuleRef(_Strict):
     id: str
     coef: float = Field(default=1.0, gt=0, le=10)
+    # Titre de la partie du parcours (« Les bases »…) : les modules consécutifs d'une même partie
+    # sont regroupés sur la page du parcours.
+    partie: str = Field(default="", max_length=80)
+    # Bonus : suivi et noté, mais hors note finale et hors certificat.
+    bonus: bool = False
 
 
 NIVEAUX = {"debutant": "Débutant", "intermediaire": "Intermédiaire", "avance": "Avancé"}
@@ -141,7 +149,7 @@ class Module:
     en_tete: EnTete
     cours: str
     qcm: Qcm
-    exercice: Exercice
+    exercice: Exercice | None  # None : module de cours, noté sur son QCM
     lab_files: list[str] = field(default_factory=list)
 
 
@@ -239,10 +247,11 @@ def load_module(root, module_id):
     for p in module_dir.rglob("*"):
         if p.is_symlink():
             erreurs.append(Erreur(f"{base}/{p.relative_to(module_dir)}", "les liens symboliques sont interdits"))
-    for rel in REQUIRED_FILES:
+    has_exercise = (module_dir / "exercice").is_dir()
+    for rel in REQUIRED_FILES + (EXERCISE_FILES if has_exercise else ()):
         if not (module_dir / rel).is_file():
             erreurs.append(Erreur(f"{base}/{rel}", "fichier obligatoire manquant"))
-    for rel in REQUIRED_DIRS:
+    for rel in EXERCISE_DIRS if has_exercise else ():
         d = module_dir / rel
         if not d.is_dir() or not any(f.is_file() for f in d.rglob("*")):
             erreurs.append(Erreur(f"{base}/{rel}/", "dossier obligatoire manquant ou vide"))
@@ -270,6 +279,37 @@ def load_module(root, module_id):
         except ValidationError as exc:
             erreurs += _pydantic_errors(f"{base}/qcm.yaml", exc)
 
+    exercice = _load_exercise(module_dir, base, erreurs) if has_exercise else None
+    if cours:
+        _check_images(module_dir, base, cours, erreurs)
+
+    if erreurs:
+        raise ContentError(erreurs)
+    lab_files = [f.removeprefix("lab/") for f in module_files(module_dir) if f.startswith("lab/")]
+    return Module(
+        id=module_id,
+        en_tete=en_tete,
+        cours=cours,
+        qcm=qcm,
+        exercice=exercice,
+        lab_files=lab_files,
+    )
+
+
+def _check_images(module_dir, base, cours, erreurs):
+    """Schémas du cours : nom autorisé, fichier présent dans images/, texte alternatif."""
+    for src, alt in course_images(cours):
+        if not IMAGE_RE.fullmatch(src):
+            erreurs.append(Erreur(f"{base}/index.md", f"image « {src} » : seules les images du dossier images/ du module "
+                                  "sont acceptées (images/nom.svg, png, jpg ou webp ; minuscules, chiffres, - et _)"))
+        elif not (module_dir / src).is_file():
+            erreurs.append(Erreur(f"{base}/index.md", f"image « {src} » introuvable dans le module"))
+        if not alt:
+            erreurs.append(Erreur(f"{base}/index.md", f"image « {src} » : décrivez-la entre les crochets, "
+                                  "![ce que montre le schéma](…), pour les lecteurs d'écran"))
+
+
+def _load_exercise(module_dir, base, erreurs):
     indices = []
     text = _read_text(module_dir / "exercice/indices.md", f"{base}/exercice/indices.md", erreurs)
     if text is not None:
@@ -284,18 +324,7 @@ def load_module(root, module_id):
         body = _read_text(module_dir / "exercice" / script, f"{base}/exercice/{script}", erreurs)
         if body is not None and not body.startswith("#!"):
             erreurs.append(Erreur(f"{base}/exercice/{script}", "le script doit commencer par #!/usr/bin/env bash"))
-
-    if erreurs:
-        raise ContentError(erreurs)
-    lab_files = [f.removeprefix("lab/") for f in module_files(module_dir) if f.startswith("lab/")]
-    return Module(
-        id=module_id,
-        en_tete=en_tete,
-        cours=cours,
-        qcm=qcm,
-        exercice=Exercice(enonce=enonce, indices=indices, explication=explication),
-        lab_files=lab_files,
-    )
+    return Exercice(enonce=enonce, indices=indices, explication=explication)
 
 
 def load_parcours(root, parcours_id):

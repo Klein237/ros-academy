@@ -69,12 +69,14 @@ def eligibility(parcours, notes_and_exercises, note_min):
     weighted, modules = [], []
     for m in parcours["modules"]:
         notes, reussi, indices = notes_and_exercises.get(m["id"], ([], False, 0))
-        g = grading.module_grade(notes, reussi, indices)
+        g = grading.grade_of(m, notes, reussi, indices)
+        if not grading.counts(m):
+            continue  # bonus : hors certificat
         weighted.append((m["coef"], g))
         modules.append({"titre": m["titre"], "coef": m["coef"], "note": g.note})
     finale = grading.final_grade(weighted)
     if finale is None:
-        return Eligibility(False, None, "Terminez tous les modules du parcours (exercice réussi et QCM passé).", modules)
+        return Eligibility(False, None, "Terminez tous les modules du parcours (QCM passé, et exercice réussi quand le module en a un).", modules)
     if finale < note_min:
         note_min_txt = f"{note_min:g}".replace(".", ",")
         return Eligibility(False, finale, f"Le certificat demande une note finale d'au moins {note_min_txt} / 20.",
