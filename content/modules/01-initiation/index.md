@@ -15,6 +15,48 @@ duree: 1 h 30
 
 Nouveau sur ROS ? Lisez d'abord l'introduction [Découvrir ROS 2](/decouvrir/) : 20 minutes sur l'histoire de ROS, ses usages et les liens utiles.
 
+## L'essentiel en théorie
+
+Avant de prendre le robot en main, voici les idées sur lesquelles repose tout ROS 2. La suite du module les met en pratique, commande par commande.
+
+### Un middleware, pas un système d'exploitation
+
+Malgré son nom, ROS 2 (*Robot Operating System*) n'est pas un système d'exploitation : c'est un **middleware**, une couche logicielle installée sur Linux (ici Ubuntu 24.04). Il apporte trois choses :
+
+- une façon standard de faire **communiquer** des programmes, sur une même machine ou à travers le réseau ;
+- des **outils** : ligne de commande `ros2`, visualisation (RViz), simulation (Gazebo), enregistrement et rejeu des données ;
+- un **écosystème** de packages prêts à l'emploi : navigation, bras manipulateurs, pilotes de capteurs…
+
+### Le graphe ROS : des nœuds qui coopèrent
+
+Une application robotique est découpée en **nœuds**, chacun responsable d'une seule tâche : lire le laser, commander les moteurs, estimer la position, planifier un trajet. Les nœuds échangent des données par des canaux nommés ; l'ensemble forme le **graphe ROS**.
+
+Ce découpage permet de remplacer une pièce sans toucher aux autres. Un simulateur peut prendre la place du vrai robot, tant qu'il utilise les mêmes canaux : c'est exactement ce que fait votre lab.
+
+Il n'y a pas de chef d'orchestre. Les nœuds se découvrent seuls grâce à **DDS** (*Data Distribution Service*), un standard industriel de communication. Contrairement à ROS 1 et son `roscore`, aucun serveur central ne peut tomber et arrêter tout le robot. Tous les nœuds d'un même domaine (`ROS_DOMAIN_ID`) se voient ; ceux d'un autre domaine s'ignorent.
+
+### Trois façons de communiquer
+
+| | Topic | Service | Action |
+|---|---|---|---|
+| Modèle | publication / abonnement | requête / réponse | objectif, suivi, résultat |
+| Déroulement | flux continu, sans réponse | une question, une réponse | tâche longue, annulable |
+| Dans le robot de livraison | `/odom`, `/cmd_vel` | « où es-tu ? » | « va au point (2, 1) » |
+| Fichier d'interface | `.msg` | `.srv` | `.action` |
+
+Règle pratique : un flux de données → topic ; une question rapide → service ; une mission qui dure → action.
+
+### Des messages typés
+
+Tout ce qui circule a un **type**, défini par une interface : `geometry_msgs/msg/Twist` pour une vitesse, `nav_msgs/msg/Odometry` pour une position estimée. Le nom se lit `package/msg/Type`. Celui qui envoie et celui qui reçoit doivent utiliser le même type. À partir de l'interface, ROS 2 génère le code correspondant en Python et en C++, ce qui permet à des nœuds écrits dans des langages différents de se comprendre.
+
+### Packages, workspace et distribution
+
+- Le code s'organise en **packages** : l'unité que l'on compile, partage et installe.
+- Les packages sont regroupés dans un **workspace**, compilé avec `colcon`.
+- Sourcer un workspace (`source install/setup.bash`) le superpose à l'installation de ROS : vos packages s'ajoutent à ceux de la distribution. C'est le principe *underlay* / *overlay*.
+- Une **distribution** (Humble, Jazzy…) est un ensemble cohérent de versions, lié à une version d'Ubuntu. Votre lab utilise **Jazzy**, maintenue jusqu'en 2029.
+
 ## 1. Démarrer le robot
 
 Votre lab est un vrai Ubuntu 24.04 avec **ROS 2 Jazzy**, dans votre navigateur : rien à installer. Chaque terminal charge ROS automatiquement — vérifiez-le :

@@ -13,19 +13,41 @@ duree: 1 h 15
 - les inspecter et les modifier pendant que le robot roule (`ros2 param`) ;
 - les regrouper dans un fichier YAML et démarrer le robot avec un fichier launch.
 
-## 1. Pourquoi des paramètres ?
+## L'essentiel en théorie
+
+Un robot change de réglages bien plus souvent que de code : vitesse adaptée à la pièce, précision d'arrivée, fréquence de travail. ROS 2 sépare donc ce qu'un nœud **fait** (le code) de la façon dont il est **réglé** (les paramètres), et fournit les fichiers launch pour démarrer le tout en une commande.
+
+### Les paramètres
 
 **Constat :** dans `diff_drive_node`, la vitesse maximale (`0.5` m/s), la tolérance d'arrivée de l'action `goto` (`0.05` m) et la période de mise à jour sont écrites en dur. Pour faire rouler le robot plus lentement dans une salle de démonstration, il faudrait modifier le code et recompiler.
 
-**Solution :** un **paramètre** est une valeur de configuration propre à un nœud, avec un nom, un type et une valeur par défaut. On la fixe au lancement (ligne de commande, fichier YAML, fichier launch) et, si le nœud l'accepte, on la modifie pendant qu'il tourne.
+**Solution :** un **paramètre** est une valeur de configuration propre à un nœud, avec un nom, un type et une valeur par défaut.
 
 - Chaque nœud a ses propres paramètres : `/diff_drive_node` a `max_linear_speed`, un autre nœud peut avoir un paramètre du même nom sans conflit.
 - Un paramètre doit être **déclaré** par le nœud avant d'être utilisé : c'est la liste de ce qui est réglable, avec les valeurs par défaut.
 - Les types sont stricts : un paramètre déclaré `0.5` (un `double`) refuse la valeur `1` (un entier) ; écrivez `1.0`.
 
+### D'où vient la valeur ?
+
+1. La **valeur par défaut**, donnée par le code au moment de la déclaration.
+2. Remplacée, au démarrage, par celle d'un **fichier YAML**, d'un **fichier launch** ou de la **ligne de commande** (`--ros-args -p nom:=valeur`).
+3. Modifiable **pendant que le nœud tourne** (`ros2 param set`), si le nœud l'accepte.
+
+Avant d'accepter une nouvelle valeur, le nœud peut la **valider** : une vitesse négative, par exemple, est refusée avec un message qui dit pourquoi. Un paramètre peut aussi être déclaré en **lecture seule**, quand il ne sert qu'au démarrage.
+
+### Les fichiers launch
+
+Un vrai robot démarre plusieurs nœuds, chacun avec ses paramètres et ses noms de topics. Un **fichier launch**, écrit en Python, décrit ce démarrage ; `ros2 launch` l'exécute en une seule commande. On y trouve :
+
+- les **nœuds** à lancer, avec leurs paramètres (valeurs ou fichier YAML) ;
+- des **arguments** de lancement, pour choisir un réglage sans modifier le fichier (`ros2 launch my_pkg robot.launch.py max_linear_speed:=0.2`) ;
+- éventuellement d'autres fichiers launch inclus, pour composer un système complet.
+
+Les fichiers launch et YAML sont **installés** avec le package, dans son dossier `share/` : `ros2 launch` les cherche là, pas dans vos sources.
+
 Tutoriel officiel : [Using parameters in a class (Python)](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Using-Parameters-In-A-Class-Python.html).
 
-## 2. Déclarer et lire les paramètres
+## 1. Déclarer et lire les paramètres
 
 Votre workspace `~/ws/06-parametres` reprend le robot du module Action. On remplace les constantes par quatre paramètres :
 
@@ -213,7 +235,7 @@ source install/setup.bash
 ros2 run my_pkg diff_drive_node --ros-args -p max_linear_speed:=0.3
 ```
 
-## 3. Les outils `ros2 param`
+## 2. Les outils `ros2 param`
 
 Dans un second terminal :
 
@@ -234,7 +256,7 @@ ros2 topic pub --once /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 2.0}}"
 ros2 topic echo --once /odom --field twist.twist.linear   # x: 0.2
 ```
 
-## 4. Un fichier de paramètres YAML
+## 3. Un fichier de paramètres YAML
 
 Plutôt que de taper chaque valeur, on les regroupe dans un fichier. Sa structure est imposée : le **nom du nœud**, puis la clé `ros__parameters` (deux tirets bas), puis les paramètres.
 
@@ -258,7 +280,7 @@ ros2 run my_pkg diff_drive_node --ros-args --params-file src/my_pkg/config/robot
 - `/**:` à la place du nom applique les valeurs à tous les nœuds lancés avec ce fichier ;
 - `ros2 param dump /diff_drive_node > robot.yaml` produit un fichier au bon format à partir d'un nœud réglé à la main.
 
-## 5. Un fichier launch
+## 4. Un fichier launch
 
 Un robot réel démarre plusieurs nœuds, chacun avec ses paramètres. Un **fichier launch** (en Python) décrit ce démarrage ; `ros2 launch` l'exécute en une commande. Créez le dossier `launch` dans `my_pkg` :
 
@@ -351,7 +373,7 @@ Et déclarez dans `package.xml` les packages utilisés au lancement :
 </package>
 ```
 
-## 6. Pratique
+## 5. Pratique
 
 ```bash
 cd ~/ws/06-parametres
@@ -372,7 +394,7 @@ Relancez avec `ros2 launch my_pkg robot.launch.py max_linear_speed:=0.1` et comp
 
 Attention : avec `--symlink-install`, un fichier **ajouté** à `launch/` ou `config/` n'est installé qu'après un nouveau `colcon build`.
 
-## 7. Rappel
+## 6. Rappel
 
 - Un paramètre se **déclare** (nom, défaut, type), se **lit**, et se **valide** dans la fonction de rappel des modifications.
 - `ros2 param list / get / set / dump` inspectent et règlent un nœud en marche.

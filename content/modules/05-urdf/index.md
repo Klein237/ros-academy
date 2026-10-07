@@ -13,17 +13,49 @@ duree: 1 h 30
 - factoriser la description avec Xacro (propriétés, macros) ;
 - publier la description avec `robot_state_publisher` et la voir dans RViz.
 
-## 1. Introduction
+## L'essentiel en théorie
 
-**Contexte :** dans le monde de la simulation robotique, l'élément central est le robot.
+RViz, Gazebo, la navigation ou un bras qui saisit un objet ont tous besoin de connaître la **forme** du robot : ses pièces, leurs dimensions, leur masse et la façon dont elles bougent les unes par rapport aux autres. Cette description s'écrit en **URDF** (*Unified Robot Description Format*), un fichier XML.
 
-**Problème :** comment représenter ce robot dans ROS, RViz ou Gazebo ?
+### Un arbre de links et de joints
 
-**Solution :** utiliser des fichiers **URDF** (*Unified Robot Description Format*). L'URDF définit la géométrie, la physique et l'apparence du robot. C'est un fichier XML.
+Un robot est décrit comme un **arbre** :
 
-Dans ce module, on décrit le robot du parcours — un châssis, deux roues motrices et une roulette libre — puis on publie sa description dans ROS 2.
+- les **links** sont les corps rigides : châssis, roues, roulette ;
+- les **joints** relient chaque link à son parent et disent comment il bouge par rapport à lui.
 
-## 2. Structure générale d'un URDF
+Chaque link a un seul parent, et la racine est en général `base_link`, le repère du robot. Dans notre robot de livraison, `base_link` porte le châssis et les deux roues motrices ; le châssis porte la roulette.
+
+### Trois rôles pour chaque link
+
+| Partie | Sert à | Utilisée par |
+|---|---|---|
+| `visual` | l'apparence : forme et couleur | RViz, Gazebo (affichage) |
+| `collision` | la forme pour les contacts, souvent simplifiée | Gazebo (physique), planification |
+| `inertial` | la masse et sa répartition | Gazebo (physique) |
+
+Pour un simple affichage, `visual` suffit ; pour simuler, les trois sont nécessaires.
+
+### Les types de joints
+
+| Type | Mouvement | Exemple |
+|---|---|---|
+| `fixed` | aucun | le châssis sur `base_link`, un capteur vissé |
+| `continuous` | rotation sans limite | une roue motrice |
+| `revolute` | rotation entre deux butées | le coude d'un bras |
+| `prismatic` | translation entre deux butées | un vérin, un ascenseur |
+
+L'`origin` d'un joint place l'enfant par rapport au parent ; son `axis` donne l'axe du mouvement.
+
+### Xacro : ne pas se répéter
+
+Un URDF brut répète beaucoup : deux roues identiques, les mêmes dimensions à plusieurs endroits. **Xacro** ajoute au XML des **propriétés** (des constantes), des **expressions** (`${chassis_length/2}`) et des **macros** (un bloc paramétré, écrit une fois et utilisé deux fois). Le fichier `.xacro` est converti en URDF au lancement.
+
+### De la description aux transformations
+
+Le fichier ne fait rien seul. Le nœud `robot_state_publisher` le lit, le publie sur `/robot_description` et calcule la position de chaque link (les **TF**). Pour les joints mobiles, il a besoin de leur état courant, l'angle des roues par exemple, publié sur `/joint_states` : c'est le rôle de `joint_state_publisher` ou, plus tard, du simulateur et des vrais moteurs.
+
+## 1. Structure générale d'un URDF
 
 Syntaxe minimale :
 
@@ -39,7 +71,7 @@ Deux composants principaux :
 - `<link>` : un corps rigide du robot ;
 - `<joint>` : la façon dont deux links sont reliés (rotation, translation, fixe…).
 
-## 3. Les balises `<link>`
+## 2. Les balises `<link>`
 
 Chaque link peut contenir trois parties :
 
@@ -70,9 +102,9 @@ Exemple, le châssis du robot :
 </link>
 ```
 
-Les `${…}` et `xacro:inertial_box` viennent de Xacro (section 6) : ils remplacent des valeurs répétées.
+Les `${…}` et `xacro:inertial_box` viennent de Xacro (section 5) : ils remplacent des valeurs répétées.
 
-## 4. Les balises `<joint>`
+## 3. Les balises `<joint>`
 
 Un joint relie deux links.
 
@@ -91,7 +123,7 @@ Exemple :
 
 Les roues tournent sans limite : leurs joints sont de type `continuous`, autour de leur axe `z`.
 
-## 5. Pratique : construire le robot
+## 4. Pratique : construire le robot
 
 Créez le package de description dans votre workspace `~/ws/05-urdf` :
 
@@ -138,7 +170,7 @@ install(DIRECTORY urdf launch DESTINATION share/${PROJECT_NAME})
 ament_package()
 ```
 
-## 6. Xacro
+## 5. Xacro
 
 **Définition :** Xacro (*XML Macros*) simplifie les URDF longs et répétitifs.
 
@@ -303,7 +335,7 @@ xacro src/my_robot_description/urdf/my_robot.urdf.xacro > ~/my_robot.urdf
 check_urdf ~/my_robot.urdf
 ```
 
-## 7. Publier la description dans ROS 2
+## 6. Publier la description dans ROS 2
 
 **Principe :**
 
@@ -365,7 +397,7 @@ ros2 run tf2_tools view_frames
 
 `tf2_echo` affiche la position de la roulette dans le repère `base_link`. `view_frames` enregistre l'arbre des repères dans `frames_*.pdf` : ouvrez-le depuis l'arborescence des fichiers.
 
-## 8. Visualiser le robot dans RViz2
+## 7. Visualiser le robot dans RViz2
 
 Le lab a un bureau graphique : cliquez sur **Bureau (RViz, Gazebo)** dans la barre du haut. Il prend la place de l'éditeur ; les terminaux restent dessous, et les fenêtres lancées depuis un terminal s'y affichent.
 
@@ -389,7 +421,7 @@ Pour faire tourner les roues avec des **curseurs**, remplacez dans `display.laun
 
 Le rendu est logiciel (sans carte graphique) : un peu lent, mais suffisant pour une description de robot.
 
-## 9. Rappel et ouverture
+## 8. Rappel et ouverture
 
 - URDF = description statique du robot ;
 - Xacro = version paramétrée et factorisée ;

@@ -13,23 +13,50 @@ duree: 1 h 30
 - écrire le serveur d'action qui conduit le robot jusqu'au point demandé ;
 - suivre les feedbacks, recevoir le résultat et annuler un goal en cours.
 
-## 1. Introduction aux actions
+## L'essentiel en théorie
 
-**Petit rappel :**
+Une **action** sert à confier une **tâche longue** à un autre nœud, en gardant la main : on suit son avancement et on peut l'interrompre. Envoyer le robot vers un point est le cas typique : le trajet prend plusieurs secondes.
 
-- les **topics** diffusent des messages en continu, sans accusé de réception ;
-- les **services** offrent une interaction de type requête-réponse unique ;
-- les **actions** permettent de lancer une tâche longue en mode asynchrone, avec :
-  - un **goal** (objectif) envoyé par un client,
-  - des **feedbacks** réguliers pendant l'exécution,
-  - un **résultat** final,
-  - et la possibilité d'**annuler** le goal.
+### Goal, feedback, résultat
 
-Envoyer le robot vers un point est un cas typique : le trajet prend plusieurs secondes, on veut suivre la progression et pouvoir l'interrompre.
+Une action réunit trois messages :
+
+- le **goal** (l'objectif), envoyé par le client : « va au point (2, 1) » ;
+- des **feedbacks**, publiés par le serveur pendant l'exécution : « je suis en (1.2, 0.6) » ;
+- le **résultat**, envoyé une seule fois à la fin : « arrivé, position finale (2.0, 1.0) ».
+
+Le client peut à tout moment demander l'**annulation** du goal : l'action est *préemptable*. Le fichier `.action` décrit ces trois parties, séparées par `---`, dans le même package d'interfaces que les services.
+
+### Le cycle de vie d'un goal
+
+1. Le serveur **accepte** ou **refuse** le goal (une cible hors de l'entrepôt, par exemple).
+2. Une fois accepté, le goal est **en cours d'exécution** : le serveur publie des feedbacks.
+3. Il se termine dans l'un de trois états : **réussi** (*succeeded*), **annulé** à la demande du client (*canceled*) ou **abandonné** par le serveur, qui ne peut pas aller au bout (*aborted*).
+
+Un serveur peut gérer plusieurs goals ; c'est lui qui décide d'en accepter un nouveau pendant qu'un autre s'exécute.
+
+### Ce qu'il y a sous le capot
+
+Une action n'est pas un nouveau mécanisme : ROS 2 la construit avec ce que vous connaissez déjà.
+
+- Trois **services** : envoyer un goal, demander le résultat, annuler.
+- Deux **topics** : les feedbacks et l'état des goals.
+
+C'est pourquoi on la manipule avec les mêmes réflexes : `ros2 action list`, `ros2 action info`, et `ros2 interface show` pour lire sa structure.
+
+### Une exécution qui ne bloque pas le nœud
+
+L'exécution d'un goal dure plusieurs secondes, alors que l'exécuteur appelle par défaut les callbacks un par un. Pendant ce temps, le nœud doit continuer à recevoir `/cmd_vel`, publier `/odom` et accepter une demande d'annulation. On lance donc le nœud avec un exécuteur **multi-thread** (`MultiThreadedExecutor`) et l'on place le serveur d'action dans un **groupe de callbacks réentrant** : plusieurs callbacks peuvent alors s'exécuter en même temps.
+
+### Topic, service ou action ?
+
+- Les **topics** diffusent des messages en continu, sans accusé de réception.
+- Les **services** offrent une interaction de type requête-réponse unique.
+- Les **actions** lancent une tâche longue, avec suivi, résultat et annulation.
+
+## 1. Définir l'action `/goto`
 
 Votre workspace `~/ws/04-action` contient l'état final du module Service : `my_interface` (avec `GetPose`) et `diff_drive_node` (avec `get_pose`).
-
-## 2. Définir l'action `/goto`
 
 Ajoutez le fichier `action/Goto.action` dans le package `my_interface`. Il comporte trois parties, séparées par `---` :
 
@@ -102,7 +129,7 @@ ros2 interface list | grep Goto
 ros2 interface show my_interface/action/Goto
 ```
 
-## 3. Implémenter le serveur d'action `goto`
+## 2. Implémenter le serveur d'action `goto`
 
 On modifie `diff_drive_node` dans le package `my_pkg` :
 
@@ -481,7 +508,7 @@ colcon build --symlink-install
 source install/setup.bash
 ```
 
-## 4. Tests avec la CLI
+## 3. Tests avec la CLI
 
 Lancez le serveur d'action en lançant le nœud :
 
@@ -501,7 +528,7 @@ L'option `--feedback` affiche la pose courante pendant le trajet ; la vue 2D mon
 
 Pour tester l'annulation, envoyez un goal lointain puis appuyez sur **Ctrl+C** dans le terminal du client : `ros2 action send_goal` demande l'annulation du goal en cours.
 
-## 5. Amélioration et pratique
+## 4. Amélioration et pratique
 
 - Implémenter un contrôleur PID plus robuste.
 - Créer un nœud avec un client d'action (`ActionClient`) qui envoie le goal et republie les feedbacks sur un topic.
