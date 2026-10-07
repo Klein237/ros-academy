@@ -491,7 +491,7 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
     @app.post("/admin/api/modules")
     def api_create_module(body: NewModule, admin=Depends(admin_write)):
         if not MODULE_ID_RE.fullmatch(body.id):
-            raise HTTPException(400, "Identifiant invalide : deux chiffres, un tiret, des minuscules (ex. 06-parametres)")
+            raise HTTPException(400, "Identifiant invalide : deux chiffres, un tiret, des minuscules (ex. 08-parametres)")
         store_call(store.create_module, body.id, body.titre, TEMPLATE_MODULE)
         return {"id": body.id}
 

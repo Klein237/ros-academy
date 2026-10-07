@@ -58,7 +58,7 @@ Le nœud du fil rouge estime la position du robot **à l'estime** (*dead reckoni
 
 ## 1. Le robot à conduite différentielle
 
-Un robot à conduite différentielle a deux roues motrices indépendantes. On le commande avec deux vitesses :
+Rappel du module « Le robot mobile » : un robot à conduite différentielle a deux roues motrices indépendantes. On le commande avec deux vitesses :
 
 - une vitesse **linéaire** `v` (m/s), vers l'avant ;
 - une vitesse **angulaire** `w` (rad/s), autour de l'axe vertical.
@@ -75,10 +75,10 @@ En ROS 2, les commandes de vitesse circulent sur le topic `/cmd_vel` (type `geom
 
 ## 2. Le workspace et le package
 
-Votre workspace de travail est `~/ws/02-noeud`. Il contient déjà deux packages, créés pour vous avec les commandes du module « Organiser son code » :
+Votre workspace de travail est `~/ws/05-noeud`. Il contient déjà deux packages, créés pour vous avec les commandes du module « Organiser son code » :
 
 ```bash
-cd ~/ws/02-noeud/src
+cd ~/ws/05-noeud/src
 ros2 pkg create my_pkg --build-type ament_python --dependencies rclpy geometry_msgs nav_msgs
 ros2 pkg create my_pkg_cpp --build-type ament_cmake --dependencies rclcpp geometry_msgs nav_msgs
 ```
@@ -297,7 +297,7 @@ ament_package()
 Depuis la racine du workspace :
 
 ```bash
-cd ~/ws/02-noeud
+cd ~/ws/05-noeud
 colcon build --symlink-install
 source install/setup.bash
 ros2 run my_pkg diff_drive_node

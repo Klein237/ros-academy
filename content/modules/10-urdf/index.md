@@ -125,10 +125,10 @@ Les roues tournent sans limite : leurs joints sont de type `continuous`, autour 
 
 ## 4. Pratique : construire le robot
 
-Créez le package de description dans votre workspace `~/ws/05-urdf` :
+Créez le package de description dans votre workspace `~/ws/10-urdf` :
 
 ```bash
-cd ~/ws/05-urdf/src
+cd ~/ws/10-urdf/src
 ros2 pkg create --build-type ament_cmake my_robot_description
 mkdir -p my_robot_description/urdf my_robot_description/launch
 ```
@@ -330,7 +330,7 @@ La description du robot. Les deux roues sont identiques au signe près : une seu
 **Usage :** `xacro` produit l'URDF final, et `check_urdf` vérifie sa syntaxe et affiche l'arbre des links :
 
 ```bash
-cd ~/ws/05-urdf
+cd ~/ws/10-urdf
 xacro src/my_robot_description/urdf/my_robot.urdf.xacro > ~/my_robot.urdf
 check_urdf ~/my_robot.urdf
 ```
@@ -341,7 +341,7 @@ check_urdf ~/my_robot.urdf
 
 - le fichier URDF ou Xacro contient la description du robot ;
 - le nœud `robot_state_publisher` la publie sur le topic `/robot_description` ;
-- il calcule aussi les **TF**, les transformations entre les links, à partir des joints ;
+- il calcule aussi les **TF**, les transformations entre les links, à partir des joints : les mêmes repères qu'au module TF2, mais déduits de la description au lieu d'être publiés à la main ;
 - les joints mobiles ont besoin de leur état (l'angle des roues) : c'est le rôle de `joint_state_publisher`.
 
 On pourrait lancer `robot_state_publisher` en ligne de commande, mais en pratique on passe par un fichier de lancement, qui traite aussi le Xacro :
@@ -381,7 +381,7 @@ def generate_launch_description():
 Compilez et lancez :
 
 ```bash
-cd ~/ws/05-urdf
+cd ~/ws/10-urdf
 colcon build --symlink-install
 source install/setup.bash
 ros2 launch my_robot_description display.launch.py
@@ -427,4 +427,4 @@ Le rendu est logiciel (sans carte graphique) : un peu lent, mais suffisant pour 
 - Xacro = version paramétrée et factorisée ;
 - pour aller plus loin : transmissions et `ros2_control`, intégration dans Gazebo (SDF/URDF), génération depuis la CAO (SolidWorks → URDF…).
 
-**Et maintenant ?** Le robot a une forme. Avant de le simuler, rendons-le réglable sans recompiler : paramètres et fichiers launch, au module suivant.
+**Et maintenant ?** Le robot a une forme. Dernière étape : le faire rouler dans un monde simulé, avec Gazebo, en ajoutant à sa description ce qu'exige la physique.

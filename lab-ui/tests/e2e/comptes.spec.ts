@@ -24,14 +24,14 @@ test.afterEach(async () => {
   while (students.length) await cleanup(api, students.pop()!);
 });
 
-const QCM = "/modules/02-noeud/";
+const QCM = "/modules/05-noeud/";
 
 test("le module demande une connexion, puis le QCM compte 2 tentatives au plus", async ({ page }) => {
   // sans connexion, le cours et son QCM sont réservés
   await page.goto(QCM);
   await expect(page.locator(".qcm")).toHaveCount(0);
   await page.locator(".module-reserve").getByRole("link", { name: "Se connecter" }).click();
-  await expect(page).toHaveURL(/\/connexion\?suite=\/modules\/02-noeud\/$/);
+  await expect(page).toHaveURL(/\/connexion\?suite=\/modules\/05-noeud\/$/);
   await loginStudent(page, newEmail(), `${QCM}#qcm`);
   await expect(page).toHaveURL(new RegExp(`${QCM}#qcm$`));
   const status = page.locator(".qcm-status");
@@ -46,7 +46,7 @@ test("le module demande une connexion, puis le QCM compte 2 tentatives au plus",
   await expect(page.getByRole("button", { name: "Valider mes réponses" })).toBeDisabled();
 
   // une 3e tentative est refusée par le serveur, pas seulement par la page
-  const third = await page.request.post("/api/comptes/qcm/02-noeud", {
+  const third = await page.request.post("/api/comptes/qcm/05-noeud", {
     data: { reponses: {} },
     headers: { Origin: new URL(page.url()).origin },
   });
@@ -64,8 +64,8 @@ test("parcours terminé : la note finale pondérée s'affiche sur la page Résul
   const origin = { Origin: new URL(page.url()).origin };
   const parcours = (await (await page.request.get("/api/contenus/parcours")).json()).parcours[0];
   const modules: { id: string; coef: number; exercice: boolean; bonus: boolean }[] = parcours.modules;
-  expect(modules.map((m) => m.id)).toEqual(["01-robot-mobile", "02-linux", "03-ros2", "04-workspace", "02-noeud", "03-service", "04-action",
-    "05-urdf", "06-parametres", "07-tf2", "08-gazebo"]);
+  expect(modules.map((m) => m.id)).toEqual(["01-robot-mobile", "02-linux", "03-ros2", "04-workspace", "05-noeud", "06-service", "07-action",
+    "08-parametres", "09-tf2", "10-urdf", "11-gazebo"]);
   expect(modules.filter((m) => !m.exercice).map((m) => m.id)).toEqual(["01-robot-mobile", "03-ros2"]); // modules de cours : QCM seul
 
   // module 01 : QCM sur le site, un indice, exercice réussi
@@ -129,18 +129,18 @@ test("parcours terminé : la note finale pondérée s'affiche sur la page Résul
 
 test("routes internes injoignables depuis l'extérieur", async ({ request }) => {
   for (const [method, path] of [
-    ["POST", "/api/contenus/modules/02-noeud/qcm"],
-    ["GET", "/api/contenus/modules/02-noeud/indices/1"],
-    ["GET", "/api/contenus/modules/02-noeud/explication"],
-    ["GET", "/api/contenus/modules/02-noeud/indices%2F1"],
+    ["POST", "/api/contenus/modules/05-noeud/qcm"],
+    ["GET", "/api/contenus/modules/05-noeud/indices/1"],
+    ["GET", "/api/contenus/modules/05-noeud/explication"],
+    ["GET", "/api/contenus/modules/05-noeud/indices%2F1"],
     ["GET", "/api/comptes/interne/lab/u1"],
   ] as const) {
     const r = await request.fetch(path, { method, data: method === "POST" ? { reponses: {} } : undefined });
     expect(r.status(), `${method} ${path}`).toBe(404);
   }
   // sans connexion, Comptes ne sert ni indice ni explication
-  expect((await request.post("/api/comptes/exercices/02-noeud/indices/1")).status()).toBe(401);
-  expect((await request.get("/api/comptes/exercices/02-noeud/explication")).status()).toBe(401);
+  expect((await request.post("/api/comptes/exercices/05-noeud/indices/1")).status()).toBe(401);
+  expect((await request.get("/api/comptes/exercices/05-noeud/explication")).status()).toBe(401);
 });
 
 test("quota épuisé : ni jeton de lab, ni démarrage par le Hub", async ({ page }) => {
@@ -194,10 +194,10 @@ test("formule pro : lab sans quota, conteneur 2 vCPU / 4 Go", async ({ page }) =
 test("session du lab expirée → « Se reconnecter » rouvre la même page du lab", async ({ page }) => {
   const name = await loginStudent(page, newEmail());
   students.push(name);
-  await page.goto("/lab/?module=02-noeud");
+  await page.goto("/lab/?module=05-noeud");
   await expect(page.locator(".overlay")).toHaveAttribute("data-state", "noauth");
   await page.getByRole("link", { name: "Se reconnecter" }).click();
-  await expect(page).toHaveURL(/\/lab\/\?module=02-noeud$/);
+  await expect(page).toHaveURL(/\/lab\/\?module=05-noeud$/);
   await waitReady(page);
   await expect(page.locator(".module-panel")).toContainText("Écrire un nœud");
   await expect(page.locator(".account-note")).toBeHidden(); // connecté : progression enregistrée

@@ -9,4 +9,4 @@ ros2 launch my_pkg robot.launch.py
 
 …mais le robot roule toujours à `0.5` m/s.
 
-Le workspace de l'exercice est `~/ws/06-parametres-exercice` (déjà compilé). Trouvez pourquoi les valeurs du fichier ne sont pas appliquées, corrigez, puis cliquez sur **Vérifier**.
+Le workspace de l'exercice est `~/ws/08-parametres-exercice` (déjà compilé). Trouvez pourquoi les valeurs du fichier ne sont pas appliquées, corrigez, puis cliquez sur **Vérifier**.

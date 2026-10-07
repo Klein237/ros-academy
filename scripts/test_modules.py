@@ -2,7 +2,7 @@
 """Valide le dépôt de contenu et teste les modules dans l'image ros-lab.
 
     python scripts/test_modules.py                 # tous les modules de content/
-    python scripts/test_modules.py 02-noeud        # un module
+    python scripts/test_modules.py 05-noeud        # un module
     ROS_LAB_IMAGE=ros-lab:0.1.0 CONTENT_DIR=content python scripts/test_modules.py
 """
 

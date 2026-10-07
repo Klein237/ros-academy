@@ -50,7 +50,7 @@ Documentation : [ROS 2 et Gazebo](https://docs.ros.org/en/jazzy/Tutorials/Advanc
 
 ## 1. Ce que Gazebo demande à un URDF
 
-Votre workspace `~/ws/08-gazebo` reprend `my_robot_description` du module URDF. Gazebo convertit l'URDF en **SDF**, son propre format. Pour lui, chaque link qui a une masse doit avoir :
+Votre workspace `~/ws/11-gazebo` reprend `my_robot_description` du module URDF. Gazebo convertit l'URDF en **SDF**, son propre format. Pour lui, chaque link qui a une masse doit avoir :
 
 - une **collision** (la forme utilisée par la physique ; souvent la même que le visuel, parfois plus simple) ;
 - une **inertie** (`<inertial>` : masse et matrice d'inertie). Sans elle, Gazebo ignore le link ; avec des valeurs absurdes, le robot tremble ou s'envole. Nos macros `inertial_box`, `inertial_cylinder` et `inertial_sphere` les calculent.
@@ -545,7 +545,7 @@ ament_package()
 ## 6. Pratique
 
 ```bash
-cd ~/ws/08-gazebo
+cd ~/ws/11-gazebo
 colcon build --symlink-install
 source install/setup.bash
 ros2 launch my_robot_description gazebo.launch.py

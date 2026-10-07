@@ -9,7 +9,7 @@ export const MAX_TEXT_FILE_BYTES = 1024 * 1024;
 export const MODULE_ID_RE = /^[0-9]{2}-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export interface LabConfig {
-  /** Module du parcours ouvert dans le lab (?module=02-noeud). */
+  /** Module du parcours ouvert dans le lab (?module=05-noeud). */
   moduleId: string | null;
   /** Ouvrir directement l'exercice du module (?exercice=1). */
   exercice: boolean;

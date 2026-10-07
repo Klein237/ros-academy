@@ -13,4 +13,4 @@ ros2 topic echo /verite_terrain --field pose.pose.orientation.z
 
 La description URDF est la même qu'au module précédent, et `check_urdf` ne trouve rien à redire.
 
-Le workspace de l'exercice est `~/ws/08-gazebo-exercice` (déjà compilé). Trouvez pourquoi le robot simulé tourne à l'envers alors que son odométrie dit le contraire, corrigez, puis cliquez sur **Vérifier**.
+Le workspace de l'exercice est `~/ws/11-gazebo-exercice` (déjà compilé). Trouvez pourquoi le robot simulé tourne à l'envers alors que son odométrie dit le contraire, corrigez, puis cliquez sur **Vérifier**.

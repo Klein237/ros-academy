@@ -8,4 +8,4 @@ ros2 service call /get_pose my_interface/srv/GetPose
 # waiting for service to become available...
 ```
 
-Le workspace de l'exercice est `~/ws/03-service-exercice` (déjà compilé ; pensez à `source install/setup.bash`). Diagnostiquez avec les outils de ROS 2, corrigez, puis cliquez sur **Vérifier**.
+Le workspace de l'exercice est `~/ws/06-service-exercice` (déjà compilé ; pensez à `source install/setup.bash`). Diagnostiquez avec les outils de ROS 2, corrigez, puis cliquez sur **Vérifier**.

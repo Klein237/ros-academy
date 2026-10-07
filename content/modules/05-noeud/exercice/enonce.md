@@ -9,4 +9,4 @@ ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.3}}"
 
 La position reste à `x: 0.0` et le robot ne bouge pas dans la vue 2D.
 
-Le workspace de l'exercice est `~/ws/02-noeud-exercice` (déjà compilé). Trouvez la cause avec les outils de ROS 2, corrigez-la, puis cliquez sur **Vérifier**.
+Le workspace de l'exercice est `~/ws/05-noeud-exercice` (déjà compilé). Trouvez la cause avec les outils de ROS 2, corrigez-la, puis cliquez sur **Vérifier**.

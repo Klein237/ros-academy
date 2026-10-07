@@ -10,4 +10,4 @@ ros2 topic echo --once /obstacle
 
 `ros2 service call /get_pose my_interface/srv/GetPose` donne pourtant la bonne orientation (`theta ≈ 1.57`).
 
-Le workspace de l'exercice est `~/ws/07-tf2-exercice` (déjà compilé). Comparez ce que publie TF2 avec la pose du robot, corrigez, puis cliquez sur **Vérifier**.
+Le workspace de l'exercice est `~/ws/09-tf2-exercice` (déjà compilé). Comparez ce que publie TF2 avec la pose du robot, corrigez, puis cliquez sur **Vérifier**.

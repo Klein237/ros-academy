@@ -47,10 +47,10 @@ Une position publiée en continu sur `/odom` convient à un affichage ; un progr
 
 ## 1. Préparation
 
-Votre workspace `~/ws/03-service` reprend le package `my_pkg` et le nœud `diff_drive_node` du module précédent. On crée un nouveau package dédié aux interfaces :
+Votre workspace `~/ws/06-service` reprend le package `my_pkg` et le nœud `diff_drive_node` du module précédent. On crée un nouveau package dédié aux interfaces :
 
 ```bash
-cd ~/ws/03-service/src
+cd ~/ws/06-service/src
 ros2 pkg create my_interface --build-type ament_cmake
 ```
 
@@ -86,7 +86,7 @@ Dans `my_interface/package.xml`, ajoutez les dépendances nécessaires à la gé
 Créez un dossier `srv` dans `my_interface`, puis le fichier `GetPose.srv` :
 
 ```bash
-mkdir -p ~/ws/03-service/src/my_interface/srv
+mkdir -p ~/ws/06-service/src/my_interface/srv
 ```
 
 ```srv fichier=src/my_interface/srv/GetPose.srv
@@ -122,7 +122,7 @@ ament_package()
 On compile d'abord le nouveau package, puis l'ensemble :
 
 ```bash
-cd ~/ws/03-service
+cd ~/ws/06-service
 colcon build --packages-select my_interface
 source install/setup.bash
 ros2 interface show my_interface/srv/GetPose
@@ -370,7 +370,7 @@ ament_package()
 Compilez et lancez :
 
 ```bash
-cd ~/ws/03-service
+cd ~/ws/06-service
 colcon build --symlink-install
 source install/setup.bash
 ros2 run my_pkg diff_drive_node
@@ -381,7 +381,7 @@ ros2 run my_pkg diff_drive_node
 Dans un deuxième terminal :
 
 ```bash
-source ~/ws/03-service/install/setup.bash
+source ~/ws/06-service/install/setup.bash
 ros2 service list -t
 ros2 service call /get_pose my_interface/srv/GetPose
 ```
