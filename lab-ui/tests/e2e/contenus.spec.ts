@@ -39,14 +39,14 @@ test("sans connexion : catalogue, Découvrir ROS 2 et titres des modules, mais p
   await expect(page.locator(".module-reserve")).toContainText("Au programme");
   await expect(page.locator(".cours, .code-tabs, #qcm")).toHaveCount(0);
   // l'en-tête d'identité posé par Caddy ne se forge pas depuis le navigateur
-  for (const path of ["/modules/02-noeud/", "/api/contenus/modules/02-noeud/exercice", "/api/contenus/modules/02-noeud/lab"]) {
+  for (const path of ["/modules/05-noeud/", "/api/contenus/modules/05-noeud/exercice", "/api/contenus/modules/05-noeud/lab"]) {
     const r = await page.request.get(path, { headers: { "X-Academy-Etudiant": "1" } });
     expect(await r.text(), path).not.toContain("class DiffDriveNode");
     if (path.startsWith("/api/")) expect(r.status(), path).toBe(401);
   }
   // « Se connecter » ramène au module
   await page.getByRole("link", { name: "Créer un compte" }).click();
-  await expect(page).toHaveURL(/\/connexion\/inscription\?suite=\/modules\/02-noeud\/$/);
+  await expect(page).toHaveURL(/\/connexion\/inscription\?suite=\/modules\/05-noeud\/$/);
 });
 
 test("le site présente le parcours et corrige le QCM sans exposer les réponses", async ({ page }) => {
@@ -114,13 +114,13 @@ test("module Linux : l'exercice se corrige dans le terminal et le serveur le vé
 test("module Nœud : « Ouvrir dans le lab » crée le fichier du cours sans jamais l'écraser", async ({ page }) => {
   // le cours est réservé aux étudiants connectés : le lab passe par la session de Comptes
   students.push(await loginStudent(page, newEmail()));
-  const file = "ws/02-noeud/src/my_pkg/my_pkg/diff_drive_node.py";
-  await openLabViaAccount(page, `?module=02-noeud&open=${encodeURIComponent(file)}`);
+  const file = "ws/05-noeud/src/my_pkg/my_pkg/diff_drive_node.py";
+  await openLabViaAccount(page, `?module=05-noeud&open=${encodeURIComponent(file)}`);
   await expect(page.locator(".editor .tab.active")).toContainText("diff_drive_node.py");
   await expect(page.locator(".monaco-editor")).toContainText("class DiffDriveNode");
   // lab seul ouvert depuis un module : retour au cours visible, dans le même onglet
-  await expect(page.getByRole("link", { name: "← Retour au cours" })).toHaveAttribute("href", "/modules/02-noeud/");
-  await expect(page.locator('.tree-row[data-path="ws/02-noeud/src"]')).toBeVisible(); // lab/ installé et déplié
+  await expect(page.getByRole("link", { name: "← Retour au cours" })).toHaveAttribute("href", "/modules/05-noeud/");
+  await expect(page.locator('.tree-row[data-path="ws/05-noeud/src"]')).toBeVisible(); // lab/ installé et déplié
   // en tête de fichier : Monaco n'affiche que les lignes visibles
   await run(page, `sed -i '1i # ma modification' ~/${file} && echo ok-""modifie`, "ok-modifie");
   await page.reload();
@@ -133,16 +133,16 @@ test("module Nœud : l'exercice se fait entièrement dans le lab @ros", async ({
   // comme le bouton « Ouvrir l'exercice dans le lab » du site, sur un écran étroit : le lab seul
   // (sur écran large, il s'ouvre à côté du cours : voir le test « Cours + lab »)
   await page.setViewportSize({ width: 1000, height: 800 });
-  await page.goto("/modules/02-noeud/");
+  await page.goto("/modules/05-noeud/");
   await page.getByRole("link", { name: "Ouvrir l'exercice dans le lab" }).click();
-  await expect(page).toHaveURL(/\/lab\/\?module=02-noeud&exercice=1$/);
+  await expect(page).toHaveURL(/\/lab\/\?module=05-noeud&exercice=1$/);
   await waitReady(page);
   const panel = page.locator(".module-panel");
   await expect(panel).toContainText("Écrire un nœud");
   await expect(panel.locator(".enonce")).toContainText("Le robot reste immobile");
-  // ouvert par « Ouvrir l'exercice dans le lab » : l'exercice s'installe tout seul (~/ws/02-noeud-exercice)
+  // ouvert par « Ouvrir l'exercice dans le lab » : l'exercice s'installe tout seul (~/ws/05-noeud-exercice)
   await expect(panel.locator(".exercise-status")).toContainText("Exercice prêt", { timeout: 180_000 });
-  await expect(page.locator('.tree-row[data-path="ws/02-noeud-exercice"]')).toBeVisible();
+  await expect(page.locator('.tree-row[data-path="ws/05-noeud-exercice"]')).toBeVisible();
 
   await panel.getByRole("button", { name: "Vérifier" }).click();
   await expect(panel.locator(".exercise-status")).toContainText("Pas encore", { timeout: 180_000 });
@@ -154,7 +154,7 @@ test("module Nœud : l'exercice se fait entièrement dans le lab @ros", async ({
   // tricher sur check.sh ne sert à rien : le serveur lance le check.sh publié, hors du conteneur
   await page.locator(".terminals .tab").first().click();
   await expect(activeTerminal(page)).toHaveAttribute("data-status", "open");
-  await run(page, `printf '#!/bin/bash\\nexit 0\\n' > ~/.academy/02-noeud/check.sh && echo triche-""ok`, "triche-ok");
+  await run(page, `printf '#!/bin/bash\\nexit 0\\n' > ~/.academy/05-noeud/check.sh && echo triche-""ok`, "triche-ok");
   await panel.getByRole("button", { name: "Vérifier" }).click();
   await expect(panel.locator(".exercise-status")).toContainText("Pas encore", { timeout: 180_000 });
   await expect(panel.locator(".exercise-status")).toContainText("Le robot n'avance pas");
@@ -162,13 +162,13 @@ test("module Nœud : l'exercice se fait entièrement dans le lab @ros", async ({
   // la correction, comme un étudiant la ferait dans un terminal
   await page.locator(".terminals .tab").first().click();
   await expect(activeTerminal(page)).toHaveAttribute("data-status", "open");
-  await run(page, `sed -i 's/cmd_vell/cmd_vel/' ~/ws/02-noeud-exercice/src/my_pkg/my_pkg/diff_drive_node.py && echo corrige-""ok`, "corrige-ok");
+  await run(page, `sed -i 's/cmd_vell/cmd_vel/' ~/ws/05-noeud-exercice/src/my_pkg/my_pkg/diff_drive_node.py && echo corrige-""ok`, "corrige-ok");
   await panel.getByRole("button", { name: "Vérifier" }).click();
   await expect(panel.locator(".exercise-status")).toContainText("Exercice réussi", { timeout: 180_000 });
   await expect(panel.locator(".explication")).toContainText("cmd_vell");
 
   // réussite et indice enregistrés : retrouvés en rouvrant le lab, comptés dans les résultats
-  await openLabViaAccount(page, "?module=02-noeud");
+  await openLabViaAccount(page, "?module=05-noeud");
   await expect(panel.locator(".hint")).toHaveCount(1);
   await expect(panel.locator(".exercise-status")).toContainText("Exercice déjà réussi");
   await expect(panel.locator(".explication")).toContainText("cmd_vell");
@@ -180,7 +180,7 @@ test("Cours + lab : le lab à côté du cours lance les commandes et ouvre les f
   await page.setViewportSize({ width: 1600, height: 900 });
   const errors = watchErrors(page);
   students.push(await loginStudent(page, newEmail()));
-  await page.goto("/modules/02-noeud/");
+  await page.goto("/modules/05-noeud/");
   await expect(page.locator(".code-run").first()).toBeHidden(); // sans le lab à côté : pas de bouton
   // écran large : « Ouvrir le lab » ouvre le lab à côté du cours ; le lab seul reste proposé à part
   await expect(page.getByRole("link", { name: "Lab en plein écran" })).toHaveAttribute("target", "_blank");
@@ -194,15 +194,15 @@ test("Cours + lab : le lab à côté du cours lance les commandes et ouvre les f
   await page.locator(".code-run").first().click();
   await expect(term.locator(".xterm-rows")).toContainText("ros2 pkg create my_pkg_cpp", { timeout: 30_000 });
   // exécuté ligne par ligne : le « cd » a changé de dossier (les paquets existent déjà : lab guidé installé)
-  await expect(term.locator(".xterm-rows")).toContainText("/ws/02-noeud/src$", { timeout: 60_000 });
+  await expect(term.locator(".xterm-rows")).toContainText("/ws/05-noeud/src$", { timeout: 60_000 });
   // envoyée après l'invite : la commande n'est pas affichée une première fois avant elle
   const rows = (await term.locator(".xterm-rows").innerText()).split("\n");
-  const cdRows = rows.filter((row) => row.includes("cd ~/ws/02-noeud/src"));
+  const cdRows = rows.filter((row) => row.includes("cd ~/ws/05-noeud/src"));
   expect(cdRows).toHaveLength(1);
-  expect(cdRows[0]).toMatch(/\$ cd ~\/ws\/02-noeud\/src/);
+  expect(cdRows[0]).toMatch(/\$ cd ~\/ws\/05-noeud\/src/);
   // « Ouvrir dans le lab » : le fichier du cours s'ouvre dans l'éditeur du panneau, la page ne change pas
   await page.locator('a.code-open[data-open$="diff_drive_node.py"]').first().click();
-  await expect(page).toHaveURL(/\/modules\/02-noeud\/$/);
+  await expect(page).toHaveURL(/\/modules\/05-noeud\/$/);
   await expect(lab.locator(".editor .tab.active")).toContainText("diff_drive_node.py");
   // le choix est retenu d'une page à l'autre ; « Masquer le lab » referme le panneau
   await page.reload();

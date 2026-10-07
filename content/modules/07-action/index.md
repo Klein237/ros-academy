@@ -56,12 +56,12 @@ L'exécution d'un goal dure plusieurs secondes, alors que l'exécuteur appelle p
 
 ## 1. Définir l'action `/goto`
 
-Votre workspace `~/ws/04-action` contient l'état final du module Service : `my_interface` (avec `GetPose`) et `diff_drive_node` (avec `get_pose`).
+Votre workspace `~/ws/07-action` contient l'état final du module Service : `my_interface` (avec `GetPose`) et `diff_drive_node` (avec `get_pose`).
 
 Ajoutez le fichier `action/Goto.action` dans le package `my_interface`. Il comporte trois parties, séparées par `---` :
 
 ```bash
-mkdir -p ~/ws/04-action/src/my_interface/action
+mkdir -p ~/ws/07-action/src/my_interface/action
 ```
 
 ```action fichier=src/my_interface/action/Goto.action
@@ -122,7 +122,7 @@ ament_package()
 Recompilez l'interface et vérifiez qu'elle est connue :
 
 ```bash
-cd ~/ws/04-action
+cd ~/ws/07-action
 colcon build --packages-select my_interface
 source install/setup.bash
 ros2 interface list | grep Goto
@@ -503,7 +503,7 @@ ament_package()
 Recompilez et sourcez le workspace :
 
 ```bash
-cd ~/ws/04-action
+cd ~/ws/07-action
 colcon build --symlink-install
 source install/setup.bash
 ```
@@ -519,7 +519,7 @@ ros2 run my_pkg diff_drive_node
 Dans un deuxième terminal, envoyez un goal sans écrire de client, avec `ros2 action send_goal` :
 
 ```bash
-source ~/ws/04-action/install/setup.bash
+source ~/ws/07-action/install/setup.bash
 ros2 action list -t
 ros2 action send_goal --feedback /goto my_interface/action/Goto "{target: {x: 2.0, y: 1.0, theta: 0.0}}"
 ```
@@ -534,4 +534,4 @@ Pour tester l'annulation, envoyez un goal lointain puis appuyez sur **Ctrl+C** d
 - Créer un nœud avec un client d'action (`ActionClient`) qui envoie le goal et republie les feedbacks sur un topic.
 - Refuser (`GoalResponse.REJECT`) les goals situés à plus de 10 m.
 
-**Et maintenant ?** Le robot sait livrer. Mais pour l'afficher, le simuler ou ajouter un capteur, il faut décrire sa forme : c'est le rôle de l'URDF, au module suivant.
+**Et maintenant ?** Le robot sait livrer. Mais sa vitesse maximale et sa précision d'arrivée sont écrites en dur dans le code : le module suivant les rend réglables sans recompiler, avec des paramètres et un fichier launch.

@@ -3,11 +3,11 @@ description: >-
   Les bases de ROS 2 Jazzy, en pratique, autour d'un fil rouge : un robot de
   livraison à conduite différentielle. On commence par le robot lui-même et
   le terminal Linux, puis vous l'enrichissez module après module — nœud,
-  service, action, description URDF, paramètres et fichiers launch, repères
-  TF2, puis simulation dans Gazebo. Chaque module se termine par un QCM, et
+  service, action, paramètres et fichiers launch, repères TF2, description
+  URDF, puis simulation dans Gazebo. Chaque module se termine par un QCM, et
   les modules pratiques par une vraie panne à diagnostiquer.
 accroche: >-
-  Nœuds, topics, services, actions, URDF, paramètres, TF2 et simulation dans
+  Nœuds, topics, services, actions, paramètres, TF2, URDF et simulation dans
   Gazebo, autour d'un même robot que vous faites rouler.
 statut: disponible
 niveau: debutant
@@ -17,7 +17,7 @@ objectifs:
   - utiliser le terminal Linux au quotidien
   - écrire des nœuds ROS 2 en Python et en C++
   - créer des services, des actions et des paramètres
-  - décrire un robot en URDF et ses repères avec TF2
+  - situer ses repères avec TF2 et décrire sa forme en URDF
   - le simuler dans Gazebo et l'observer dans RViz
 prerequis:
   - bases de Python
@@ -34,24 +34,24 @@ modules:
   - id: 04-workspace
     coef: 1
     partie: Comprendre ROS 2
-  - id: 02-noeud
+  - id: 05-noeud
     coef: 2
-    partie: ROS 2 en pratique
-  - id: 03-service
+    partie: Programmer avec ROS 2
+  - id: 06-service
     coef: 2
-    partie: ROS 2 en pratique
-  - id: 04-action
+    partie: Programmer avec ROS 2
+  - id: 07-action
     coef: 2
-    partie: ROS 2 en pratique
-  - id: 05-urdf
+    partie: Programmer avec ROS 2
+  - id: 08-parametres
+    coef: 2
+    partie: Programmer avec ROS 2
+  - id: 09-tf2
+    coef: 2
+    partie: Décrire et simuler le robot
+  - id: 10-urdf
     coef: 1
-    partie: ROS 2 en pratique
-  - id: 06-parametres
+    partie: Décrire et simuler le robot
+  - id: 11-gazebo
     coef: 2
-    partie: ROS 2 en pratique
-  - id: 07-tf2
-    coef: 2
-    partie: ROS 2 en pratique
-  - id: 08-gazebo
-    coef: 2
-    partie: ROS 2 en pratique
+    partie: Décrire et simuler le robot

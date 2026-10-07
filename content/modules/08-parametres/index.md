@@ -49,7 +49,7 @@ Tutoriel officiel : [Using parameters in a class (Python)](https://docs.ros.org/
 
 ## 1. Déclarer et lire les paramètres
 
-Votre workspace `~/ws/06-parametres` reprend le robot du module Action. On remplace les constantes par quatre paramètres :
+Votre workspace `~/ws/08-parametres` reprend le robot du module Action. On remplace les constantes par quatre paramètres :
 
 | Paramètre | Défaut | Rôle |
 |---|---|---|
@@ -229,7 +229,7 @@ Trois points à retenir :
 Compilez, puis lancez le nœud en fixant un paramètre sur la ligne de commande :
 
 ```bash
-cd ~/ws/06-parametres
+cd ~/ws/08-parametres
 colcon build --symlink-install
 source install/setup.bash
 ros2 run my_pkg diff_drive_node --ros-args -p max_linear_speed:=0.3
@@ -376,7 +376,7 @@ Et déclarez dans `package.xml` les packages utilisés au lancement :
 ## 5. Pratique
 
 ```bash
-cd ~/ws/06-parametres
+cd ~/ws/08-parametres
 colcon build --symlink-install
 source install/setup.bash
 ros2 launch my_pkg robot.launch.py

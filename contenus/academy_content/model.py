@@ -238,7 +238,7 @@ def load_module(root, module_id):
     root = Path(root)
     base = f"modules/{module_id}"
     if not MODULE_ID_RE.fullmatch(module_id or ""):
-        raise ContentError([Erreur(base, "identifiant invalide (ex. 03-service : deux chiffres, tiret, minuscules)")])
+        raise ContentError([Erreur(base, "identifiant invalide (ex. 06-service : deux chiffres, tiret, minuscules)")])
     module_dir = root / "modules" / module_id
     if not module_dir.is_dir():
         raise ContentError([Erreur(base, "module introuvable")])

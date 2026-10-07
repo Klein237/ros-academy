@@ -145,7 +145,7 @@ def test_official_check_on_the_student_volume():
     client = docker.from_env()
     student = f"u9{uuid.uuid4().int % 10**9}"
     volume = client.volumes.create(volume_name(student))
-    module = REPO_CONTENT / "modules" / "02-noeud"
+    module = REPO_CONTENT / "modules" / "05-noeud"
 
     def in_student_container(script):
         """Comme le lab de l'étudiant : son volume en /home/etudiant, en écriture."""
@@ -157,9 +157,9 @@ def test_official_check_on_the_student_volume():
     try:
         # « Commencer l'exercice » : fichiers de l'exercice puis setup.sh (workspace avec le bug)
         c = client.containers.create(IMAGE, ["bash", "-lc",
-                                             "mkdir -p ~/.academy/02-noeud && cp -r /tmp/exercice/. ~/.academy/02-noeud/ "
-                                             "&& cd ~ && EXERCICE=~/.academy/02-noeud WS=~/ws/02-noeud-exercice "
-                                             "bash ~/.academy/02-noeud/setup.sh"],
+                                             "mkdir -p ~/.academy/05-noeud && cp -r /tmp/exercice/. ~/.academy/05-noeud/ "
+                                             "&& cd ~ && EXERCICE=~/.academy/05-noeud WS=~/ws/05-noeud-exercice "
+                                             "bash ~/.academy/05-noeud/setup.sh"],
                                      user="etudiant", network_mode="none",
                                      volumes={volume.name: {"bind": "/home/etudiant", "mode": "rw"}})
         c.put_archive("/", exercise_archive(module))
@@ -167,20 +167,20 @@ def test_official_check_on_the_student_volume():
         assert c.wait(timeout=600)["StatusCode"] == 0, c.logs().decode()
         c.remove()
 
-        r = verify_exercise(module, "02-noeud", student, IMAGE, client=client)
+        r = verify_exercise(module, "05-noeud", student, IMAGE, client=client)
         assert not r.ok and "n'avance pas" in r.journal, r.journal
 
         # l'étudiant remplace son check.sh et y écrit « exit 0 » : sans effet, c'est le check.sh publié qui tourne
-        in_student_container("printf '#!/bin/bash\\nexit 0\\n' > ~/.academy/02-noeud/check.sh")
-        assert not verify_exercise(module, "02-noeud", student, IMAGE, client=client).ok
+        in_student_container("printf '#!/bin/bash\\nexit 0\\n' > ~/.academy/05-noeud/check.sh")
+        assert not verify_exercise(module, "05-noeud", student, IMAGE, client=client).ok
 
         # correction (comme le ferait l'étudiant), avec des produits de compilation laissés dans le volume
-        in_student_container("sed -i 's/cmd_vell/cmd_vel/' ~/ws/02-noeud-exercice/src/my_pkg/my_pkg/diff_drive_node.py "
-                             "&& mkdir -p ~/ws/02-noeud-exercice/build/faux && echo x > ~/ws/02-noeud-exercice/build/faux/f")
-        r = verify_exercise(module, "02-noeud", student, IMAGE, client=client)
+        in_student_container("sed -i 's/cmd_vell/cmd_vel/' ~/ws/05-noeud-exercice/src/my_pkg/my_pkg/diff_drive_node.py "
+                             "&& mkdir -p ~/ws/05-noeud-exercice/build/faux && echo x > ~/ws/05-noeud-exercice/build/faux/f")
+        r = verify_exercise(module, "05-noeud", student, IMAGE, client=client)
         assert r.ok and r.code == 0 and "Le robot avance" in r.journal, r.journal
         # le volume de l'étudiant n'a pas été modifié par la vérification
-        assert "exit 0" in in_student_container("cat ~/.academy/02-noeud/check.sh")
+        assert "exit 0" in in_student_container("cat ~/.academy/05-noeud/check.sh")
     finally:
         volume.remove(force=True)
     assert not [c for c in client.containers.list(all=True, filters={"label": "ros-academy.role=verification"})

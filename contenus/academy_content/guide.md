@@ -19,7 +19,7 @@ Une **formation** (parcours) est une suite ordonnée de **modules**. Chaque modu
 | `exercice/explication.md` | Affichée après la réussite : la cause, comment la diagnostiquer, comment l'éviter. |
 | `lab_test.sh` | Facultatif : vérifie que les nœuds du lab guidé démarrent (lancé depuis le workspace compilé). |
 
-L'identifiant d'un module a la forme `06-parametres` : deux chiffres, un tiret, des minuscules.
+L'identifiant d'un module a la forme `08-parametres` : deux chiffres, un tiret, des minuscules.
 
 ## Écrire le cours
 

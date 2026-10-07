@@ -63,7 +63,7 @@ Attention au **demi-angle** : un robot tourné de 90° (`θ = π/2`) a `z = sin(
 
 ## 2. Diffuser la position du robot
 
-Votre workspace `~/ws/07-tf2` reprend le robot du module Paramètres. `diff_drive_node` publie déjà sa pose sur `/odom` ; on publie **la même pose** comme transformation `odom → base_link`, avec un `TransformBroadcaster`, à chaque mise à jour :
+Votre workspace `~/ws/09-tf2` reprend le robot du module Paramètres. `diff_drive_node` publie déjà sa pose sur `/odom` ; on publie **la même pose** comme transformation `odom → base_link`, avec un `TransformBroadcaster`, à chaque mise à jour :
 
 ```python fichier=src/my_pkg/my_pkg/diff_drive_node.py
 import math
@@ -298,7 +298,7 @@ def generate_launch_description():
     ])
 ```
 
-Avec la description URDF du module 5, c'est `robot_state_publisher` qui publierait ces transformations fixes, calculées à partir des `<joint>`.
+Au module suivant, avec une description URDF du robot, c'est `robot_state_publisher` qui publiera ces transformations fixes, calculées à partir des `<joint>`.
 
 ## 4. Écouter les transformations : placer un obstacle
 
@@ -425,7 +425,7 @@ setup(
 ## 5. Pratique : observer l'arbre
 
 ```bash
-cd ~/ws/07-tf2
+cd ~/ws/09-tf2
 colcon build --symlink-install
 source install/setup.bash
 ros2 launch my_pkg robot.launch.py
@@ -452,4 +452,4 @@ Pour **voir** l'arbre : ouvrez le **Bureau (RViz, Gazebo)**, lancez `rviz2` dans
 - Rotation autour de `z` d'un angle θ : quaternion `(0, 0, sin(θ/2), cos(θ/2))`.
 - `Buffer` + `TransformListener` pour écouter ; `transform()` ou `lookup_transform()` pour convertir, en gérant `TransformException`.
 
-**Et maintenant ?** Le robot sait situer ce qu'il voit. Dernière étape avant le vrai robot : le faire rouler dans un monde simulé, avec Gazebo.
+**Et maintenant ?** Le robot sait situer ce qu'il voit. Mais ROS ne connaît encore ni sa forme ni la place de ses roues : le module suivant les décrit en URDF, et `robot_state_publisher` en tirera les repères de chaque pièce.
