@@ -149,6 +149,7 @@ Déclarez les outils dont la description a besoin à l'exécution :
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>joint_state_publisher</exec_depend>
   <exec_depend>xacro</exec_depend>
+  <exec_depend>rviz2</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
@@ -164,10 +165,50 @@ project(my_robot_description)
 
 find_package(ament_cmake REQUIRED)
 
-# Installe la description et les fichiers de lancement dans share/my_robot_description
-install(DIRECTORY urdf launch DESTINATION share/${PROJECT_NAME})
+# Installe la description, les fichiers de lancement et la configuration RViz dans share/my_robot_description
+install(DIRECTORY urdf launch config DESTINATION share/${PROJECT_NAME})
 
 ament_package()
+```
+
+Le dossier `config` contient la configuration de RViz2, qui servira à visualiser le robot (section 7) : le modèle, les repères, et `base_link` comme repère de référence. Créez-le dès maintenant, `colcon build` l'installe avec le reste :
+
+```yaml fichier=src/my_robot_description/config/display.rviz
+# Configuration RViz2 du module URDF : le modèle du robot et ses repères, vus depuis base_link.
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Enabled: true
+      Name: Grid
+    - Class: rviz_default_plugins/RobotModel
+      Enabled: true
+      Name: RobotModel
+      Description Source: Topic
+      Description Topic:
+        Value: /robot_description
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Name: TF
+  Enabled: true
+  Global Options:
+    Fixed Frame: base_link
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/MoveCamera
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 1.2
+      Name: Current View
+      Pitch: 0.6
+      Yaw: 0.8
+Window Geometry:
+  Height: 760
+  Width: 1200
 ```
 
 ## 5. Xacro
@@ -352,6 +393,9 @@ import os
 import xacro
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
@@ -361,6 +405,9 @@ def generate_launch_description():
     robot_desc = xacro.process_file(xacro_file).toxml()
 
     return LaunchDescription([
+        # Facultatif : ros2 launch my_robot_description display.launch.py rviz:=true
+        DeclareLaunchArgument('rviz', default_value='false',
+                              description='RViz2 déjà configuré (config/display.rviz), sur le Bureau du lab'),
         # Publie /robot_description et les TF des joints fixes et mobiles
         Node(
             package='robot_state_publisher',
@@ -374,6 +421,13 @@ def generate_launch_description():
             package='joint_state_publisher',
             executable='joint_state_publisher',
             name='joint_state_publisher',
+        ),
+        # RViz2 avec sa configuration : le modèle du robot et ses repères, vus depuis base_link
+        Node(
+            package='rviz2',
+            executable='rviz2',
+            arguments=['-d', os.path.join(pkg_path, 'config', 'display.rviz')],
+            condition=IfCondition(LaunchConfiguration('rviz')),
         ),
     ])
 ```
@@ -401,21 +455,19 @@ ros2 run tf2_tools view_frames
 
 Le lab a un bureau graphique : cliquez sur **Bureau (RViz, Gazebo)** dans la barre du haut. Il prend la place de l'éditeur ; les terminaux restent dessous, et les fenêtres lancées depuis un terminal s'y affichent.
 
-Dans un terminal, lancez la description du robot ; dans un second terminal, RViz2 :
+Le Bureau ouvert, lancez la description du robot **avec** RViz2 :
 
 ```bash
-ros2 launch my_robot_description display.launch.py
+ros2 launch my_robot_description display.launch.py rviz:=true
 ```
 
-```bash
-rviz2
-```
-
-Dans RViz2 :
+RViz2 s'ouvre déjà configuré par `config/display.rviz` : le modèle du robot et les repères de chaque link, vus depuis `base_link`. Cette configuration se refait aussi à la main, dans un RViz2 lancé seul (`rviz2`) :
 
 - **Fixed Frame** (en haut à gauche) : `base_link` ;
 - **Add** → **RobotModel**, puis *Description Topic* : `/robot_description` ;
 - **Add** → **TF** pour voir les repères de chaque link.
+
+Après avoir modifié l'affichage, **File** → **Save Config** l'enregistre ; copiez le fichier dans `config/` pour le retrouver au prochain lancement.
 
 Pour faire tourner les roues avec des **curseurs**, remplacez dans `display.launch.py` le nœud `joint_state_publisher` par `joint_state_publisher_gui` (même nom pour `package` et `executable`), recompilez et relancez : une fenêtre de curseurs s'ouvre sur le bureau.
 

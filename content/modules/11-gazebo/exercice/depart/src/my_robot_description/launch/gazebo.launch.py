@@ -19,6 +19,8 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('gui', default_value='false',
                               description="Fenêtre de Gazebo, sur le Bureau du lab"),
+        DeclareLaunchArgument('rviz', default_value='false',
+                              description='RViz2 déjà configuré (config/robot.rviz), sur le Bureau du lab'),
         # Le simulateur, sans fenêtre : physique, capteurs (rendu sans écran) et plugins ; -r : démarre tout de suite
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(gz_launch),
@@ -47,5 +49,13 @@ def generate_launch_description():
             executable='parameter_bridge',
             parameters=[{'config_file': os.path.join(pkg, 'config', 'pont.yaml'), 'use_sim_time': True}],
             output='screen',
+        ),
+        # RViz2 avec sa configuration (modèle, laser, repères), à l'heure de la simulation lui aussi
+        Node(
+            package='rviz2',
+            executable='rviz2',
+            arguments=['-d', os.path.join(pkg, 'config', 'robot.rviz')],
+            parameters=[{'use_sim_time': True}],
+            condition=IfCondition(LaunchConfiguration('rviz')),
         ),
     ])

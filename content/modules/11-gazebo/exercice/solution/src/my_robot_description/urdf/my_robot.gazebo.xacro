@@ -39,6 +39,8 @@
       <topic>/joint_states</topic>
       <joint_name>left_wheel_joint</joint_name>
       <joint_name>right_wheel_joint</joint_name>
+      <!-- 30 fois par seconde suffisent pour les TF des roues (sinon : à chaque pas de physique) -->
+      <update_rate>30</update_rate>
     </plugin>
   </gazebo>
 
