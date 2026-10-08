@@ -65,8 +65,8 @@ test("parcours terminé : la note finale pondérée s'affiche sur la page Résul
   const parcours = (await (await page.request.get("/api/contenus/parcours")).json()).parcours[0];
   const modules: { id: string; coef: number; exercice: boolean; bonus: boolean }[] = parcours.modules;
   expect(modules.map((m) => m.id)).toEqual(["01-robot-mobile", "02-linux", "03-ros2", "04-workspace", "05-noeud", "06-service", "07-action",
-    "08-parametres", "09-tf2", "10-urdf", "11-gazebo", "12-qos", "13-debogage"]);
-  expect(modules.filter((m) => m.bonus).map((m) => m.id)).toEqual(["12-qos", "13-debogage"]); // hors note finale
+    "08-parametres", "09-tf2", "10-urdf", "11-gazebo", "12-qos", "13-debogage", "14-robot-reel"]);
+  expect(modules.filter((m) => m.bonus).map((m) => m.id)).toEqual(["12-qos", "13-debogage", "14-robot-reel"]); // hors note finale
   expect(modules.filter((m) => !m.exercice).map((m) => m.id)).toEqual(["01-robot-mobile", "03-ros2"]); // modules de cours : QCM seul
 
   // module 01 : QCM sur le site, un indice, exercice réussi
