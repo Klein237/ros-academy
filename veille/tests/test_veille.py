@@ -62,7 +62,7 @@ def test_cpu_alert_after_five_minutes_then_recovery_with_hysteresis(proc):
         write(active, total)
         w.tick()
         clock.t += 15
-    assert [m[0] for m in mails] == ["[ROS Academy] Alerte : CPU à 90 % (seuil 80 %)"]
+    assert [m[0] for m in mails] == ["[RoboForge] Alerte : CPU à 90 % (seuil 80 %)"]
     assert "https://localhost/admin/journaux/" in mails[0][1]
     for _ in range(25):  # 78 % : sous le seuil mais pas assez pour revenir à la normale
         active, total = active + 78, total + 100
@@ -75,7 +75,7 @@ def test_cpu_alert_after_five_minutes_then_recovery_with_hysteresis(proc):
         write(active, total)
         w.tick()
         clock.t += 15
-    assert mails[-1][0] == "[ROS Academy] Retour à la normale : CPU" and len(mails) == 2
+    assert mails[-1][0] == "[RoboForge] Retour à la normale : CPU" and len(mails) == 2
 
 
 def test_memory_and_disk_alerts_with_reminder(proc):
@@ -85,8 +85,8 @@ def test_memory_and_disk_alerts_with_reminder(proc):
     w, mails = make(d, clock, disk=0)  # seuil disque à 0 % : toujours en alerte
     w.tick()
     subjects = [m[0] for m in mails]
-    assert "[ROS Academy] Alerte : mémoire à 88 % (seuil 80 %)" in subjects
-    assert any(s.startswith("[ROS Academy] Alerte : disque à") for s in subjects)
+    assert "[RoboForge] Alerte : mémoire à 88 % (seuil 80 %)" in subjects
+    assert any(s.startswith("[RoboForge] Alerte : disque à") for s in subjects)
     clock.t += 1800
     w.tick()
     assert len(mails) == 2  # pas de rappel avant 1 h
@@ -105,13 +105,13 @@ def test_service_down_after_three_failures_then_restored(proc):
     w.tick()
     assert mails == []  # un redémarrage bref ne réveille personne
     w.tick()
-    assert mails[-1][0] == "[ROS Academy] Alerte : service comptes injoignable (ConnectionRefusedError)"
+    assert mails[-1][0] == "[RoboForge] Alerte : service comptes injoignable (ConnectionRefusedError)"
     w.tick()
     assert len(mails) == 1
     clock.t += 600
     state["ok"] = True
     w.tick()
-    assert mails[-1][0] == "[ROS Academy] Service rétabli : comptes" and "10 min" in mails[-1][1]
+    assert mails[-1][0] == "[RoboForge] Service rétabli : comptes" and "10 min" in mails[-1][1]
 
 
 def test_alerts_are_logged_even_without_smtp_and_mail_errors_do_not_stop(proc, caplog):
@@ -142,4 +142,4 @@ def test_settings_from_env():
                            "DOMAIN": "academy.example"})
     assert s.services == {"hub": "http://hub:8000/hub/api", "comptes": "http://comptes:8300/connexion"}
     assert s.admins == ("a@x.fr", "b@x.fr") and s.disk == 1.0 and s.smtp_port == 587
-    assert s.smtp_from == "ROS Academy <no-reply@academy.example>"
+    assert s.smtp_from == "RoboForge <no-reply@academy.example>"

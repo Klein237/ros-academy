@@ -116,7 +116,7 @@ class Settings:
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: str = ""
-    smtp_from: str = "ROS Academy <no-reply@localhost>"
+    smtp_from: str = "RoboForge <no-reply@localhost>"
     domain: str = "localhost"
 
     @classmethod
@@ -145,7 +145,7 @@ class Settings:
             smtp_port=int(env.get("SMTP_PORT") or "587"),
             smtp_user=env.get("SMTP_USER", ""),
             smtp_password=env.get("SMTP_PASSWORD", ""),
-            smtp_from=env.get("SMTP_FROM") or f"ROS Academy <no-reply@{domain}>",
+            smtp_from=env.get("SMTP_FROM") or f"RoboForge <no-reply@{domain}>",
             domain=domain,
         )
 
@@ -193,16 +193,16 @@ class Watch:
         if not alarm.active and value >= threshold:
             alarm.active, alarm.since, alarm.last_sent = True, now, now
             log.warning("ALERTE %s", alarm.detail)
-            self._notify(f"[ROS Academy] Alerte : {alarm.detail}", self._body(alarm.detail))
+            self._notify(f"[RoboForge] Alerte : {alarm.detail}", self._body(alarm.detail))
         elif alarm.active and value < threshold - HYSTERESIS:
             alarm.active = False
             log.info("RETOUR À LA NORMALE %s", alarm.detail)
-            self._notify(f"[ROS Academy] Retour à la normale : {unit_label}",
+            self._notify(f"[RoboForge] Retour à la normale : {unit_label}",
                          self._body(f"{alarm.detail}, après {self._duration(now - alarm.since)}."))
         elif alarm.active and now - alarm.last_sent >= self.s.reminder:
             alarm.last_sent = now
             log.warning("ALERTE (rappel) %s", alarm.detail)
-            self._notify(f"[ROS Academy] Toujours en alerte : {alarm.detail}",
+            self._notify(f"[RoboForge] Toujours en alerte : {alarm.detail}",
                          self._body(f"{alarm.detail}, depuis {self._duration(now - alarm.since)}."))
 
     def _service(self, name, ok, detail):
@@ -211,7 +211,7 @@ class Watch:
         if ok:
             if alarm.active:
                 log.info("RETOUR À LA NORMALE service %s", name)
-                self._notify(f"[ROS Academy] Service rétabli : {name}",
+                self._notify(f"[RoboForge] Service rétabli : {name}",
                              self._body(f"Le service {name} répond de nouveau, après "
                                         f"{self._duration(now - alarm.since)} d'interruption."))
             alarm.active, alarm.failures = False, 0
@@ -221,11 +221,11 @@ class Watch:
         if not alarm.active and alarm.failures >= SERVICE_FAILURES:
             alarm.active, alarm.since, alarm.last_sent = True, now, now
             log.warning("ALERTE %s", alarm.detail)
-            self._notify(f"[ROS Academy] Alerte : {alarm.detail}", self._body(alarm.detail))
+            self._notify(f"[RoboForge] Alerte : {alarm.detail}", self._body(alarm.detail))
         elif alarm.active and now - alarm.last_sent >= self.s.reminder:
             alarm.last_sent = now
             log.warning("ALERTE (rappel) %s", alarm.detail)
-            self._notify(f"[ROS Academy] Toujours en alerte : {alarm.detail}", self._body(alarm.detail))
+            self._notify(f"[RoboForge] Toujours en alerte : {alarm.detail}", self._body(alarm.detail))
 
     def _body(self, text):
         return (f"{text}\n\nServeur : {self.s.domain}\n"

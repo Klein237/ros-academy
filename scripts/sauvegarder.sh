@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sauvegarde de ROS Academy : base des comptes, contenu des formations, dossiers des étudiants
+# Sauvegarde de RoboForge : base des comptes, contenu des formations, dossiers des étudiants
 # et configuration (deploy/.env), dans un dossier daté. Les sauvegardes plus anciennes que
 # SAUVEGARDE_JOURS (deploy/.env, 14 par défaut) sont effacées.
 #

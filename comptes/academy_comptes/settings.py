@@ -42,7 +42,7 @@ class Settings:
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: str = ""
-    smtp_from: str = "ROS Academy <no-reply@localhost>"
+    smtp_from: str = "RoboForge <no-reply@localhost>"
     # Test en local : afficher le lien de confirmation à l'écran (jamais en ligne, voir show_login_link)
     login_link_on_screen: bool = False
     github_client_id: str = ""
@@ -106,7 +106,7 @@ class Settings:
             smtp_port=int(env("SMTP_PORT", "587")),
             smtp_user=env("SMTP_USER", ""),
             smtp_password=env("SMTP_PASSWORD", ""),
-            smtp_from=env("SMTP_FROM") or f"ROS Academy <no-reply@{domain}>",
+            smtp_from=env("SMTP_FROM") or f"RoboForge <no-reply@{domain}>",
             login_link_on_screen=env("CONNEXION_LIEN_A_L_ECRAN", "0") == "1",
             github_client_id=env("GITHUB_CLIENT_ID", ""),
             github_client_secret=env("GITHUB_CLIENT_SECRET", ""),

@@ -92,7 +92,7 @@ def smtp(monkeypatch):
 
 def test_mail_test_command(smtp, capsys):
     s = Settings(jwt_secret=SECRET, smtp_host="smtp.gmail.com", smtp_user="moi@gmail.com", smtp_password="x",
-                 smtp_from="ROS Academy <moi@gmail.com>")
+                 smtp_from="RoboForge <moi@gmail.com>")
     assert mail.main(["dest@exemple.fr"], settings=s) == 0
     assert smtp.logins == ["moi@gmail.com"] and smtp.sent[0]["To"] == "dest@exemple.fr"
     assert "E-mail de test envoyé" in capsys.readouterr().out

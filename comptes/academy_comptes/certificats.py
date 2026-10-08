@@ -131,8 +131,8 @@ def render_pdf(cert, verify_url):
     buf = io.BytesIO()
     w, h = landscape(A4)
     c = canvas.Canvas(buf, pagesize=(w, h), invariant=1)
-    c.setTitle(f"Certificat ROS Academy — {cert.nom}")
-    c.setAuthor("ROS Academy")
+    c.setTitle(f"Certificat RoboForge — {cert.nom}")
+    c.setAuthor("RoboForge")
     c.setSubject(cert.parcours_titre)
 
     c.setStrokeColor(accent)
@@ -143,7 +143,7 @@ def render_pdf(cert, verify_url):
 
     c.setFillColor(accent)
     c.setFont("Helvetica-Bold", 14)
-    c.drawCentredString(w / 2, h - 82, "ROS ACADEMY")
+    c.drawCentredString(w / 2, h - 82, "ROBOFORGE")
     c.setFillColor(ink)
     c.setFont("Helvetica-Bold", 34)
     c.drawCentredString(w / 2, h - 130, "Certificat de réussite")

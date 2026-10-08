@@ -206,7 +206,7 @@ class RestoreBody(BaseModel):
 
 
 def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tests_enabled=True, verifier=None):
-    app = FastAPI(title="Contenus ROS Academy", docs_url=None, redoc_url=None, openapi_url=None)
+    app = FastAPI(title="Contenus RoboForge", docs_url=None, redoc_url=None, openapi_url=None)
     templates = Jinja2Templates(directory=str(HERE / "templates"))
     templates.env.globals["lab_link"] = lab_link
     internal_token = hmac.new(secret.encode(), b"contenus-interne", hashlib.sha256).hexdigest()

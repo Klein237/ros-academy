@@ -1,6 +1,6 @@
 apiVersion: 1
 providers:
-  - name: ROS Academy
+  - name: RoboForge
     folder: ""
     type: file
     disableDeletion: true

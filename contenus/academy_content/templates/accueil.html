@@ -6,34 +6,48 @@
 <section class="conteneur accueil-hero">
   <div class="accueil-hero-texte">
     <p class="pastille douce">ROS 2 Jazzy · Gazebo Harmonic · 100 % dans le navigateur</p>
-    <h1>Apprenez ROS 2 sur des cas concrets, sans rien installer</h1>
-    <p class="chapeau">Faire rouler un robot, lire ses capteurs, le voir dans le simulateur : chaque module part d'une situation que vous rencontrerez sur un vrai projet. Le terminal, l'éditeur et Gazebo s'ouvrent dans votre navigateur.</p>
+    <h1>Apprenez à développer le logiciel d'un robot</h1>
+    <p class="chapeau">Avec ROS 2, le standard de la robotique, dans un lab où vous pouvez expérimenter, vous tromper et recommencer, sans matériel à gérer ni rien à installer.</p>
     <div class="actions">
       {% if premier %}<a class="button primary grand" href="/parcours/{{ premier.id }}/">Commencer gratuitement</a>{% endif %}
       <a class="button grand" href="/decouvrir/">Découvrir ROS 2 en 20 min</a>
     </div>
     <ul class="avantages">
       <li>{{ coche() }}Aucune installation</li>
+      <li>{{ coche() }}Aucun matériel</li>
       <li>{{ coche() }}Gratuit pour commencer</li>
       <li>{{ coche() }}Certificat vérifiable</li>
     </ul>
   </div>
-  <div class="apercu" role="img" aria-label="Aperçu : le cours à gauche, le lab ROS 2 à droite, dans le navigateur">
+  <div class="apercu" role="img" aria-label="Aperçu : un exercice de diagnostic à gauche ; à droite, le lab où l'on corrige le code, puis la vérification qui passe d'un échec à une réussite">
     <div class="apercu-barre"><span></span><span></span><span></span></div>
     <div class="apercu-corps">
       <div class="apercu-cours">
-        <span class="eyebrow">Module 2 · Écrire un nœud</span>
-        <span class="apercu-titre">Le robot reçoit ses ordres</span>
-        <span class="apercu-texte">Le nœud s'abonne à cmd_vel, intègre les vitesses et publie odom toutes les 50 ms.</span>
-        <code class="apercu-code">self.create_subscription(<br>&nbsp;&nbsp;Twist, 'cmd_vel', …)</code>
-        <span class="apercu-boutons"><span class="mini primaire">Ouvrir dans le lab</span><span class="mini">Lancer</span></span>
+        <span class="eyebrow">Exercice · Le robot ne part pas en patrouille</span>
+        <span class="apercu-titre">Tout démarre, rien ne bouge</span>
+        <span class="apercu-texte">Aucune erreur à l'écran. À vous de trouver la panne avec les outils du cours.</span>
+        <code class="apercu-code">$ ros2 topic list -t<br>/cmd_vel [Twist, TwistStamped]</code>
+        <span class="apercu-boutons"><span class="mini primaire">Vérifier</span><span class="mini">Indice</span><span class="mini">Réinitialiser</span></span>
       </div>
       <div class="apercu-lab">
-        <div class="apercu-onglets"><span class="actif">diff_drive_node.py</span><span>robot.launch.py</span></div>
-        <code class="apercu-editeur"><b>class</b> DiffDrive(Node):<br>&nbsp;&nbsp;<b>def</b> update(self):<br>&nbsp;&nbsp;&nbsp;&nbsp;self.x += v * cos(θ) * dt</code>
-        <code class="apercu-terminal"><b>$</b> ros2 topic echo /odom nav_msgs/msg/Odometry<br><i>x: 0.84  y: 0.12</i></code>
+        <div class="apercu-onglets"><span class="actif">patrouille_node.py</span><span>robot.launch.py</span></div>
+        <code class="apercu-editeur"><i># le robot attend des Twist</i><br>self.pub = self.create_publisher(<br>&nbsp;&nbsp;<b>Twist</b>, 'cmd_vel', 10)</code>
+        <code class="apercu-terminal"><span class="ko">✘</span> <i>le robot n'a pas bougé</i><br><span class="ok">✔</span> 0,62 m parcourus depuis le départ</code>
       </div>
     </div>
+  </div>
+</section>
+
+<section class="bande" aria-labelledby="se-tromper">
+  <div class="conteneur">
+    <h2 id="se-tromper">Se tromper sans rien casser</h2>
+    <p class="sous-titre">Sur un vrai robot, une erreur coûte une pièce, une batterie ou une journée. Ici, elle fait partie de l'apprentissage.</p>
+    <ol class="etapes">
+      <li><span class="numero">01</span><h3>Une vraie panne</h3><p>Chaque module pratique se termine par un robot qui ne fait pas ce qu'on attend. Vous cherchez, comme sur un vrai projet.</p></li>
+      <li><span class="numero">02</span><h3>Des indices</h3><p>Bloqué ? Les indices vous mettent sur la piste, pas à pas, sans donner la réponse d'un coup.</p></li>
+      <li><span class="numero">03</span><h3>Réinitialiser</h3><p>Un clic remet le workspace de départ. Votre version est mise de côté : rien n'est jamais perdu.</p></li>
+      <li><span class="numero">04</span><h3>Recommencer</h3><p>Pas de robot à réparer, pas d'installation à refaire. Vous relancez, vous essayez autre chose.</p></li>
+    </ol>
   </div>
 </section>
 
@@ -48,6 +62,23 @@
       <li><span class="outil-icone">{ }</span><strong>Éditeur de code</strong><span>Python, C++, launch, URDF</span></li>
       <li><span class="outil-icone">◎</span><strong>Simulateur</strong><span>Gazebo Harmonic et RViz</span></li>
     </ul>
+  </div>
+</section>
+
+<section class="conteneur bloc" aria-labelledby="savoir-faire">
+  <div class="entete-section">
+    <div>
+      <h2 id="savoir-faire">Ce que vous saurez faire</h2>
+      <p class="sous-titre">Les compétences d'un développeur logiciel en robotique, acquises sur un même robot, de son premier tour de roue à sa simulation.</p>
+    </div>
+  </div>
+  <div class="grille-petite grille-3">
+    <div class="carte-simple"><strong>Comprendre un robot mobile</strong><p>Capteurs et actionneurs, repères, vitesses linéaire et angulaire, cinématique.</p></div>
+    <div class="carte-simple"><strong>Travailler sous Linux</strong><p>Le terminal, les fichiers, les droits et les processus, au quotidien.</p></div>
+    <div class="carte-simple"><strong>Organiser son code</strong><p>Workspace, packages et compilation avec colcon, comme dans une équipe.</p></div>
+    <div class="carte-simple"><strong>Programmer avec ROS 2</strong><p>Nœuds, topics, services, actions, paramètres et fichiers launch, en Python et en C++.</p></div>
+    <div class="carte-simple"><strong>Décrire et simuler le robot</strong><p>Ses repères avec TF2, sa forme en URDF, sa simulation dans Gazebo et RViz.</p></div>
+    <div class="carte-simple"><strong>Diagnostiquer une panne</strong><p>Interroger le graphe, lire les journaux, enregistrer et rejouer avec ros2 bag.</p></div>
   </div>
 </section>
 
@@ -67,11 +98,25 @@
     <h2 id="chemin">Du problème au robot qui marche</h2>
     <p class="sous-titre">Chaque module raconte une situation concrète, et vous la résolvez vous-même.</p>
     <ol class="etapes">
-      <li><span class="numero">01</span><h3>Un cas réel</h3><p>Un robot doit avancer, suivre un mur, rejoindre un point. On part toujours d'un besoin concret.</p></li>
-      <li><span class="numero">02</span><h3>Le juste nécessaire</h3><p>Un cours court qui explique le concept ROS 2 utile pour ce cas, en Python et en C++.</p></li>
+      <li><span class="numero">01</span><h3>Un cas réel</h3><p>Un robot doit avancer, répondre à une question, rejoindre un point. On part toujours d'un besoin concret.</p></li>
+      <li><span class="numero">02</span><h3>L'essentiel en théorie</h3><p>Un cours court qui explique ce qu'il faut comprendre pour ce cas, avec des schémas et des exemples en Python et en C++.</p></li>
       <li><span class="numero">03</span><h3>Les mains dedans</h3><p>Vous codez, lancez et observez dans le lab, ouvert à côté du cours. Puis vous corrigez un robot en panne.</p></li>
       <li><span class="numero">04</span><h3>Validé</h3><p>Votre code est vérifié automatiquement. Un QCM, une note, et un certificat à la fin du parcours.</p></li>
     </ol>
+  </div>
+</section>
+
+<section class="conteneur bloc" aria-labelledby="pour-qui">
+  <div class="entete-section">
+    <div>
+      <h2 id="pour-qui">Pour qui ?</h2>
+      <p class="sous-titre">Prérequis : les bases de Python. Le reste, Linux compris, s'apprend dans le parcours.</p>
+    </div>
+  </div>
+  <div class="grille-petite grille-3">
+    <div class="carte-simple"><strong>Étudiants</strong><p>En école d'ingénieurs, à l'université ou en BTS : la pratique logicielle qui complète vos cours de robotique.</p></div>
+    <div class="carte-simple"><strong>Développeurs</strong><p>Vous savez programmer et voulez passer à la robotique, sans acheter de robot pour commencer.</p></div>
+    <div class="carte-simple"><strong>Enseignants et formateurs</strong><p>Un environnement prêt pour toute une classe, des exercices corrigés automatiquement et le suivi de chacun.</p></div>
   </div>
 </section>
 
@@ -79,7 +124,7 @@
   <div class="entete-section">
     <div>
       <h2 id="les-parcours">Les parcours</h2>
-      <p class="sous-titre">Des fondamentaux jusqu'aux robots autonomes.</p>
+      <p class="sous-titre">Les fondamentaux aujourd'hui ; la navigation, la perception et la manipulation ensuite.</p>
     </div>
     <a class="lien-fort" href="/catalogue/">Tout le catalogue {{ fleche() }}</a>
   </div>

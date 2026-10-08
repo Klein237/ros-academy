@@ -20,7 +20,7 @@ egal "minimum 2" "$(sessions_conseillees 7 1)" 2
 echo "generer_env"
 TMP=$(mktemp -d)
 DOMAINE=academy.exemple.fr ADMIN="moi@exemple.fr" SESSIONS=18 SMTP_HOST=smtp.gmail.com SMTP_PORT=587
-SMTP_USER=moi@gmail.com SMTP_PASSWORD='abcd efgh|&\ijkl' SMTP_FROM="ROS Academy <moi@gmail.com>"
+SMTP_USER=moi@gmail.com SMTP_PASSWORD='abcd efgh|&\ijkl' SMTP_FROM="RoboForge <moi@gmail.com>"
 EXTRA_ENV=("VEILLE_SEUIL_DISQUE=1")
 EDITEUR_NOM="Klein & Fils" EDITEUR_ADRESSE="1 rue de la Paix, 75002 Paris" HEBERGEUR="Hetzner Online GmbH"
 generer_env "$RACINE/deploy/.env.example" "$TMP/.env"
@@ -29,7 +29,7 @@ egal "DOMAIN" "$(valeur_env "$E" DOMAIN)" academy.exemple.fr
 egal "ADMIN_EMAILS" "$(valeur_env "$E" ADMIN_EMAILS)" moi@exemple.fr
 egal "ACTIVE_SERVER_LIMIT" "$(valeur_env "$E" ACTIVE_SERVER_LIMIT)" 18
 egal "mot de passe SMTP avec caractères spéciaux" "$(valeur_env "$E" SMTP_PASSWORD)" 'abcd efgh|&\ijkl'
-egal "SMTP_FROM" "$(valeur_env "$E" SMTP_FROM)" "ROS Academy <moi@gmail.com>"
+egal "SMTP_FROM" "$(valeur_env "$E" SMTP_FROM)" "RoboForge <moi@gmail.com>"
 egal "lien à l'écran désactivé" "$(valeur_env "$E" CONNEXION_LIEN_A_L_ECRAN)" 0
 egal "dossiers à quota" "$(valeur_env "$E" LAB_HOMES_DIR)" /srv/ros-academy/homes
 egal "override compose" "$(valeur_env "$E" COMPOSE_FILE)" docker-compose.yml:docker-compose.quotas.yml

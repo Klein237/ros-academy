@@ -1,0 +1,10 @@
+titre: Perception
+description: >-
+  Donner des yeux au robot : caméras et lasers, traitement d'image avec
+  OpenCV, nuages de points et détection d'objets, intégrés dans ROS 2.
+accroche: Caméras, lasers, traitement d'image et détection d'objets.
+statut: bientot
+niveau: intermediaire
+ordre: 35
+prerequis:
+  - ROS 2 Fondamentaux

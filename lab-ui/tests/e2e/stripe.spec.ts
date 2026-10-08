@@ -18,12 +18,12 @@ async function minutesLeft(page: Page): Promise<number | null> {
   return (await (await page.request.get("/api/comptes/moi")).json()).minutes_restantes;
 }
 
-/** Depuis la page Abonnement : ouvre le portail, clique une action, revient sur ROS Academy. */
+/** Depuis la page Abonnement : ouvre le portail, clique une action, revient sur RoboForge. */
 async function portal(page: Page, action: string): Promise<void> {
   await page.getByRole("button", { name: "Gérer mon abonnement" }).click();
   await expect(page).toHaveURL(new RegExp(`^${STRIPE}/portal/`));
   await page.getByRole("button", { name: action }).click();
-  await page.getByRole("link", { name: "Retour à ROS Academy" }).click();
+  await page.getByRole("link", { name: "Retour à RoboForge" }).click();
   await expect(page).toHaveURL(/\/compte\/abonnement$/);
 }
 

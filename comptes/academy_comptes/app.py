@@ -134,7 +134,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         if task:
             task.cancel()
 
-    app = FastAPI(title="Comptes ROS Academy", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
+    app = FastAPI(title="Comptes RoboForge", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
     app.state.session_factory = SessionLocal
     app.state.tick = tick
     app.mount("/static/comptes", StaticFiles(directory=str(HERE / "static")), name="static")
@@ -456,7 +456,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         if not user:
             return login_redirect("/compte/")
         return Response(rgpd.export_json(db, user), media_type="application/json; charset=utf-8",
-                        headers={"Content-Disposition": 'attachment; filename="ros-academy-mes-donnees.json"',
+                        headers={"Content-Disposition": 'attachment; filename="roboforge-mes-donnees.json"',
                                  "Cache-Control": "no-store"})
 
     @app.get("/compte/supprimer", response_class=HTMLResponse)
@@ -761,7 +761,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
             raise HTTPException(410, "Ce certificat a été révoqué")
         pdf = certificats.render_pdf(cert, f"{settings.public_url}/certificats/{cert.code}")
         return Response(pdf, media_type="application/pdf", headers={
-            "Content-Disposition": f'inline; filename="certificat-ros-academy-{cert.code}.pdf"'})
+            "Content-Disposition": f'inline; filename="certificat-roboforge-{cert.code}.pdf"'})
 
     @app.get("/certificats/{code}", response_class=HTMLResponse)
     def certificate_page(request: Request, code: str, user=Depends(current_user), db=Depends(get_db)):
