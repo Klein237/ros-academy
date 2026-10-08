@@ -3,8 +3,10 @@
      aucun modèle à télécharger (le lab n'a pas d'accès à Internet). -->
 <sdf version="1.9">
   <world name="salle">
-    <physics name="1ms" type="ignored">
-      <max_step_size>0.001</max_step_size>
+    <!-- Un pas de physique de 4 ms (250 par seconde) : assez fin pour un robot qui roule à 0,5 m/s,
+         et quatre fois moins de calcul qu'avec 1 ms -->
+    <physics name="4ms" type="ignored">
+      <max_step_size>0.004</max_step_size>
       <real_time_factor>1.0</real_time_factor>
     </physics>
 

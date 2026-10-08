@@ -237,6 +237,8 @@ Dans Gazebo Harmonic, tout ce qui agit sur la simulation est un **système** (pl
       <topic>/joint_states</topic>
       <joint_name>left_wheel_joint</joint_name>
       <joint_name>right_wheel_joint</joint_name>
+      <!-- 30 fois par seconde suffisent pour les TF des roues (sinon : à chaque pas de physique) -->
+      <update_rate>30</update_rate>
     </plugin>
   </gazebo>
 
@@ -303,8 +305,10 @@ Un monde Gazebo est un fichier **SDF** : les systèmes du simulateur, la physiqu
      aucun modèle à télécharger (le lab n'a pas d'accès à Internet). -->
 <sdf version="1.9">
   <world name="salle">
-    <physics name="1ms" type="ignored">
-      <max_step_size>0.001</max_step_size>
+    <!-- Un pas de physique de 4 ms (250 par seconde) : assez fin pour un robot qui roule à 0,5 m/s,
+         et quatre fois moins de calcul qu'avec 1 ms -->
+    <physics name="4ms" type="ignored">
+      <max_step_size>0.004</max_step_size>
       <real_time_factor>1.0</real_time_factor>
     </physics>
 
@@ -469,6 +473,8 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('gui', default_value='false',
                               description="Fenêtre de Gazebo, sur le Bureau du lab"),
+        DeclareLaunchArgument('rviz', default_value='false',
+                              description='RViz2 déjà configuré (config/robot.rviz), sur le Bureau du lab'),
         # Le simulateur, sans fenêtre : physique, capteurs (rendu sans écran) et plugins ; -r : démarre tout de suite
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(gz_launch),
@@ -497,6 +503,14 @@ def generate_launch_description():
             executable='parameter_bridge',
             parameters=[{'config_file': os.path.join(pkg, 'config', 'pont.yaml'), 'use_sim_time': True}],
             output='screen',
+        ),
+        # RViz2 avec sa configuration (modèle, laser, repères), à l'heure de la simulation lui aussi
+        Node(
+            package='rviz2',
+            executable='rviz2',
+            arguments=['-d', os.path.join(pkg, 'config', 'robot.rviz')],
+            parameters=[{'use_sim_time': True}],
+            condition=IfCondition(LaunchConfiguration('rviz')),
         ),
     ])
 ```
@@ -533,6 +547,7 @@ ament_package()
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>joint_state_publisher</exec_depend>
   <exec_depend>xacro</exec_depend>
+  <exec_depend>rviz2</exec_depend>
   <exec_depend>ros_gz_sim</exec_depend>
   <exec_depend>ros_gz_bridge</exec_depend>
 
@@ -562,15 +577,62 @@ ros2 topic pub --once /cmd_vel geometry_msgs/msg/Twist "{angular: {z: 0.5}}"
 
 La **vue 2D** du lab suit le robot simulé (topic `/odom`) et le pilote avec ses flèches.
 
-Pour **voir** ce que perçoit le robot, ouvrez le **Bureau (RViz, Gazebo)** et lancez RViz2 dans un terminal, **avec l'horloge de la simulation** comme les autres nœuds :
+Pour **voir** ce que perçoit le robot, on utilise RViz2, avec une configuration toute prête. Créez-la dans `config/`, à côté du pont :
 
-```bash
-rviz2 --ros-args -p use_sim_time:=true
+```yaml fichier=src/my_robot_description/config/robot.rviz
+# Configuration RViz2 du module Gazebo : le modèle du robot, le laser et les repères, vus dans odom.
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Enabled: true
+      Name: Grid
+    - Class: rviz_default_plugins/RobotModel
+      Enabled: true
+      Name: RobotModel
+      Description Source: Topic
+      Description Topic:
+        Value: /robot_description
+    - Class: rviz_default_plugins/LaserScan
+      Enabled: true
+      Name: LaserScan
+      Size (m): 0.05
+      Topic:
+        Value: /scan
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Name: TF
+  Enabled: true
+  Global Options:
+    Fixed Frame: odom
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/MoveCamera
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 5
+      Name: Current View
+      Pitch: 0.9
+      Yaw: 0.8
+Window Geometry:
+  Height: 760
+  Width: 1200
 ```
 
-Sans `use_sim_time`, RViz2 compare les dates des mesures (temps simulé) à l'heure de la machine : il rejette les scans et les TF, avec des messages *Message Filter dropping message*.
+Recompilez (un fichier ajouté à `config/` n'est installé qu'après un nouveau `colcon build`), ouvrez le **Bureau (RViz, Gazebo)**, puis relancez la simulation avec RViz2 :
 
-Dans RViz2 :
+```bash
+colcon build --symlink-install
+ros2 launch my_robot_description gazebo.launch.py rviz:=true
+```
+
+RViz2 s'ouvre avec `config/robot.rviz` (le modèle, le laser et les repères, vus dans `odom`) et **avec l'horloge de la simulation** (`use_sim_time`), comme les autres nœuds. Sans elle, RViz2 compare les dates des mesures (temps simulé) à l'heure de la machine : il rejette les scans et les TF, avec des messages *Message Filter dropping message*.
+
+La configuration correspond à ces réglages, que l'on peut aussi faire à la main dans un RViz2 lancé seul (`rviz2 --ros-args -p use_sim_time:=true`) :
 
 - *Fixed Frame* : `odom` ;
 - **Add** → **RobotModel** (*Description Topic* : `/robot_description`) ;
@@ -579,7 +641,7 @@ Dans RViz2 :
 
 Faites tourner le robot : les points du laser restent sur les murs, le robot tourne au milieu. Si les points tournent avec le robot, la TF `odom → base_link` est fausse.
 
-La fenêtre de Gazebo s'ouvre aussi sur le Bureau : `ros2 launch my_robot_description gazebo.launch.py gui:=true`. Sans carte graphique, elle est lente : fermez-la quand vous n'en avez pas besoin.
+La fenêtre de Gazebo s'ouvre aussi sur le Bureau : `ros2 launch my_robot_description gazebo.launch.py gui:=true`. Sans carte graphique, elle coûte cher : avec elle, la simulation peut ralentir à environ deux tiers du temps réel. Travaillez avec RViz2, et n'ouvrez la fenêtre de Gazebo que pour un coup d'œil.
 
 ## 7. Rappel
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Le bureau du lab sous charge, aux limites de l'offre gratuite (1 processeur, 2 Go, 256 processus,
 # comme le Hub les applique) : Gazebo seul, puis avec RViz2, puis avec la fenêtre de Gazebo.
-# Pour chaque étape : facteur temps réel de la simulation, processeur et mémoire du conteneur,
+# RViz2 utilise config/robot.rviz du module. Pour chaque étape : facteur temps réel de la simulation, processeur et mémoire du conteneur,
 # temps d'ouverture de la fenêtre et capture du bureau (rapport.md et *.png dans le dossier donné).
 # C'est une mesure : le script n'échoue que si la simulation ne démarre pas.
 set -euo pipefail
@@ -14,12 +14,11 @@ OUT="${1:-bureau-charge}"
 mkdir -p "$OUT"
 OUT=$(cd "$OUT" && pwd)
 
-# workspace du module Gazebo : départ de l'exercice + solution = le robot complet, et la configuration RViz
+# workspace du module Gazebo : départ de l'exercice + solution = le robot complet, avec sa configuration RViz
 WS=$(mktemp -d)
 EX="$RACINE/content/modules/11-gazebo/exercice"
 cp -r "$EX/depart/." "$WS/"
 cp -r "$EX/solution/." "$WS/"
-cp "$ICI/bureau/robot.rviz" "$WS/robot.rviz"
 chmod -R a+rwX "$WS"
 
 C=bureau-charge
@@ -70,9 +69,13 @@ if ! demarrage=$(attendre 'gz topic -l | grep -qE "^/world/[^/]+/stats$" && ros2
 fi
 fond 'ros2 topic pub -r 2 /cmd_vel geometry_msgs/msg/Twist "{angular: {z: 0.3}}" > /dev/null 2>&1'
 mesure "Gazebo seul (sans fenêtre)" 1-gazebo "démarrage : $demarrage"
+FREQ=$(dx 'cd ~/ws && source install/setup.bash; for t in /joint_states /odom /scan; do
+  f=$(timeout 12 ros2 topic hz -w 20 "$t" 2>/dev/null | awk "/average rate/ {r = \$3} END {print r}")
+  printf "%s : %s Hz ; " "$t" "${f:-?}"; done' || true)
+echo "Fréquences : $FREQ"
 
 # 2. + RViz2, avec sa configuration (modèle, laser, repères) et l'heure de la simulation
-fond 'rviz2 -d ~/ws/robot.rviz --ros-args -p use_sim_time:=true > /tmp/rviz.log 2>&1'
+fond 'rviz2 -d ~/ws/install/my_robot_description/share/my_robot_description/config/robot.rviz --ros-args -p use_sim_time:=true > /tmp/rviz.log 2>&1'
 fenetre=$(attendre 'xwininfo -root -tree | grep -q "RViz"' 180 || true)
 mesure "+ RViz2" 2-rviz "$fenetre"
 
@@ -88,6 +91,8 @@ oom=$(docker inspect -f '{{.State.OOMKilled}}' "$C")
   echo "| Étape | Temps réel (×) | Processeur | Mémoire | Fenêtre | Programmes en vie |"
   echo "|---|---|---|---|---|---|"
   printf '%s\n' "${LIGNES[@]}"
+  echo
+  echo "Fréquences des topics (Gazebo seul) : ${FREQ%; }."
   echo
   echo "Temps réel : vitesse de la simulation par rapport à l'horloge (1,00 = temps réel). Processeur : 100 % = le processeur entier du lab."
   echo "Conteneur arrêté par manque de mémoire : $oom. Captures du bureau : artefact bureau-charge."
