@@ -25,18 +25,18 @@ def _message(settings, email, subject, body):
 MAILS = {
     # sorte : (libellé dans les journaux, objet, texte avant le lien, texte après le lien)
     "confirmation": (
-        "lien de confirmation", "Confirmez votre adresse — ROS Academy",
-        "Bonjour,\n\nBienvenue sur ROS Academy ! Pour activer votre compte, confirmez votre adresse en ouvrant "
+        "lien de confirmation", "Confirmez votre adresse — RoboForge",
+        "Bonjour,\n\nBienvenue sur RoboForge ! Pour activer votre compte, confirmez votre adresse en ouvrant "
         "ce lien (valable 24 heures, une seule fois) :",
         "Si vous n'avez pas créé de compte, ignorez ce message.",
     ),
     "reinitialisation": (
-        "lien de réinitialisation", "Choisissez un nouveau mot de passe — ROS Academy",
+        "lien de réinitialisation", "Choisissez un nouveau mot de passe — RoboForge",
         "Bonjour,\n\nPour choisir un nouveau mot de passe, ouvrez ce lien (valable 30 minutes, une seule fois) :",
         "Si vous n'avez rien demandé, ignorez ce message : votre mot de passe actuel reste valable.",
     ),
     "compte_existant": (
-        "lien de réinitialisation", "Vous avez déjà un compte — ROS Academy",
+        "lien de réinitialisation", "Vous avez déjà un compte — RoboForge",
         "Bonjour,\n\nQuelqu'un (vous, sans doute) a voulu créer un compte avec cette adresse, mais elle en a déjà "
         "un. Connectez-vous avec votre mot de passe ; si vous l'avez oublié ou n'en avez jamais choisi, ouvrez ce "
         "lien (valable 30 minutes, une seule fois) :",
@@ -87,8 +87,8 @@ def main(argv=None, settings=None):
         return 1
     print(f"Envoi par {settings.smtp_host}:{settings.smtp_port} (utilisateur : {settings.smtp_user or 'aucun'}, "
           f"expéditeur : {settings.smtp_from})…")
-    msg = _message(settings, argv[0], "ROS Academy : test d'envoi",
-                   "Ce message confirme que ROS Academy peut envoyer des e-mails (confirmation d'adresse, mot de passe, alertes).\n")
+    msg = _message(settings, argv[0], "RoboForge : test d'envoi",
+                   "Ce message confirme que RoboForge peut envoyer des e-mails (confirmation d'adresse, mot de passe, alertes).\n")
     try:
         deliver(settings, msg)
     except (OSError, smtplib.SMTPException) as exc:

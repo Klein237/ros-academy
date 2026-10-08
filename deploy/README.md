@@ -75,7 +75,7 @@ Le script est rejouable : un `deploy/.env` existant est gardé. Sans questions :
 
 ## Abonnement pro (Stripe)
 Formule `pro` : lab sans limite de minutes, conteneur 2 vCPU / 4 Go. Proposée sur `/compte/abonnement` seulement quand les trois variables `STRIPE_*` sont renseignées.
-1. Dans Stripe (mode test d'abord) : créer un produit « ROS Academy pro » et un **prix récurrent mensuel** (9 €) ; copier son identifiant `price_…` dans `STRIPE_PRICE_ID`.
+1. Dans Stripe (mode test d'abord) : créer un produit « RoboForge pro » et un **prix récurrent mensuel** (9 €) ; copier son identifiant `price_…` dans `STRIPE_PRICE_ID`.
 2. Activer et configurer le **portail client** (Paramètres → Facturation → Portail client) : résiliation, mise à jour de la carte, factures.
 3. Déclarer le **webhook** `https://<domaine>/api/comptes/stripe/webhook` avec les événements `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted` ; copier son secret `whsec_…` dans `STRIPE_WEBHOOK_SECRET`, et la clé secrète dans `STRIPE_SECRET_KEY`.
 4. `docker compose up -d comptes`. Tester avec la carte `4242 4242 4242 4242` ; en local, `stripe listen --forward-to https://localhost/api/comptes/stripe/webhook` remplace l'étape 3.

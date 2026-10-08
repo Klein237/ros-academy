@@ -278,6 +278,7 @@ body.cote-a-cote main.page:not(.plein) { padding: 24px 24px 48px; }
 .apercu-lab { background: #0f141a; color: #c9d3dc; display: flex; flex-direction: column; }
 .apercu-lab b { color: #7fd4c1; font-weight: 400; }
 .apercu-lab i { color: #8fa0b0; font-style: normal; }
+.apercu-lab .ko { color: #ff6b6b; } .apercu-lab .ok { color: #51cf66; }
 .apercu-onglets { display: flex; gap: 16px; padding: 10px 14px; border-bottom: 1px solid #243040; color: #8fa0b0; }
 .apercu-onglets .actif { color: #ffffff; }
 .apercu-editeur { padding: 12px 14px; flex: 1; }
@@ -360,6 +361,7 @@ body.cote-a-cote main.page:not(.plein) { padding: 24px 24px 48px; }
 .frise strong { font-family: var(--font-titre); font-size: 1.25rem; color: var(--accent); }
 .frise p { margin: 4px 0 0; color: var(--text-2); line-height: 1.6; }
 .grille-petite { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.grille-3 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
 .carte-simple { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
 .carte-simple p { margin: 6px 0 0; color: var(--text-2); line-height: 1.55; }
 .concepts { margin: 0; background: #0f141a; color: #c9d3dc; border-radius: var(--radius-lg); padding: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; }

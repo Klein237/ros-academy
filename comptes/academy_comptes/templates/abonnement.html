@@ -23,7 +23,7 @@
   </ul>
   <p class="price">{{ prix or "Prix indisponible pour le moment" }}</p>
   <form method="post" action="/compte/abonnement/souscrire"><button class="button primary" type="submit"{% if not prix %} disabled{% endif %}>S'abonner</button></form>
-  <p class="muted small">Le paiement se fait sur la page sécurisée de Stripe : vos coordonnées bancaires ne passent pas par ROS Academy.{% if user.formule == "pro" %} Votre compte est déjà en formule pro (attribuée par l'équipe).{% endif %}</p>
+  <p class="muted small">Le paiement se fait sur la page sécurisée de Stripe : vos coordonnées bancaires ne passent pas par RoboForge.{% if user.formule == "pro" %} Votre compte est déjà en formule pro (attribuée par l'équipe).{% endif %}</p>
   {% endif %}
 </section>
 <p><a href="/compte/">← Mon compte</a></p>

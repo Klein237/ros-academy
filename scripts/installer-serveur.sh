@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installe ROS Academy sur un serveur Ubuntu (22.04 ou 24.04), depuis le dépôt cloné :
+# Installe RoboForge sur un serveur Ubuntu (22.04 ou 24.04), depuis le dépôt cloné :
 #
 #   git clone https://github.com/Klein237/ros-academy.git && cd ros-academy
 #   sudo scripts/installer-serveur.sh
@@ -161,7 +161,7 @@ questions() {
     SMTP_PORT=${SMTP_PORT:-587}
     demander SMTP_USER "Utilisateur SMTP"
     demander SMTP_PASSWORD "Mot de passe SMTP" secret
-    SMTP_FROM=${SMTP_FROM:-"ROS Academy <$SMTP_USER>"}
+    SMTP_FROM=${SMTP_FROM:-"RoboForge <$SMTP_USER>"}
   elif [ "$DOMAINE" != localhost ]; then
     attention "sans SMTP, les étudiants ne pourront ni confirmer leur adresse ni retrouver leur mot de passe"
   fi
@@ -211,7 +211,7 @@ pare_feu() {
   # Un service systemd remet la règle à chaque démarrage (iptables-persistent désinstallerait ufw).
   cat > /etc/systemd/system/ros-academy-pare-feu.service <<'UNIT'
 [Unit]
-Description=ROS Academy : les labs (bridges rl-*) n'atteignent pas l'hôte
+Description=RoboForge : les labs (bridges rl-*) n'atteignent pas l'hôte
 After=network-pre.target docker.service
 Wants=network-pre.target
 
@@ -294,7 +294,7 @@ sauvegardes() {
   etape "Sauvegarde quotidienne"
   cat > /etc/systemd/system/ros-academy-sauvegarde.service <<UNIT
 [Unit]
-Description=ROS Academy : sauvegarde (base, formations, dossiers des étudiants, configuration)
+Description=RoboForge : sauvegarde (base, formations, dossiers des étudiants, configuration)
 After=docker.service
 Requires=docker.service
 
@@ -304,7 +304,7 @@ ExecStart=$RACINE/scripts/sauvegarder.sh
 UNIT
   cat > /etc/systemd/system/ros-academy-sauvegarde.timer <<'UNIT'
 [Unit]
-Description=ROS Academy : sauvegarde tous les jours à 3 h 17
+Description=RoboForge : sauvegarde tous les jours à 3 h 17
 
 [Timer]
 OnCalendar=*-*-* 03:17:00

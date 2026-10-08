@@ -37,19 +37,19 @@ fi
 
 echo "maj_env"
 maj_env "$E" DOMAIN essai-rapide.trycloudflare.com
-maj_env "$E" SMTP_FROM "'ROS Academy <moi@exemple.fr>'"
+maj_env "$E" SMTP_FROM "'RoboForge <moi@exemple.fr>'"
 maj_env "$E" COMPOSE_FILE docker-compose.yml:docker-compose.internet.yml
 egal "remplace" "$(valeur_env "$E" DOMAIN)" essai-rapide.trycloudflare.com
 egal "une seule ligne" "$(grep -c '^DOMAIN=' "$E")" 1
-egal "valeur entre apostrophes" "$(valeur_env "$E" SMTP_FROM)" "'ROS Academy <moi@exemple.fr>'"
+egal "valeur entre apostrophes" "$(valeur_env "$E" SMTP_FROM)" "'RoboForge <moi@exemple.fr>'"
 # shellcheck disable=SC1090
-egal "deploy/.env reste lisible par le shell" "$( (set -a; . "$E"; echo "$SMTP_FROM") 2>&1)" "ROS Academy <moi@exemple.fr>"
+egal "deploy/.env reste lisible par le shell" "$( (set -a; . "$E"; echo "$SMTP_FROM") 2>&1)" "RoboForge <moi@exemple.fr>"
 egal "droits gardés" "$(stat -c %a "$E" 2>/dev/null || stat -f %Lp "$E")" 600
 if command -v docker >/dev/null && docker compose version >/dev/null 2>&1; then
   if (cd "$DEPOT/deploy" && docker compose --env-file "$E" config 2>"$TMP/err" >"$TMP/config"); then ok "docker compose config (tunnel)"; else ko "docker compose config (tunnel) : $(head -3 "$TMP/err")"; fi
   egal "Caddy en HTTP derrière le tunnel" "$(grep -c 'DOMAIN: http://$' "$TMP/config")" 1
   egal "service du tunnel" "$(grep -c 'cloudflare/cloudflared:' "$TMP/config")" 1
-  if grep -q "SMTP_FROM: ROS Academy <moi@exemple.fr>" "$TMP/config"; then ok "expéditeur transmis tel quel"; else ko "expéditeur : $(grep SMTP_FROM "$TMP/config" | head -1)"; fi
+  if grep -q "SMTP_FROM: RoboForge <moi@exemple.fr>" "$TMP/config"; then ok "expéditeur transmis tel quel"; else ko "expéditeur : $(grep SMTP_FROM "$TMP/config" | head -1)"; fi
 fi
 maj_env "$E" COMPOSE_FILE ""
 egal "valeur vide : ligne supprimée" "$(grep -c '^COMPOSE_FILE=' "$E")" 0

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ROS Academy sur votre ordinateur (Linux, macOS, ou Windows avec WSL2), pour essayer :
+# RoboForge sur votre ordinateur (Linux, macOS, ou Windows avec WSL2), pour essayer :
 #
 #   scripts/demarrer-local.sh            démarre (la première fois : configuration et image ROS)
 #   scripts/demarrer-local.sh arreter    arrête tout (vos données sont gardées)
@@ -144,9 +144,9 @@ demander_smtp() {
   read -r -p "   Port [587] : " port
   read -r -p "   Identifiant : " user
   read -r -s -p "   Mot de passe : " pass; echo
-  read -r -p "   Expéditeur [ROS Academy <$user>] : " from
+  read -r -p "   Expéditeur [RoboForge <$user>] : " from
   [ -n "$hote" ] && [ -n "$user" ] && [ -n "$pass" ] || fail "serveur, identifiant et mot de passe sont nécessaires"
-  from=${from:-ROS Academy <$user>}
+  from=${from:-RoboForge <$user>}
   # entre apostrophes : ni Docker Compose ni le shell n'interprètent alors $, espaces ou <>
   [[ $pass$from != *"'"* ]] || fail "apostrophe impossible dans le mot de passe ou l'expéditeur"
   maj_env "$ENV_FILE" SMTP_HOST "$hote"

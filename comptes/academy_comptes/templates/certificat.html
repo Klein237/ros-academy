@@ -5,7 +5,7 @@
   {% if revoque %}
   <p class="verdict ko" role="status"><strong>Certificat révoqué</strong> le {{ revoque }}. Il n'atteste plus de la réussite de ce parcours.</p>
   {% else %}
-  <p class="verdict ok" role="status"><strong>Certificat authentique</strong>, délivré par ROS Academy.</p>
+  <p class="verdict ok" role="status"><strong>Certificat authentique</strong>, délivré par RoboForge.</p>
   {% endif %}
   <h1>{{ cert.nom }}</h1>
   <p>a terminé le parcours <strong>{{ cert.parcours_titre }}</strong> avec une note finale de <strong>{{ fr(cert.note) }} / 20</strong>{% if cert.mention %} (mention {{ cert.mention }}){% endif %}.</p>

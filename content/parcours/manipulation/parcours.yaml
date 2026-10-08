@@ -1,0 +1,10 @@
+titre: Manipulation avec MoveIt 2
+description: >-
+  Programmer un bras robotique : description, cinématique, planification de
+  mouvements sans collision et prise d'objets avec MoveIt 2.
+accroche: Planifier les mouvements d'un bras et saisir des objets.
+statut: bientot
+niveau: avance
+ordre: 45
+prerequis:
+  - ROS 2 Fondamentaux

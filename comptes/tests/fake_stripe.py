@@ -124,7 +124,7 @@ def create_app(key, webhook_secret, webhook_url, public_url, price_id, http=None
         if not cs or cs["status"] != "open":
             raise HTTPException(404, "Session de paiement expirée")
         email = html.escape(cs["customer_email"] or st["customers"].get(cs["customer"], {}).get("email", ""))
-        body = (f"<p>ROS Academy pro — <strong>9,00 € / mois</strong></p><p>{email}</p>"
+        body = (f"<p>RoboForge pro — <strong>9,00 € / mois</strong></p><p>{email}</p>"
                 f'<form method="post" action="/checkout/{cs_id}/payer"><button type="submit">Payer</button></form>'
                 f'<p><a href="{html.escape(cs["cancel_url"])}">Annuler et revenir</a></p>')
         return PAGE.format(title="Paiement", body=body)
@@ -170,7 +170,7 @@ def create_app(key, webhook_secret, webhook_url, public_url, price_id, http=None
                 actions += (f'<form method="post" action="/portal/{ps_id}/{action}">'
                             f'<button type="submit">{label}</button></form>')
         body = (f'<p>Abonnement : <strong class="etat">{html.escape(state)}</strong></p>{actions}'
-                f'<p><a href="{html.escape(ps["return_url"])}">Retour à ROS Academy</a></p>')
+                f'<p><a href="{html.escape(ps["return_url"])}">Retour à RoboForge</a></p>')
         return PAGE.format(title="Votre abonnement", body=body)
 
     @app.post("/portal/{ps_id}/{action}")
