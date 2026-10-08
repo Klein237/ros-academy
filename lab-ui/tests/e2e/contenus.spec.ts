@@ -58,7 +58,8 @@ test("le site présente le parcours et corrige le QCM sans exposer les réponses
   await expect(page.locator(".code-tabs .tab-bar button")).toHaveText(["Python", "C++"]);
   const html = await page.content();
   expect(html).not.toMatch(/correct["':=]/); // ni attribut ni donnée « correct » dans la page
-  await page.locator('input[name="spin"]').first().check();
+  // les choix sont affichés dans un ordre mélangé ; la valeur reste le rang dans qcm.yaml (0 : la bonne réponse)
+  await page.locator('input[name="spin"][value="0"]').check();
   await page.getByRole("button", { name: "Valider mes réponses" }).click();
   await expect(page.locator(".qcm-result")).toContainText("/ 20");
   await expect(page.locator('fieldset[data-question="spin"] .feedback')).toContainText("Juste");

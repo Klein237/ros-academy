@@ -562,7 +562,15 @@ ros2 topic pub --once /cmd_vel geometry_msgs/msg/Twist "{angular: {z: 0.5}}"
 
 La **vue 2D** du lab suit le robot simulé (topic `/odom`) et le pilote avec ses flèches.
 
-Pour **voir** ce que perçoit le robot, ouvrez le **Bureau (RViz, Gazebo)** et lancez `rviz2` dans un terminal :
+Pour **voir** ce que perçoit le robot, ouvrez le **Bureau (RViz, Gazebo)** et lancez RViz2 dans un terminal, **avec l'horloge de la simulation** comme les autres nœuds :
+
+```bash
+rviz2 --ros-args -p use_sim_time:=true
+```
+
+Sans `use_sim_time`, RViz2 compare les dates des mesures (temps simulé) à l'heure de la machine : il rejette les scans et les TF, avec des messages *Message Filter dropping message*.
+
+Dans RViz2 :
 
 - *Fixed Frame* : `odom` ;
 - **Add** → **RobotModel** (*Description Topic* : `/robot_description`) ;

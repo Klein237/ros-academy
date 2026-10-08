@@ -79,7 +79,7 @@
         <fieldset class="question" data-question="{{ q.id }}">
           <legend>{{ loop.index }}. {{ q.question }}{% if q.multiple %} <span class="muted small">(plusieurs réponses)</span>{% endif %}</legend>
           {% for c in q.choix %}
-          <label><input type="{{ 'checkbox' if q.multiple else 'radio' }}" name="{{ q.id }}" value="{{ loop.index0 }}"> {{ c }}</label>
+          <label><input type="{{ 'checkbox' if q.multiple else 'radio' }}" name="{{ q.id }}" value="{{ q.valeurs[loop.index0] }}"> {{ c }}</label>
           {% endfor %}
           <p class="feedback" hidden></p>
         </fieldset>

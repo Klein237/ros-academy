@@ -314,4 +314,4 @@ Et deux règles pour éviter les surprises :
 - Une incompatibilité ne donne qu'un avertissement ; `ros2 topic info -v` montre la QoS de chaque côté.
 - `ros2 topic echo` s'adapte aux éditeurs : qu'il reçoive des messages ne prouve pas que votre nœud les reçoit.
 
-**Et maintenant ?** Le dernier module bonus rassemble les outils pour diagnostiquer un robot qui ne se comporte pas comme prévu : graphe, données, journaux et enregistrements.
+**Et maintenant ?** Le module bonus suivant rassemble les outils pour diagnostiquer un robot qui ne se comporte pas comme prévu : graphe, données, journaux et enregistrements.
