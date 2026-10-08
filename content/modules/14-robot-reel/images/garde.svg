@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 310" role="img" aria-labelledby="t d">
+<title id="t">La couche de sécurité devant le robot</title>
+<desc id="d">La téléopération et la navigation publient sur /cmd_vel_brut. garde_node limite les vitesses, lisse les accélérations, arrête le robot après 0,5 s sans commande et offre un service d&#x27;arrêt d&#x27;urgence ; seul garde_node publie sur /cmd_vel, vers le robot. Un arrêt d&#x27;urgence matériel coupe les moteurs indépendamment du logiciel.</desc>
+<style>
+.fond { fill: #fbfbf9; stroke: #c9cfc9; stroke-width: 1.5; }
+.grille { stroke: #e7eae6; stroke-width: 1; }
+.boite { fill: #ffffff; stroke: #c9cfc9; stroke-width: 1.5; }
+.calcul { fill: #e3f1ee; stroke: #0b5e57; stroke-width: 2; }
+.capteur { fill: #fff8e8; stroke: #d39a2c; stroke-width: 2; }
+.actionneur { fill: #eef1f5; stroke: #56606a; stroke-width: 2; }
+.robot { fill: #e3f1ee; stroke: #0b5e57; stroke-width: 2; }
+.roue { fill: #12171c; }
+.roulette { fill: #ffffff; stroke: #12171c; stroke-width: 1.5; }
+.nez { fill: #0b5e57; }
+.ax-x { stroke: #d64545; stroke-width: 3; fill: none; } .ax-y { stroke: #2f9e44; stroke-width: 3; fill: none; }
+.px { fill: #d64545; } .py { fill: #2f9e44; }
+.trait { stroke: #56606a; stroke-width: 2; fill: none; }
+.tirets { stroke: #8a949c; stroke-width: 1.5; stroke-dasharray: 5 5; fill: none; }
+.trajet { stroke: #d39a2c; stroke-width: 3; fill: none; stroke-linecap: round; }
+.trajet-pointe { fill: #d39a2c; }
+.vitesse { stroke: #0b5e57; stroke-width: 3; fill: none; }
+.vitesse-pointe { fill: #0b5e57; }
+.pointe { fill: #56606a; }
+.cir { fill: #d39a2c; }
+.t { fill: #12171c; font: 400 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-gras { fill: #12171c; font: 600 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-titre { fill: #12171c; font: 600 16px "IBM Plex Sans", system-ui, sans-serif; }
+.t-petit { fill: #56606a; font: 400 12.5px "IBM Plex Sans", system-ui, sans-serif; }
+.t-sur { fill: #56606a; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; letter-spacing: 0.08em; }
+.t-math { fill: #12171c; font: italic 500 15px "IBM Plex Serif", Georgia, serif; }
+.t-code { fill: #12171c; font: 500 13px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+.t-accent { fill: #0b5e57; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-ambre { fill: #8a5d10; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-x { fill: #d64545; font: 600 13px "JetBrains Mono", monospace; } .t-y { fill: #2f9e44; font: 600 13px "JetBrains Mono", monospace; }
+.badge { fill: #0b5e57; } .t-badge { fill: #ffffff; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; }
+.sep { stroke: #e2e5e1; stroke-width: 1.5; }
+@media (prefers-color-scheme: dark) {
+  .fond { fill: #0f161d; stroke: #34424f; } .grille { stroke: #1b2630; }
+  .boite { fill: #121a22; stroke: #34424f; }
+  .calcul, .robot { fill: #12302d; stroke: #4fb3a7; }
+  .capteur { fill: #2a2212; stroke: #f2b544; }
+  .actionneur { fill: #1a222b; stroke: #8a99a8; }
+  .roue { fill: #c9d3dc; } .roulette { fill: #121a22; stroke: #c9d3dc; } .nez { fill: #4fb3a7; }
+  .ax-x { stroke: #ff6b6b; } .ax-y { stroke: #51cf66; } .px, .t-x { fill: #ff6b6b; } .py, .t-y { fill: #51cf66; }
+  .trait { stroke: #8a99a8; } .tirets { stroke: #5d6b78; } .pointe { fill: #8a99a8; }
+  .trajet { stroke: #f2b544; } .trajet-pointe, .cir { fill: #f2b544; }
+  .vitesse { stroke: #4fb3a7; } .vitesse-pointe { fill: #4fb3a7; }
+  .t, .t-gras, .t-titre, .t-math, .t-code { fill: #e3e8ee; }
+  .t-petit, .t-sur { fill: #8a99a8; } .t-accent { fill: #4fb3a7; } .t-ambre { fill: #f2b544; }
+  .badge { fill: #4fb3a7; } .t-badge { fill: #0b1015; } .sep { stroke: #22303c; }
+}
+</style>
+<defs>
+<marker id="m-trait" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-trajet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="trajet-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-vitesse" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="vitesse-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-x" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="px" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-y" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="py" d="M0 0 L10 5 L0 10 z"/></marker>
+</defs>
+<rect class="calcul" x="20.0" y="40.0" width="170.0" height="62.0" rx="10"/>
+<text class="t-gras" x="105.0" y="67.0" text-anchor="middle">téléopération</text>
+<text class="t-petit" x="105.0" y="87.0" text-anchor="middle">clavier, manette</text>
+<line class="trait" x1="192.0" y1="71.0" x2="236.0" y2="120.0" marker-end="url(#m-trait)"/>
+<rect class="calcul" x="20.0" y="130.0" width="170.0" height="62.0" rx="10"/>
+<text class="t-gras" x="105.0" y="157.0" text-anchor="middle">navigation</text>
+<text class="t-petit" x="105.0" y="177.0" text-anchor="middle">Nav2, plus tard</text>
+<line class="trait" x1="192.0" y1="161.0" x2="236.0" y2="120.0" marker-end="url(#m-trait)"/>
+<rect class="capteur" x="240.0" y="98.0" width="160.0" height="44.0" rx="22"/>
+<text class="t-code" x="320.0" y="125.0" text-anchor="middle">/cmd_vel_brut</text>
+<line class="trait" x1="402.0" y1="120.0" x2="446.0" y2="120.0" marker-end="url(#m-trait)"/>
+<rect class="calcul" x="450.0" y="30.0" width="230.0" height="180.0" rx="12"/>
+<text class="t-gras" x="565.0" y="58.0" text-anchor="middle">garde_node</text>
+<circle class="cir" cx="474" cy="86" r="4"/>
+<text class="t-petit" x="486.0" y="91.0" text-anchor="start">limites de vitesse</text>
+<circle class="cir" cx="474" cy="118" r="4"/>
+<text class="t-petit" x="486.0" y="123.0" text-anchor="start">rampe d&#x27;accélération</text>
+<circle class="cir" cx="474" cy="150" r="4"/>
+<text class="t-petit" x="486.0" y="155.0" text-anchor="start">chien de garde : 0,5 s</text>
+<circle class="cir" cx="474" cy="182" r="4"/>
+<text class="t-petit" x="486.0" y="187.0" text-anchor="start">arrêt d&#x27;urgence (service)</text>
+<line class="trait" x1="682.0" y1="120.0" x2="716.0" y2="120.0" marker-end="url(#m-trait)"/>
+<rect class="capteur" x="720.0" y="98.0" width="100.0" height="44.0" rx="22"/>
+<text class="t-code" x="770.0" y="125.0" text-anchor="middle">/cmd_vel</text>
+<line class="trait" x1="822.0" y1="120.0" x2="846.0" y2="120.0" marker-end="url(#m-trait)"/>
+<rect class="actionneur" x="850.0" y="80.0" width="110.0" height="80.0" rx="10"/>
+<text class="t-gras" x="905.0" y="114.0" text-anchor="middle">robot</text>
+<text class="t-petit" x="905.0" y="134.0" text-anchor="middle">moteurs</text>
+<text class="t-code" x="450.0" y="262.0" text-anchor="start">ros2 service call /arret_urgence</text>
+<line class="trait" x1="565.0" y1="246.0" x2="565.0" y2="214.0" marker-end="url(#m-trait)"/>
+<rect class="fond" x="726.0" y="240.0" width="244.0" height="56.0" rx="10"/>
+<text class="t-gras" x="848.0" y="264.0" text-anchor="middle">arrêt d&#x27;urgence matériel</text>
+<text class="t-petit" x="848.0" y="284.0" text-anchor="middle">coupe les moteurs, sans logiciel</text>
+<line class="tirets" x1="905.0" y1="238.0" x2="905.0" y2="164.0" marker-end="url(#m-trait)"/>
+</svg>

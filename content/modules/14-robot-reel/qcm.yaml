@@ -1,0 +1,65 @@
+questions:
+  - id: ecart
+    question: Pourquoi un logiciel qui marche parfaitement dans Gazebo peut-il échouer sur le vrai robot ?
+    choix:
+      - texte: La simulation est trop parfaite ; capteurs bruités, roues qui glissent, latence et moteurs qui saturent attendent le logiciel sur le vrai robot
+        correct: true
+      - texte: Gazebo utilise un autre langage que ROS 2
+      - texte: Les messages ROS 2 ne sont pas les mêmes sur un vrai robot
+    explication: La simulation se valide toujours sur le réel, par étapes.
+  - id: derive
+    question: Pourquoi l'odométrie des roues devient-elle de plus en plus fausse au fil du trajet ?
+    choix:
+      - texte: Chaque petit glissement des roues s'ajoute aux précédents ; l'erreur s'accumule (dérive)
+        correct: true
+      - texte: Le topic /odom perd des messages
+      - texte: Les roues tournent de moins en moins vite
+    explication: "On corrige la dérive en fusionnant plusieurs capteurs, par exemple avec un filtre de Kalman (robot_localization)."
+  - id: calibration
+    question: Le robot estime avoir parcouru 5,10 m alors qu'il a parcouru 5,00 m mesurés au sol. Que faut-il recalibrer ?
+    choix:
+      - texte: Le rayon des roues
+        correct: true
+      - texte: L'entraxe
+      - texte: La fréquence de publication de /odom
+    explication: "Une erreur de distance en ligne droite vient du rayon des roues ; une erreur d'angle en rotation vient de l'entraxe."
+  - id: stamp
+    question: Pourquoi les messages de capteurs portent-ils une date (header.stamp) ?
+    choix:
+      - texte: Pour savoir quand la mesure a été prise, et où était le robot à ce moment-là
+        correct: true
+      - texte: Pour trier les messages par ordre alphabétique
+      - texte: Pour que ROS 2 supprime les messages de plus d'une seconde
+    explication: Une mesure arrive avec un retard variable ; TF2 utilise sa date pour la placer correctement.
+  - id: chien_de_garde
+    question: À quoi sert le chien de garde (watchdog) d'une couche de sécurité ?
+    choix:
+      - texte: À arrêter le robot quand aucune commande n'est arrivée depuis un court délai
+        correct: true
+      - texte: À limiter la vitesse maximale du robot
+      - texte: À redémarrer les nœuds qui plantent
+    explication: Si la téléopération plante ou si le Wi-Fi coupe, le robot s'arrête au lieu de garder la dernière vitesse reçue.
+  - id: rampe
+    question: Pourquoi limiter l'accélération des commandes avec une rampe ?
+    choix:
+      - texte: Un moteur réel a de l'inertie ; une commande brutale fait patiner les roues ou basculer la charge
+        correct: true
+      - texte: Pour économiser de la bande passante réseau
+      - texte: Parce que ROS 2 refuse les changements de vitesse trop grands
+    explication: La rampe rapproche la vitesse de la consigne d'un pas maximal à chaque cycle.
+  - id: arret_materiel
+    question: Pourquoi un arrêt d'urgence logiciel ne suffit-il pas ?
+    choix:
+      - texte: Le logiciel peut planter ; un bouton qui coupe les moteurs doit fonctionner sans lui
+        correct: true
+      - texte: Le service ROS 2 est trop lent à répondre
+      - texte: Un arrêt d'urgence logiciel n'est pas autorisé dans ROS 2
+    explication: La sécurité se construit en couches, et la première est matérielle.
+  - id: etapes
+    question: Après la simulation, quelle est la première étape sur le vrai robot ?
+    choix:
+      - texte: Un essai sur banc, roues en l'air, pour vérifier sens de rotation, vitesses et arrêts
+        correct: true
+      - texte: Un essai à vitesse maximale, pour voir les limites
+      - texte: Un essai directement dans l'entrepôt, en conditions réelles
+    explication: "Simulation, rejeu, banc, vitesse réduite, puis conditions réelles : on ne passe à l'étape suivante que si tout va bien."

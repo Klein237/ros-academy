@@ -5,8 +5,9 @@ description: >-
   le terminal Linux, puis vous l'enrichissez module après module — nœud,
   service, action, paramètres et fichiers launch, repères TF2, description
   URDF, puis simulation dans Gazebo. Chaque module se termine par un QCM, et
-  les modules pratiques par une vraie panne à diagnostiquer. Deux modules
-  bonus, hors note, abordent la qualité de service et les outils de débogage.
+  les modules pratiques par une vraie panne à diagnostiquer. Trois modules
+  bonus, hors note, abordent la qualité de service, les outils de débogage
+  et le passage de la simulation au robot réel.
 accroche: >-
   Nœuds, topics, services, actions, paramètres, TF2, URDF et simulation dans
   Gazebo, autour d'un même robot que vous faites rouler.
@@ -61,6 +62,10 @@ modules:
     partie: Bonus
     bonus: true
   - id: 13-debogage
+    coef: 1
+    partie: Bonus
+    bonus: true
+  - id: 14-robot-reel
     coef: 1
     partie: Bonus
     bonus: true

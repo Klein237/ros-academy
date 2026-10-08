@@ -264,4 +264,4 @@ Enfin, `ros2 doctor` : il signale notamment les topics publiés sans abonnés.
 - `ros2 bag record / info / play` capture une situation et la rejoue autant de fois qu'il faut.
 - `tf2_echo` et `view_frames` pour les repères.
 
-**Et maintenant ?** Vous avez tous les outils pour aborder des systèmes plus grands, comme la navigation autonome avec Nav2 : beaucoup de nœuds, beaucoup de topics, et ces mêmes questions pour comprendre ce qui se passe.
+**Et maintenant ?** Le dernier module bonus fait sortir le logiciel du simulateur : ce qui change sur un vrai robot, et la couche de sécurité qui le protège.

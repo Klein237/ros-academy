@@ -1,9 +1,10 @@
-"""Schémas des modules bonus « La qualité de service » et « Les outils de débogage »."""
+"""Schémas des modules bonus : qualité de service, outils de débogage, de la simulation au robot réel."""
 
-from style import line, rect, svg, text
+from style import line, path, rect, svg, text
 
 QOS = "12-qos"
 DEBUG = "13-debogage"
+REEL = "14-robot-reel"
 
 
 def boite(x, y, w, nom, qos, cls="calcul"):
@@ -89,8 +90,62 @@ def methode():
                "4. Que dit le nœud ? (journaux en niveau debug, /rosout, ros2 bag pour rejouer).", "\n".join(b))
 
 
+def garde():
+    b = []
+    # sources de commandes
+    for y, nom, sous in ((40, "téléopération", "clavier, manette"), (130, "navigation", "Nav2, plus tard")):
+        b += [rect(20, y, 170, 62, "calcul", 10), text(105, y + 27, nom, "t-gras", "middle"),
+              text(105, y + 47, sous, "t-petit", "middle"),
+              line(192, y + 31, 236, 120, fin="trait")]
+    b += [rect(240, 98, 160, 44, "capteur", 22), text(320, 125, "/cmd_vel_brut", "t-code", "middle"),
+          line(402, 120, 446, 120, fin="trait")]
+    # la couche de sécurité
+    b += [rect(450, 30, 230, 180, "calcul", 12), text(565, 58, "garde_node", "t-gras", "middle")]
+    for i, ligne in enumerate(("limites de vitesse", "rampe d'accélération", "chien de garde : 0,5 s",
+                               "arrêt d'urgence (service)")):
+        b += [f'<circle class="cir" cx="474" cy="{86 + i * 32}" r="4"/>', text(486, 91 + i * 32, ligne, "t-petit")]
+    b += [line(682, 120, 716, 120, fin="trait"), rect(720, 98, 100, 44, "capteur", 22),
+          text(770, 125, "/cmd_vel", "t-code", "middle"), line(822, 120, 846, 120, fin="trait"),
+          rect(850, 80, 110, 80, "actionneur", 10), text(905, 114, "robot", "t-gras", "middle"),
+          text(905, 134, "moteurs", "t-petit", "middle")]
+    # appel de service et arrêt matériel
+    b += [text(450, 262, "ros2 service call /arret_urgence", "t-code"), line(565, 246, 565, 214, fin="trait"),
+          rect(726, 240, 244, 56, "fond", 10), text(848, 264, "arrêt d'urgence matériel", "t-gras", "middle"),
+          text(848, 284, "coupe les moteurs, sans logiciel", "t-petit", "middle"),
+          line(905, 238, 905, 164, "tirets", fin="trait")]
+    return svg(980, 310, "La couche de sécurité devant le robot",
+               "La téléopération et la navigation publient sur /cmd_vel_brut. garde_node limite les vitesses, "
+               "lisse les accélérations, arrête le robot après 0,5 s sans commande et offre un service d'arrêt "
+               "d'urgence ; seul garde_node publie sur /cmd_vel, vers le robot. Un arrêt d'urgence matériel coupe "
+               "les moteurs indépendamment du logiciel.", "\n".join(b))
+
+
+def etapes():
+    b = []
+    pas = [("Simulation", "tout le logiciel,", "dans Gazebo"),
+           ("Rejeu", "capteurs réels", "enregistrés (ros2 bag)"),
+           ("Banc d'essai", "roues en l'air : sens,", "vitesses, arrêts"),
+           ("Vitesse réduite", "au sol, zone dégagée,", "main sur l'arrêt"),
+           ("Sur le terrain", "conditions réelles,", "limites augmentées")]
+    for i, (titre, l1, l2) in enumerate(pas):
+        x = 20 + i * 190
+        b += [rect(x, 30, 168, 112, "calcul" if i == 0 else "boite", 12),
+              f'<circle class="badge" cx="{x + 24}" cy="56" r="13"/>', text(x + 24, 61, str(i + 1), "t-badge", "middle"),
+              text(x + 44, 61, titre, "t-gras"), text(x + 14, 96, l1, "t-petit"), text(x + 14, 116, l2, "t-petit")]
+        if i < len(pas) - 1:
+            b.append(line(x + 170, 86, x + 186, 86, fin="trait"))
+    b += [path("M884 146 C 884 204, 800 204, 104 204 L 104 150", "tirets", fin="trait"),
+          text(490, 186, "un problème ? on revient en arrière, avec un enregistrement pour comprendre", "t-petit", "middle")]
+    return svg(980, 222, "Du simulateur au robot réel, par étapes",
+               "Cinq étapes : la simulation dans Gazebo, le rejeu de capteurs réels enregistrés, le banc d'essai roues "
+               "en l'air, la vitesse réduite en zone dégagée, puis le terrain, en conditions réelles. En cas de problème, on "
+               "revient en arrière, avec un enregistrement pour comprendre.", "\n".join(b))
+
+
 SCHEMAS = {
     f"{QOS}/images/compatibilite.svg": compatibilite,
     f"{QOS}/images/durabilite.svg": durabilite,
     f"{DEBUG}/images/methode.svg": methode,
+    f"{REEL}/images/garde.svg": garde,
+    f"{REEL}/images/etapes.svg": etapes,
 }
