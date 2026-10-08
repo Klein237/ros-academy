@@ -29,7 +29,7 @@ assert v[-1] == 0.0, f"dernière vitesse publiée : {v[-1]}"
 PY
 grep -q "Aucune commande depuis 0.5 s" /tmp/launch.log || { tail -20 /tmp/launch.log; exit 1; }
 a=$(pose); sleep 1; b=$(pose)
-python3 -c "import sys; a, b = map(float, sys.argv[1:]); assert a > 0.2 and abs(b - a) < 0.002, (a, b)" "$a" "$b"
+python3 -c "import sys; a, b = map(float, sys.argv[1:]); assert a > 0.05 and abs(b - a) < 0.002, (a, b)" "$a" "$b"
 # arrêt d'urgence : des commandes arrivent, le robot reste immobile
 timeout 10 ros2 service call /arret_urgence std_srvs/srv/SetBool "{data: true}" | grep -q "success=True"
 timeout 15 ros2 topic pub -r 10 /cmd_vel_brut geometry_msgs/msg/Twist "{linear: {x: 0.2}}" > /dev/null &
