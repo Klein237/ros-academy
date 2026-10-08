@@ -143,7 +143,10 @@ def render_pdf(cert, verify_url):
 
     c.setFillColor(accent)
     c.setFont("Helvetica-Bold", 14)
-    c.drawCentredString(w / 2, h - 82, "ROBOFORGE")
+    c.drawCentredString(w / 2, h - 72, "ROBOFORGE")
+    c.setFillColor(muted)
+    c.setFont("Helvetica", 10)
+    c.drawCentredString(w / 2, h - 88, "Le logiciel robotique, avec ROS 2")
     c.setFillColor(ink)
     c.setFont("Helvetica-Bold", 34)
     c.drawCentredString(w / 2, h - 130, "Certificat de réussite")
