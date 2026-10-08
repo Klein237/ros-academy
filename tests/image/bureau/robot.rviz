@@ -1,0 +1,41 @@
+# Configuration RViz2 du robot simulé (module Gazebo) : modèle, laser et repères, vus dans odom.
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Enabled: true
+      Name: Grid
+    - Class: rviz_default_plugins/RobotModel
+      Enabled: true
+      Name: RobotModel
+      Description Source: Topic
+      Description Topic:
+        Value: /robot_description
+    - Class: rviz_default_plugins/LaserScan
+      Enabled: true
+      Name: LaserScan
+      Size (m): 0.05
+      Topic:
+        Value: /scan
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Name: TF
+  Enabled: true
+  Global Options:
+    Fixed Frame: odom
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/MoveCamera
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 5
+      Name: Current View
+      Pitch: 0.9
+      Yaw: 0.8
+Window Geometry:
+  Height: 760
+  Width: 1200

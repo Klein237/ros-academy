@@ -108,16 +108,37 @@ def test_answers_never_reach_the_browser(client):
     import re
     page = client.get("/modules/01-demo/").text
     # Les choix d'une question sont rendus à l'identique, au texte près : rien ne trahit la bonne.
-    labels = re.findall(r'<label><input type="radio" name="q1"[^>]*> ([^<]*)</label>', page)
-    assert labels == ["colcon build", "catkin_make"]
+    choix = re.findall(r'<label><input type="radio" name="q1" value="(\d+)"> ([^<]*)</label>', page)
+    # l'ordre affiché est mélangé ; chaque choix garde sa valeur d'origine (son rang dans qcm.yaml)
+    assert sorted(choix) == [("0", "colcon build"), ("1", "catkin_make")]
     shapes = {re.sub(r'value="\d+"', "", m) for m in re.findall(r'<label><input type="radio" name="q1"[^>]*>', page)}
     assert len(shapes) == 1
     assert "colcon est l'outil" not in page  # explication absente
     api = client.get("/api/contenus/modules/01-demo/qcm").json()
-    assert api["questions"][0] == {"id": "q1", "question": "Quelle commande compile un workspace ?",
-                                   "multiple": False, "choix": ["colcon build", "catkin_make"]}
+    q1 = api["questions"][0]
+    assert {k: q1[k] for k in ("id", "question", "multiple")} == {
+        "id": "q1", "question": "Quelle commande compile un workspace ?", "multiple": False}
+    assert [(str(v), c) for v, c in zip(q1["valeurs"], q1["choix"])] == choix  # même ordre que la page
     assert "correct" not in str(api) and "explication" not in str(api)
     assert api["questions"][1]["multiple"] is True
+
+
+def test_qcm_order_does_not_give_away_the_answer():
+    # Les auteurs écrivent souvent la bonne réponse en premier : l'ordre affiché la déplace.
+    from pathlib import Path
+    from academy_content.app import _public_qcm
+    from academy_content.model import list_module_ids, load_module
+    root = Path(__file__).resolve().parents[2] / "content"
+    premiers = total = 0
+    for module_id in list_module_ids(root):
+        module = load_module(root, module_id)
+        for q, public in zip(module.qcm.questions, _public_qcm(module)):
+            assert sorted(public["valeurs"]) == list(range(len(q.choix)))
+            assert public["choix"] == [q.choix[v].texte for v in public["valeurs"]]
+            assert public == _public_qcm(module)[module.qcm.questions.index(q)]  # stable d'un affichage à l'autre
+            total += 1
+            premiers += q.choix[public["valeurs"][0]].correct
+    assert total > 50 and premiers < total / 2
 
 
 def test_qcm_correction(client):

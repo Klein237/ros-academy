@@ -82,6 +82,18 @@ jobs:
         run: cd contenus && ROS_LAB_IMAGE=ros-lab:0.1.0 python -m pytest -v tests/test_testing.py tests/test_verification.py
       - name: Modules du parcours (bug présent, solution qui corrige, lab qui compile)
         run: ROS_LAB_IMAGE=ros-lab:0.1.0 python scripts/test_modules.py
+      - name: Bureau sous charge (Gazebo, RViz2 et fenêtre de Gazebo, offre gratuite)
+        if: ${{ !cancelled() }}   # une mesure indépendante des modules : elle tourne même si une étape a échoué
+        run: |
+          pip install vncdotool
+          tests/image/test_bureau_charge.sh bureau-charge
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bureau-charge
+          path: bureau-charge
+          retention-days: 14
+          if-no-files-found: ignore
 
   integration:
     needs: [unit, lab-ui, image]

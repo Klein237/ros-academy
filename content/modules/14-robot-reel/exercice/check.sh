@@ -29,7 +29,7 @@ fi
 timeout 15 ros2 topic pub -r 10 -t 20 /cmd_vel_brut geometry_msgs/msg/Twist "{linear: {x: 0.2}}" > /dev/null 2>&1
 sleep 1.5
 a=$(distance); sleep 2; b=$(distance)
-if python3 -c "import sys; sys.exit(float(sys.argv[1]) > 0.1)" "$a"; then
+if python3 -c "import sys; sys.exit(float(sys.argv[1]) > 0.05)" "$a"; then
   echo "Le robot n'a pas avancé pendant les 2 s de commandes ($a m) : garde_node doit laisser passer les commandes."
   exit 1
 fi

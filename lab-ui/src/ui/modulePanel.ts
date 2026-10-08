@@ -92,7 +92,9 @@ export class ModulePanel {
     );
     this.hintButton.disabled = this.hintCount === 0;
     // Ouvert par « Ouvrir l'exercice dans le lab » : l'énoncé parle de ~/ws/<id>-exercice, il doit exister
-    if (!(await this.opts.contents.exists(exerciseDir(id)).catch(() => true))) {
+    const installed = await this.opts.contents.exists(exerciseDir(id)).catch(() => true);
+    this.setInstalled(installed);
+    if (!installed) {
       if (this.opts.openExercise) void this.startExercise();
       else this.show("info", "Exercice pas encore installé", `« Commencer l'exercice » crée ~/${exerciseDir(id)} avec la panne à trouver.`);
     }
@@ -143,6 +145,13 @@ export class ModulePanel {
     }
   }
 
+  /** Exercice installé : l'action suivante est « Vérifier » ; « Commencer » devient « Recommencer ». */
+  private setInstalled(installed: boolean): void {
+    this.startButton.textContent = installed ? "Recommencer l'exercice" : "Commencer l'exercice";
+    this.startButton.classList.toggle("primary", !installed);
+    this.checkButton.classList.toggle("primary", installed);
+  }
+
   private setBusy(busy: boolean): void {
     this.busy = busy;
     this.startButton.disabled = this.checkButton.disabled = busy;
@@ -172,6 +181,7 @@ export class ModulePanel {
       if (code === 0) {
         this.show("info", `Exercice prêt dans ~/${exerciseDir(id)}`,
           "Diagnostiquez la panne dans un terminal, corrigez-la, puis cliquez sur Vérifier.");
+        this.setInstalled(true);
         await this.opts.reveal(exerciseDir(id));
       } else {
         this.show("ko", "L'installation de l'exercice a échoué", tail(cleanOutput(output, n)));

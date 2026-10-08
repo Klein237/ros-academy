@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import logging
 import os
+import random
 import re
 import time
 from pathlib import Path
@@ -136,12 +137,24 @@ def _image_response(root, module_id, name):
     return response
 
 
+def _ordre_choix(module_id, question):
+    """Ordre d'affichage des choix : mélangé, mais stable pour une question donnée.
+
+    Les auteurs écrivent souvent la bonne réponse en premier ; l'ordre affiché ne doit pas la trahir.
+    Chaque choix garde sa valeur d'origine (son rang dans qcm.yaml) : la correction ne change pas.
+    """
+    ordre = list(range(len(question.choix)))
+    random.Random(f"{module_id}/{question.id}").shuffle(ordre)
+    return ordre
+
+
 def _public_qcm(module):
-    return [
-        {"id": q.id, "question": q.question, "multiple": len(q.bonnes) > 1,
-         "choix": [c.texte for c in q.choix]}
-        for q in module.qcm.questions
-    ]
+    questions = []
+    for q in module.qcm.questions:
+        ordre = _ordre_choix(module.id, q)
+        questions.append({"id": q.id, "question": q.question, "multiple": len(q.bonnes) > 1,
+                          "choix": [q.choix[i].texte for i in ordre], "valeurs": ordre})
+    return questions
 
 
 def correct_qcm(module, reponses):
