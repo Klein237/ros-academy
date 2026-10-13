@@ -228,6 +228,7 @@ test("vue 3D : le modèle de robot_state_publisher s'affiche et suit /joint_stat
   await expect(view.locator(".pill")).toContainText("2 links · 1 joint mobile");
   await expect(page.locator(".panel.editor")).toBeHidden();
   await page.getByRole("button", { name: "Nouveau terminal" }).click();
+  await expect(page.locator(".terminals .tab")).toHaveCount(2); // sinon le terminal 1, bientôt masqué, répond encore
   await expect(activeTerminal(page)).toHaveAttribute("data-status", "open");
   await run(page, 'ros2 topic pub -r 5 /joint_states sensor_msgs/msg/JointState "{name: [roue], position: [1.0]}"');
   await expect(view).toHaveAttribute("data-joint-states", /.+/, { timeout: 30_000 });

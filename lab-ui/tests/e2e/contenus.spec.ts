@@ -52,8 +52,8 @@ test("sans connexion : catalogue, Découvrir ROS 2 et titres des modules, mais p
 test("le site présente le parcours et corrige le QCM sans exposer les réponses", async ({ page }) => {
   await loginStudent(page, newEmail());
   await page.goto("/");
-  await page.getByRole("link", { name: "ROS 2 Fondamentaux" }).click();
-  await expect(page.locator("h1")).toHaveText("ROS 2 Fondamentaux");
+  await page.getByRole("link", { name: "Apprendre ROS 2 avec un robot mobile" }).click();
+  await expect(page.locator("h1")).toHaveText("Apprendre ROS 2 avec un robot mobile");
   await page.getByRole("link", { name: "Écrire un nœud" }).click();
   await expect(page.locator(".code-tabs .tab-bar button")).toHaveText(["Python", "C++"]);
   const html = await page.content();
