@@ -1,0 +1,17 @@
+titre: Concevoir l'architecture d'un robot
+description: >-
+  Passer de « ça marche » à « c'est maintenable » : découper un robot en nœuds,
+  définir ses propres messages, organiser son comportement avec des machines à
+  états puis des arbres de comportement, gérer le démarrage et l'arrêt avec
+  les nœuds à cycle de vie, et regrouper des nœuds par composition.
+accroche: Découpage en nœuds, interfaces, machines à états et arbres de comportement.
+statut: bientot
+niveau: intermediaire
+ordre: 35
+prerequis:
+  - Apprendre ROS 2 avec un robot mobile
+outils:
+  - interfaces ROS 2
+  - BehaviorTree.CPP
+  - nœuds lifecycle
+  - composition

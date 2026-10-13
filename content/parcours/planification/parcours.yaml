@@ -1,0 +1,17 @@
+titre: Planifier un trajet
+description: >-
+  Le cœur d'un système de navigation, compris de l'intérieur : représenter
+  l'espace par une grille d'occupation, chercher un chemin avec Dijkstra puis
+  A*, le lisser, et le faire suivre au robot. Vous codez chaque algorithme et le
+  voyez à l'œuvre dans la vue 2D, avant de reconnaître ces étapes dans Nav2.
+accroche: Grilles d'occupation, Dijkstra, A* et suivi de trajectoire, codés par vous.
+statut: bientot
+niveau: intermediaire
+ordre: 45
+prerequis:
+  - Apprendre ROS 2 avec un robot mobile
+outils:
+  - Python
+  - C++
+  - nav_msgs
+  - Vue 2D

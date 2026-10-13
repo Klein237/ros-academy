@@ -385,7 +385,7 @@ setup(
     zip_safe=True,
     maintainer='etudiant',
     maintainer_email='etudiant@ros-academy.local',
-    description='Robot à conduite différentielle du parcours ROS 2 Fondamentaux',
+    description='Robot à conduite différentielle du parcours « Apprendre ROS 2 avec un robot mobile »',
     license='Apache-2.0',
     entry_points={
         'console_scripts': [
@@ -402,7 +402,7 @@ setup(
 <package format="3">
   <name>my_pkg</name>
   <version>0.1.0</version>
-  <description>Robot à conduite différentielle du parcours ROS 2 Fondamentaux</description>
+  <description>Robot à conduite différentielle du parcours « Apprendre ROS 2 avec un robot mobile »</description>
   <maintainer email="etudiant@ros-academy.local">etudiant</maintainer>
   <license>Apache-2.0</license>
 

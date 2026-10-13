@@ -320,6 +320,12 @@ body.cote-a-cote main.page:not(.plein) { padding: 24px 24px 48px; }
 .carte-parcours.disponible { grid-column: 1 / -1; background: var(--accent); border-color: var(--accent); color: #ffffff; padding: 28px; }
 .carte-parcours.disponible h3 { font-size: 1.9rem; }
 .carte-parcours.disponible p, .carte-parcours.disponible .prerequis { color: #d9eeea; }
+.carte-parcours .pastilles { margin-bottom: 0; }
+/* Outils du parcours, en badges : la compétence d'abord, l'outil ensuite */
+.outils-parcours { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; }
+.outils-parcours span { font-family: var(--font-mono); font-size: 0.78rem; padding: 3px 9px; border-radius: 999px; background: var(--bg); color: var(--text-2); border: 1px solid var(--line); }
+.carte-parcours.disponible .outils-parcours span, .outils-parcours.translucide span { background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.22); color: inherit; }
+.bandeau-texte .outils-parcours { margin-top: 14px; }
 .carte-parcours.disponible .meta { font-size: 0.95rem; }
 .carte-parcours.disponible .pastilles { margin: 0; }
 .lien-carte { color: inherit; text-decoration: none; }

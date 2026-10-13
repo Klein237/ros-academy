@@ -16,6 +16,7 @@
       </div>
       <h1>{{ parcours.titre }}</h1>
       <p>{{ parcours.description }}</p>
+      {% if parcours.outils %}<p class="outils-parcours translucide" aria-label="Outils">{% for o in parcours.outils %}<span>{{ o }}</span>{% endfor %}</p>{% endif %}
     </div>
     {# Remplie avec la progression de l'étudiant quand une session est ouverte (site.js) #}
     <div class="carte-reprise" data-progression="{{ parcours.id }}">

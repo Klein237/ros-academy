@@ -1,0 +1,18 @@
+titre: Programmer un bras robotique avec ROS 2
+description: >-
+  Un bras qui trie les colis du robot de livraison. Vous le décrivez en URDF,
+  calculez la position de sa pince (cinématique directe), l'amenez sur un point
+  (cinématique inverse), générez des trajectoires et le pilotez avec
+  ros2_control, jusqu'à une séquence complète de prise et de dépose. Le bras est
+  simulé sans moteur physique et s'affiche en 3D dans votre navigateur.
+accroche: Cinématique, trajectoires et contrôleurs, jusqu'à prendre et déposer un objet.
+statut: bientot
+niveau: intermediaire
+ordre: 20
+prerequis:
+  - Apprendre ROS 2 avec un robot mobile
+outils:
+  - URDF
+  - TF2
+  - ros2_control
+  - Vue 3D

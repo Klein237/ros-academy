@@ -1,4 +1,4 @@
-titre: ROS 2 Fondamentaux
+titre: Apprendre ROS 2 avec un robot mobile
 description: >-
   Les bases de ROS 2 Jazzy, en pratique, autour d'un fil rouge : un robot de
   livraison à conduite différentielle. On commence par le robot lui-même et
@@ -23,6 +23,12 @@ objectifs:
   - le simuler dans Gazebo et l'observer dans RViz
 prerequis:
   - bases de Python
+outils:
+  - ROS 2 Jazzy
+  - Python
+  - C++
+  - RViz
+  - Gazebo
 modules:
   - id: 01-robot-mobile
     coef: 1
