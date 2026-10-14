@@ -10,10 +10,11 @@ from fastapi.testclient import TestClient
 import academy_comptes.app as appmod
 from academy_comptes.billing import StripeClient, verify_signature
 from fake_stripe import create_app as create_fake
-from test_app import BASE, ORIGIN, SECRET, FakeContenus, FakeHub, db, login, oauth_transport
-from academy_comptes.db import User
+from test_app import BASE, ORIGIN, SECRET, FakeHub, db, login, oauth_transport
+from test_billing import ShopContenus
+from academy_comptes.db import Access
 
-KEY, WHSEC, PRICE = "sk_test_simule", "whsec_simule", "price_pro_test"
+KEY, WHSEC = "sk_test_simule", "whsec_simule"
 STRIPE = "https://stripe.simule"
 
 
@@ -28,86 +29,78 @@ def world(tmp_path, monkeypatch):
         r = holder["comptes"].post(request.url.path, content=request.content, headers=dict(request.headers))
         return httpx.Response(r.status_code, content=r.content)
 
-    fake = create_fake(KEY, WHSEC, f"{BASE}/api/comptes/stripe/webhook", STRIPE, PRICE,
+    fake = create_fake(KEY, WHSEC, f"{BASE}/api/comptes/stripe/webhook", STRIPE,
                        http=httpx.Client(transport=httpx.MockTransport(to_comptes)))
     stripe_http = TestClient(fake, base_url=STRIPE)
     settings = replace(appmod.Settings(jwt_secret=SECRET, public_url=BASE, database_url=f"sqlite:///{tmp_path}/c.db"),
-                       stripe_secret_key=KEY, stripe_webhook_secret=WHSEC, stripe_price_id=PRICE,
-                       stripe_redirect_origins=(STRIPE,))
-    app = appmod.create_app(settings, hub=FakeHub(), contenus=FakeContenus(),
+                       stripe_secret_key=KEY, stripe_webhook_secret=WHSEC, stripe_redirect_origins=(STRIPE,),
+                       acces_payant=True)
+    app = appmod.create_app(settings, hub=FakeHub(), contenus=ShopContenus(),
                             http=httpx.Client(transport=oauth_transport()), background=False,
                             stripe=StripeClient(KEY, http=stripe_http, base=f"{STRIPE}/v1"))
     holder["comptes"] = TestClient(app, base_url=BASE)
     return {"client": holder["comptes"], "stripe": stripe_http, "fake": fake, "sent": sent}
 
 
-def formule(client):
+def parcours(client):
     with db(client) as s:
-        return s.query(User).one().formule
+        return [a.parcours_id for a in s.query(Access).order_by(Access.id)]
+
+
+def buy(client, parcours_id="ros2"):
+    return client.post(f"/compte/acheter/{parcours_id}", data={"renonciation": "oui"}, headers=ORIGIN,
+                       follow_redirects=False)
 
 
 def test_api_requires_the_secret_key(world):
-    assert world["stripe"].get(f"/v1/prices/{PRICE}").status_code == 401
-    r = world["stripe"].get(f"/v1/prices/{PRICE}", headers={"Authorization": "Bearer sk_autre"})
+    assert world["stripe"].post("/v1/checkout/sessions", data={"mode": "payment"}).status_code == 401
+    r = world["stripe"].post("/v1/checkout/sessions", data={}, headers={"Authorization": "Bearer sk_autre"})
     assert r.status_code == 401 and "Invalid API Key" in r.json()["error"]["message"]
 
 
 def test_webhooks_are_signed_like_stripe(world):
     login(world["client"], world)
-    checkout = world["client"].post("/compte/abonnement/souscrire", headers=ORIGIN, follow_redirects=False)
+    checkout = buy(world["client"])
     world["stripe"].post(urlsplit(checkout.headers["location"]).path + "/payer")
     # chaque envoi a été accepté par Comptes, qui vérifie la signature
     deliveries = world["fake"].state.store["deliveries"]
-    assert [d["type"] for d in deliveries] == ["customer.subscription.created", "checkout.session.completed"]
+    assert [d["type"] for d in deliveries] == ["checkout.session.completed"]
     assert all(d["status"] == 200 for d in deliveries)
     from fake_stripe import sign
     verify_signature(b"{}", sign(b"{}", WHSEC), WHSEC)
 
 
-def test_full_subscription_lifecycle_through_the_fake(world):
+def test_purchase_through_the_fake(world):
     client, stripe = world["client"], world["stripe"]
     login(client, world)
-    assert "9,00 € / mois" in client.get("/compte/abonnement").text
-    csp = client.get("/compte/abonnement").headers["content-security-policy"]
+    csp = client.get("/compte/acheter/ros2").headers["content-security-policy"]
     assert f"form-action 'self' {STRIPE};" in csp
 
     # paiement annulé : rien ne change
-    r = client.post("/compte/abonnement/souscrire", headers=ORIGIN, follow_redirects=False)
+    r = buy(client)
     page = stripe.get(urlsplit(r.headers["location"]).path)
-    assert "9,00 € / mois" in page.text and "eleve@exemple.fr" in page.text
-    assert formule(client) == "free"
+    assert "30,00 €" in page.text and "eleve@exemple.fr" in page.text and "Apprendre ROS 2" in page.text
+    assert parcours(client) == []
 
-    # paiement : retour sur Comptes, formule pro
-    r = client.post("/compte/abonnement/souscrire", headers=ORIGIN, follow_redirects=False)
+    # paiement : retour sur Comptes, accès ouvert
+    r = buy(client)
     back = stripe.post(urlsplit(r.headers["location"]).path + "/payer", follow_redirects=False)
-    assert back.headers["location"] == f"{BASE}/compte/abonnement?retour=paye"
-    assert formule(client) == "pro"
+    assert back.headers["location"] == f"{BASE}/compte/acheter/ros2?retour=paye"
+    assert parcours(client) == ["ros2"]
+    assert "Vous avez accès à ce parcours" in client.get("/compte/acheter/ros2?retour=paye").text
     assert stripe.post(urlsplit(r.headers["location"]).path + "/payer").status_code == 404  # session close
 
-    # portail : échec de paiement (toujours pro), reprise, résiliation à la fin de la période, puis immédiate
-    portal = urlsplit(client.post("/compte/abonnement/gerer", headers=ORIGIN, follow_redirects=False)
-                      .headers["location"]).path
-    stripe.post(f"{portal}/echec")
-    assert formule(client) == "pro" and "le dernier paiement a échoué" in client.get("/compte/abonnement").text
-    stripe.post(f"{portal}/reprendre")
-    stripe.post(f"{portal}/resilier-fin")
-    assert formule(client) == "pro" and "reste active jusqu'au" in client.get("/compte/abonnement").text
-    assert "résiliation à la fin de la période" in stripe.get(portal).text
-    stripe.post(f"{portal}/resilier")
-    assert formule(client) == "free"
-    assert "S'abonner" in client.get("/compte/abonnement").text
-
-    # se réabonner réutilise le même client Stripe
-    r = client.post("/compte/abonnement/souscrire", headers=ORIGIN, follow_redirects=False)
+    # un deuxième parcours, au prix de ce parcours
+    r = buy(client, "bras")
+    assert "29,50 €" in stripe.get(urlsplit(r.headers["location"]).path).text
     stripe.post(urlsplit(r.headers["location"]).path + "/payer")
-    assert formule(client) == "pro"
-    assert len(world["fake"].state.store["customers"]) == 1
+    assert parcours(client) == ["ros2", "bras"]
     assert all(d["status"] == 200 for d in world["fake"].state.store["deliveries"])
 
 
 def test_redirect_origins_are_validated():
     from academy_comptes.settings import _origins
-    assert _origins("") == ("https://checkout.stripe.com", "https://billing.stripe.com")
+    assert _origins("") == ("https://checkout.stripe.com",)
     assert _origins("http://localhost:12111, https://pay.example") == ("http://localhost:12111", "https://pay.example")
     for bad in ("localhost:12111", "https://x/chemin", "https://x; script-src *", "'unsafe-inline'"):
         with pytest.raises(SystemExit):

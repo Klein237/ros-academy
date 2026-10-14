@@ -302,6 +302,7 @@ def test_caddy_asks_whether_the_course_may_be_shown(client, env):
     client.cookies.clear()
     login(client, env)
     assert client.get(url).headers["X-Academy-Etudiant"] == "1"
+    assert client.get(url).headers["X-Academy-Acces"] == "*"  # bêta : accès payant désactivé, tout est ouvert
     client.post("/deconnexion", headers=ORIGIN)
     assert client.get(url).headers["X-Academy-Etudiant"] == "0"
 

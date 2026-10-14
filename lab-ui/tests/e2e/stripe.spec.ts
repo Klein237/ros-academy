@@ -1,8 +1,12 @@
-// Abonnement pro de bout en bout contre le faux Stripe (deploy/docker-compose.stripe-simule.yml).
+// Achat d'un parcours de bout en bout contre le faux Stripe (deploy/docker-compose.stripe-simule.yml,
+// qui active aussi l'accès payant : ACCES_PAYANT=1).
 import { expect, test, type APIRequestContext, type Page } from "./fixtures";
 import { admin, cleanup, containerLimits, loginStudent, newEmail, openLabViaAccount, stopServer } from "./helpers";
 
 const STRIPE = process.env.FAKE_STRIPE_URL ?? "http://localhost:12111";
+const PARCOURS = "ros2-fondamentaux";
+const MODULE = "05-noeud"; // un module du parcours acheté
+const AUTRE = "31-bras-urdf"; // un module d'un autre parcours, non acheté
 let api: APIRequestContext;
 const students: string[] = [];
 
@@ -14,66 +18,58 @@ test.afterEach(async () => {
   while (students.length) await cleanup(api, students.pop()!);
 });
 
-async function minutesLeft(page: Page): Promise<number | null> {
-  return (await (await page.request.get("/api/comptes/moi")).json()).minutes_restantes;
+async function me(page: Page): Promise<{ formule: string; minutes_restantes: number | null }> {
+  return (await page.request.get("/api/comptes/moi")).json();
 }
 
-/** Depuis la page Abonnement : ouvre le portail, clique une action, revient sur RoboForge. */
-async function portal(page: Page, action: string): Promise<void> {
-  await page.getByRole("button", { name: "Gérer mon abonnement" }).click();
-  await expect(page).toHaveURL(new RegExp(`^${STRIPE}/portal/`));
-  await page.getByRole("button", { name: action }).click();
-  await page.getByRole("link", { name: "Retour à RoboForge" }).click();
-  await expect(page).toHaveURL(/\/compte\/abonnement$/);
-}
-
-test("abonnement pro : paiement, lab sans quota et conteneur pro, échec de paiement, résiliation @stripe", async ({
-  page,
-}) => {
+test("achat d'un parcours : cours, QCM et lab ouverts pour ce parcours seulement @stripe", async ({ page }) => {
   test.setTimeout(480_000);
   const name = await loginStudent(page, newEmail(), "/compte/");
   students.push(name);
-  expect(await minutesLeft(page)).toBe(600);
 
-  await page.getByRole("link", { name: "Passer en pro" }).click();
-  await expect(page.locator(".price")).toHaveText("9,00 € / mois");
+  // sans parcours : ni cours, ni QCM, ni lab
+  expect(await me(page)).toMatchObject({ formule: "aucune", minutes_restantes: 0 });
+  await page.goto(`/modules/${MODULE}/`);
+  await expect(page.getByRole("heading", { name: "Ce module fait partie d'un parcours" })).toBeVisible();
+  expect((await page.request.get(`/api/contenus/modules/${MODULE}/qcm`)).status()).toBe(403);
+  expect((await page.request.get(`/api/comptes/qcm/${MODULE}`)).status()).toBe(403);
+  await page.goto("/compte/lab");
+  await expect(page.getByRole("heading", { name: "Le lab est inclus avec un parcours" })).toBeVisible();
 
-  // paiement abandonné : retour sans changement
-  await page.getByRole("button", { name: "S'abonner" }).click();
+  // la page Tarifs mène à la page d'achat
+  await page.goto("/tarifs/");
+  await page.locator(`a[href="/compte/acheter/${PARCOURS}"]`).click();
+  await expect(page.locator(".price")).toContainText("30 €");
+
+  // paiement abandonné : retour sans accès
+  await page.getByLabel(/Je demande l'accès immédiat/).check();
+  await page.getByRole("button", { name: "Payer 30 €" }).click();
   await expect(page).toHaveURL(new RegExp(`^${STRIPE}/checkout/`)); // la CSP laisse le formulaire aller chez Stripe
+  await expect(page.getByText("30,00 €")).toBeVisible();
   await page.getByRole("link", { name: "Annuler et revenir" }).click();
-  await expect(page.getByRole("button", { name: "S'abonner" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Payer 30 €" })).toBeVisible();
+  expect((await me(page)).formule).toBe("aucune");
 
-  // paiement : formule pro dès le retour
-  await page.getByRole("button", { name: "S'abonner" }).click();
+  // paiement : accès de 12 mois dès le retour
+  await page.getByLabel(/Je demande l'accès immédiat/).check();
+  await page.getByRole("button", { name: "Payer 30 €" }).click();
   await page.getByRole("button", { name: "Payer" }).click();
-  await expect(page).toHaveURL(/\/compte\/abonnement\?retour=paye$/);
-  await expect(page.getByText("Vous êtes abonné à la formule pro")).toBeVisible();
-  await expect(page.getByText(/Prochain renouvellement le \d{2}\/\d{2}\/\d{4}/)).toBeVisible();
-  expect(await minutesLeft(page)).toBeNull();
+  await expect(page).toHaveURL(new RegExp(`/compte/acheter/${PARCOURS}\\?retour=paye$`));
+  await expect(page.getByText(/Vous avez accès à ce parcours jusqu'au \d{2}\/\d{2}\/\d{4}/)).toBeVisible();
+  expect(await me(page)).toMatchObject({ formule: "pro", minutes_restantes: null });
 
+  // le cours et le QCM du parcours s'ouvrent, pas ceux d'un autre parcours
+  await page.goto(`/modules/${MODULE}/`);
+  await expect(page.getByRole("heading", { name: "Ce module fait partie d'un parcours" })).toHaveCount(0);
+  expect((await page.request.get(`/api/contenus/modules/${MODULE}/qcm`)).status()).toBe(200);
+  expect((await page.request.get(`/api/comptes/qcm/${MODULE}`)).status()).toBe(200);
+  await page.goto(`/modules/${AUTRE}/`);
+  await expect(page.getByRole("heading", { name: "Ce module fait partie d'un parcours" })).toBeVisible();
+
+  // le lab, dans un conteneur pro
   await openLabViaAccount(page);
   expect(containerLimits(name)).toEqual({ cpus: 2, memory: 4 * 1024 ** 3, pids: 512 });
   await stopServer(api, name);
-
-  // échec de paiement : Stripe relance, l'étudiant reste pro mais est prévenu
-  await page.goto("/compte/abonnement");
-  await portal(page, "Simuler un échec de paiement");
-  await expect(page.getByText("le dernier paiement a échoué")).toBeVisible();
-  expect(await minutesLeft(page)).toBeNull();
-
-  // résiliation à la fin de la période : encore pro jusque-là
-  await portal(page, "Reprendre l'abonnement");
-  await portal(page, "Résilier à la fin de la période");
-  await expect(page.getByText(/la formule pro reste active jusqu'au/)).toBeVisible();
-  expect(await minutesLeft(page)).toBeNull();
-
-  // fin de l'abonnement : retour en formule gratuite, et conteneur gratuit au lab suivant
-  await portal(page, "Résilier maintenant");
-  await expect(page.getByRole("button", { name: "S'abonner" })).toBeVisible();
-  expect(await minutesLeft(page)).toBeLessThanOrEqual(600);
-  await openLabViaAccount(page);
-  expect(containerLimits(name)).toEqual({ cpus: 1, memory: 2 * 1024 ** 3, pids: 256 });
 });
 
 test("webhooks du faux Stripe tous acceptés par Comptes (signature vérifiée) @stripe", async ({ request }) => {

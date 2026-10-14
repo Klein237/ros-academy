@@ -343,7 +343,11 @@ async function setupProgression() {
   jauge.value = p.termines;
   jauge.setAttribute("aria-label", "Modules terminés");
   texte.after(jauge);
-  if (p.prochain) {
+  if (p.acces === false) {
+    // parcours pas encore acheté (ou offert avec un certificat) : la page d'achat dit comment l'ouvrir
+    bouton.href = `/compte/acheter/${encodeURIComponent(carte.dataset.progression)}`;
+    bouton.textContent = "Ouvrir le parcours";
+  } else if (p.prochain) {
     bouton.href = `/modules/${encodeURIComponent(p.prochain)}/`;
     bouton.textContent = p.termines || Object.values(p.modules).some((m) => m.etat !== "a_faire")
       ? `Reprendre : ${p.prochain_titre}` : "Commencer le module 1";

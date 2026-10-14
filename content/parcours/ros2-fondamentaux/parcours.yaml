@@ -14,6 +14,7 @@ accroche: >-
 statut: disponible
 niveau: debutant
 ordre: 10
+prix: 30
 objectifs:
   - comprendre l'architecture d'un robot mobile et le commander avec v et ω
   - utiliser le terminal Linux au quotidien

@@ -1,14 +1,12 @@
 """Faux Stripe pour les tests de bout en bout (jamais déployé en production).
 
-Imite la partie de Stripe utilisée par Comptes : API (Checkout, portail client,
-abonnements, prix), pages hébergées (paiement, portail) et webhooks signés comme
-Stripe. Configuration par l'environnement :
+Imite la partie de Stripe utilisée par Comptes : API (Checkout en paiement unique), page de
+paiement hébergée et webhooks signés comme Stripe. Configuration par l'environnement :
 
 - FAKE_STRIPE_KEY : clé secrète attendue (Authorization: Bearer …) ;
 - FAKE_STRIPE_WEBHOOK_SECRET : secret de signature des webhooks (whsec_…) ;
 - FAKE_STRIPE_WEBHOOK_URL : où envoyer les webhooks (le service Comptes) ;
-- FAKE_STRIPE_PUBLIC_URL : adresse des pages vue par le navigateur ;
-- FAKE_STRIPE_PRICE : identifiant du prix (9,00 € / mois).
+- FAKE_STRIPE_PUBLIC_URL : adresse des pages vue par le navigateur.
 
 Lancement : uvicorn fake_stripe:create_app_from_env --factory --port 12111
 """
@@ -25,8 +23,6 @@ import httpx
 from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
-PERIOD = 30 * 86400
-
 PAGE = """<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>{title}</title>
 <style>body{{font-family:sans-serif;max-width:520px;margin:40px auto;padding:0 16px}}
 button{{font:inherit;padding:8px 14px;margin:4px 0}} .muted{{color:#666}}</style></head>
@@ -39,12 +35,12 @@ def sign(payload: bytes, secret: str, stamp=None):
     return f"t={stamp},v1={mac}"
 
 
-def create_app(key, webhook_secret, webhook_url, public_url, price_id, http=None):
+def create_app(key, webhook_secret, webhook_url, public_url, http=None):
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
     http = http or httpx.Client(timeout=10)
     public = public_url.rstrip("/")
     ids = itertools.count(1)
-    st = {"checkouts": {}, "portals": {}, "subscriptions": {}, "customers": {}, "events": [], "deliveries": []}
+    st = {"checkouts": {}, "customers": {}, "events": [], "deliveries": []}
     app.state.store = st
 
     def new_id(prefix):
@@ -71,60 +67,36 @@ def create_app(key, webhook_secret, webhook_url, public_url, price_id, http=None
         except httpx.HTTPError as exc:
             st["deliveries"].append({"event": event["id"], "type": kind, "status": 0, "error": str(exc)})
 
-    def update(sub, **changes):
-        sub.update(changes)
-        emit("customer.subscription.deleted" if sub["status"] == "canceled" else "customer.subscription.updated", sub)
-
     # --- API
 
     @app.post("/v1/checkout/sessions")
     async def checkout_create(request: Request):
         auth(request)
         form = dict(await request.form())
-        if form.get("mode") != "subscription" or form.get("line_items[0][price]") != price_id:
-            raise HTTPException(400, "mode subscription et prix connu attendus")
-        cs = {"id": new_id("cs"), "object": "checkout.session", "mode": "subscription",
-              "customer": form.get("customer"), "customer_email": form.get("customer_email"),
-              "client_reference_id": form.get("client_reference_id"), "success_url": form["success_url"],
-              "cancel_url": form["cancel_url"], "subscription": None, "status": "open"}
+        amount = form.get("line_items[0][price_data][unit_amount]", "")
+        if form.get("mode") != "payment" or not amount.isdigit() or not form.get("success_url"):
+            raise HTTPException(400, "mode payment, montant et adresses de retour attendus")
+        metadata = {k[len("metadata["):-1]: v for k, v in form.items() if k.startswith("metadata[")}
+        cs = {"id": new_id("cs"), "object": "checkout.session", "mode": "payment", "payment_status": "unpaid",
+              "customer": None, "customer_email": form.get("customer_email"),
+              "client_reference_id": form.get("client_reference_id"), "metadata": metadata,
+              "amount_total": int(amount), "currency": form.get("line_items[0][price_data][currency]"),
+              "name": form.get("line_items[0][price_data][product_data][name]", ""),
+              "success_url": form["success_url"], "cancel_url": form["cancel_url"], "status": "open"}
         cs["url"] = f"{public}/checkout/{cs['id']}"
         st["checkouts"][cs["id"]] = cs
         return cs
 
-    @app.post("/v1/billing_portal/sessions")
-    async def portal_create(request: Request):
-        auth(request)
-        form = dict(await request.form())
-        if form.get("customer") not in st["customers"]:
-            raise HTTPException(404, "No such customer")
-        ps = {"id": new_id("bps"), "customer": form["customer"], "return_url": form["return_url"]}
-        ps["url"] = f"{public}/portal/{ps['id']}"
-        st["portals"][ps["id"]] = ps
-        return ps
-
-    @app.get("/v1/subscriptions/{sub_id}")
-    def subscription_get(sub_id: str, request: Request):
-        auth(request)
-        if sub_id not in st["subscriptions"]:
-            raise HTTPException(404, "No such subscription")
-        return st["subscriptions"][sub_id]
-
-    @app.get("/v1/prices/{pid}")
-    def price_get(pid: str, request: Request):
-        auth(request)
-        if pid != price_id:
-            raise HTTPException(404, "No such price")
-        return {"id": pid, "object": "price", "unit_amount": 900, "currency": "eur", "recurring": {"interval": "month"}}
-
-    # --- Pages hébergées
+    # --- Page hébergée
 
     @app.get("/checkout/{cs_id}", response_class=HTMLResponse)
     def checkout_page(cs_id: str):
         cs = st["checkouts"].get(cs_id)
         if not cs or cs["status"] != "open":
             raise HTTPException(404, "Session de paiement expirée")
-        email = html.escape(cs["customer_email"] or st["customers"].get(cs["customer"], {}).get("email", ""))
-        body = (f"<p>RoboForge pro — <strong>9,00 € / mois</strong></p><p>{email}</p>"
+        montant = f"{cs['amount_total'] / 100:.2f}".replace(".", ",") + " €"
+        body = (f"<p>{html.escape(cs['name'])} — <strong>{montant}</strong></p>"
+                f"<p>{html.escape(cs['customer_email'] or '')}</p>"
                 f'<form method="post" action="/checkout/{cs_id}/payer"><button type="submit">Payer</button></form>'
                 f'<p><a href="{html.escape(cs["cancel_url"])}">Annuler et revenir</a></p>')
         return PAGE.format(title="Paiement", body=body)
@@ -134,67 +106,17 @@ def create_app(key, webhook_secret, webhook_url, public_url, price_id, http=None
         cs = st["checkouts"].get(cs_id)
         if not cs or cs["status"] != "open":
             raise HTTPException(404, "Session de paiement expirée")
-        customer = cs["customer"]
-        if not customer:
-            customer = new_id("cus")
-            st["customers"][customer] = {"id": customer, "email": cs["customer_email"]}
-        now = int(time.time())
-        sub = {"id": new_id("sub"), "object": "subscription", "customer": customer, "status": "active",
-               "cancel_at_period_end": False, "items": {"data": [{"price": {"id": price_id},
-                                                                   "current_period_end": now + PERIOD}]}}
-        st["subscriptions"][sub["id"]] = sub
-        cs.update(status="complete", customer=customer, subscription=sub["id"])
-        # comme Stripe : l'abonnement est créé avant la fin de la session de paiement
-        emit("customer.subscription.created", sub)
+        customer = new_id("cus")
+        st["customers"][customer] = {"id": customer, "email": cs["customer_email"]}
+        cs.update(status="complete", payment_status="paid", customer=customer)
         emit("checkout.session.completed", cs)
         return RedirectResponse(cs["success_url"], status_code=303)
-
-    def portal_or_404(ps_id):
-        ps = st["portals"].get(ps_id)
-        if not ps:
-            raise HTTPException(404, "Session du portail expirée")
-        subs = [s for s in st["subscriptions"].values() if s["customer"] == ps["customer"]]
-        return ps, (subs[-1] if subs else None)
-
-    @app.get("/portal/{ps_id}", response_class=HTMLResponse)
-    def portal_page(ps_id: str):
-        ps, sub = portal_or_404(ps_id)
-        state = "aucun abonnement" if not sub else (
-            f"{sub['status']}{' — résiliation à la fin de la période' if sub['cancel_at_period_end'] else ''}")
-        actions = ""
-        if sub and sub["status"] != "canceled":
-            for action, label in (("resilier-fin", "Résilier à la fin de la période"),
-                                  ("resilier", "Résilier maintenant"),
-                                  ("echec", "Simuler un échec de paiement"),
-                                  ("reprendre", "Reprendre l'abonnement")):
-                actions += (f'<form method="post" action="/portal/{ps_id}/{action}">'
-                            f'<button type="submit">{label}</button></form>')
-        body = (f'<p>Abonnement : <strong class="etat">{html.escape(state)}</strong></p>{actions}'
-                f'<p><a href="{html.escape(ps["return_url"])}">Retour à RoboForge</a></p>')
-        return PAGE.format(title="Votre abonnement", body=body)
-
-    @app.post("/portal/{ps_id}/{action}")
-    def portal_action(ps_id: str, action: str):
-        ps, sub = portal_or_404(ps_id)
-        if not sub or sub["status"] == "canceled":
-            raise HTTPException(400, "Aucun abonnement actif")
-        if action == "resilier-fin":
-            update(sub, cancel_at_period_end=True)
-        elif action == "resilier":
-            update(sub, status="canceled", cancel_at_period_end=False)
-        elif action == "echec":
-            update(sub, status="past_due")
-        elif action == "reprendre":
-            update(sub, status="active", cancel_at_period_end=False)
-        else:
-            raise HTTPException(404, "Action inconnue")
-        return RedirectResponse(f"/portal/{ps_id}", status_code=303)
 
     # --- Inspection par les tests
 
     @app.get("/__etat")
     def etat():
-        return {"deliveries": st["deliveries"], "subscriptions": st["subscriptions"]}
+        return {"deliveries": st["deliveries"], "checkouts": st["checkouts"]}
 
     return app
 
@@ -202,4 +124,4 @@ def create_app(key, webhook_secret, webhook_url, public_url, price_id, http=None
 def create_app_from_env():
     env = os.environ
     return create_app(env["FAKE_STRIPE_KEY"], env["FAKE_STRIPE_WEBHOOK_SECRET"], env["FAKE_STRIPE_WEBHOOK_URL"],
-                      env["FAKE_STRIPE_PUBLIC_URL"], env.get("FAKE_STRIPE_PRICE", "price_pro_test"))
+                      env["FAKE_STRIPE_PUBLIC_URL"])

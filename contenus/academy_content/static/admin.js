@@ -403,6 +403,7 @@ async function parcours() {
   form.prerequis.value = (data.prerequis || []).join("\n");
   form.outils.value = (data.outils || []).join("\n");
   form.offert.checked = !!data.offert;
+  form.prix.value = data.prix ?? "";
   const lignes = (v) => v.split("\n").map((l) => l.trim()).filter(Boolean);
 
   function draw() {
@@ -438,7 +439,8 @@ async function parcours() {
         titre: form.titre.value, description: form.description.value, accroche: form.accroche.value,
         statut: form.statut.value, niveau: form.niveau.value, ordre: Number(form.ordre.value || 100),
         objectifs: lignes(form.objectifs.value), prerequis: lignes(form.prerequis.value),
-        outils: lignes(form.outils.value), offert: form.offert.checked, modules,
+        outils: lignes(form.outils.value), offert: form.offert.checked,
+        prix: form.prix.value === "" ? null : Number(form.prix.value), modules,
       });
       document.getElementById("parcours-etat").textContent = "Enregistré (à publier depuis le tableau de bord)";
     } catch (e) {

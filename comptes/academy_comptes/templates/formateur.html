@@ -9,6 +9,7 @@
 {% block content %}
 <div class="trainer-head">
   <h1>Tableau de bord formateur</h1>
+  <a class="button" href="/compte/formateur/acces">Accès offerts et achats</a>
   {% if all_parcours | length > 1 %}
   <form method="get" class="row">
     <label class="inline">Parcours
@@ -26,7 +27,7 @@
   <div class="tile"><span class="tile-value">{{ resume.labs if resume.labs is not none else '—' }}</span><span class="tile-label">labs en cours</span></div>
   <div class="tile"><span class="tile-value">{{ resume.minutes }}</span><span class="tile-label">minutes de lab ce mois-ci</span></div>
   <div class="tile"><span class="tile-value">{{ resume.termines }}</span><span class="tile-label">parcours terminés</span></div>
-  <div class="tile"><span class="tile-value">{{ resume.pro }}</span><span class="tile-label">en formule pro</span></div>
+  <div class="tile"><span class="tile-value">{{ resume.acces }}</span><span class="tile-label">avec un accès payé ou offert</span></div>
 </section>
 
 <section class="card">

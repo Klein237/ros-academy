@@ -391,6 +391,7 @@ body.cote-a-cote main.page:not(.plein) { padding: 24px 24px 48px; }
 .carte-reprise-titre { font-weight: 600; }
 .carte-reprise p { margin: 0; color: var(--text-2); font-size: 0.95rem; }
 .carte-reprise .button { text-align: center; padding: 12px 18px; }
+.carte-reprise .carte-prix { font-size: 0.9rem; }
 @media (prefers-color-scheme: dark) {
   .bandeau-parcours { background: var(--accent-soft); color: var(--text); }
   .bandeau-texte p, .bandeau-parcours .breadcrumb, .bandeau-parcours .breadcrumb a { color: var(--text-2); }
@@ -543,3 +544,8 @@ li[data-etat="en_cours"] .etat-module { background: var(--amber-soft); color: va
 
 /* Schémas des cours (images/ du module) : le SVG suit lui-même le thème clair ou sombre */
 .cours img.schema { display: block; width: 100%; max-width: 860px; height: auto; margin: 24px auto; }
+/* Tarifs */
+.carte-tarif h3 a { color: inherit; text-decoration: none; }
+.carte-tarif h3 a:hover { text-decoration: underline; }
+.carte-tarif .button { margin-top: auto; text-align: center; }
+.tarif-prix { font-family: var(--font-titre); font-size: 2rem; font-weight: 700; margin: 4px 0 0; }

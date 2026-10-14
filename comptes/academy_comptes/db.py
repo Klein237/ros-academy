@@ -35,7 +35,8 @@ class User(Base):
     mot_de_passe: Mapped[str | None] = mapped_column(String(200), nullable=True)
     email_verifie_le: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     cree_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
-    # Abonnement Stripe (formule pro) ; Stripe fait foi, relu à chaque événement
+    # Client Stripe (renseigné au premier achat) ; les colonnes abonnement_* viennent de l'ancien
+    # abonnement mensuel, retiré au profit de l'achat par parcours, et ne servent plus
     stripe_customer_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
     stripe_subscription_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     abonnement_statut: Mapped[str | None] = mapped_column(String(40), nullable=True)
@@ -104,6 +105,26 @@ class Certificate(Base):
     emis_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     revoque_le: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     revoque_motif: Mapped[str] = mapped_column(String(200), default="")
+
+
+class Access(Base):
+    """Accès à un parcours : acheté (Stripe) ou offert par l'administrateur.
+
+    parcours_id « * » : tous les parcours (accès offert aux bêta-testeurs, par exemple).
+    fin None : sans date de fin. Un accès retiré garde sa ligne (retire_le), pour l'historique.
+    """
+
+    __tablename__ = "access"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    parcours_id: Mapped[str] = mapped_column(String(64))
+    origine: Mapped[str] = mapped_column(String(20))  # achat, offert
+    debut: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    fin: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    retire_le: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    motif: Mapped[str] = mapped_column(String(200), default="")
+    montant_centimes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    stripe_session_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
 
 
 class StripeEvent(Base):

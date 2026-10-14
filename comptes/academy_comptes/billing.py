@@ -1,22 +1,18 @@
-"""Abonnement à la formule pro avec Stripe (API REST, sans SDK).
+"""Achat d'un parcours avec Stripe Checkout (paiement unique, API REST, sans SDK).
 
-Stripe fait foi : chaque événement du webhook déclenche une relecture de l'abonnement
-auprès de l'API, puis la formule du compte suit son statut.
+Le prix vient du parcours (champ « prix » de parcours.yaml) : la session de paiement le porte
+(price_data), sans produit ni prix à créer dans Stripe. Le webhook signé
+« checkout.session.completed » (payée) ouvre l'accès.
 """
 
 import hashlib
 import hmac
 import time
-from datetime import datetime, timezone
 
 import httpx
 
-from .db import User
-
 API = "https://api.stripe.com/v1"
 SIGNATURE_TOLERANCE = 300  # secondes
-# Statuts où l'étudiant garde la formule pro (past_due : Stripe retente le paiement)
-PAYING = {"active", "trialing", "past_due"}
 
 
 class StripeError(Exception):
@@ -63,65 +59,40 @@ class StripeClient:
             raise StripeError(f"Stripe {r.status_code} sur {path} : {message}")
         return r.json()
 
-    def create_checkout(self, user, price_id, success_url, cancel_url):
+    def create_checkout(self, user, parcours, amount_cents, months, success_url, cancel_url):
+        """Session de paiement unique pour un parcours ; renvoie l'adresse de la page de Stripe."""
         data = {
-            "mode": "subscription",
-            "line_items[0][price]": price_id,
+            "mode": "payment",
             "line_items[0][quantity]": "1",
+            "line_items[0][price_data][currency]": "eur",
+            "line_items[0][price_data][unit_amount]": str(amount_cents),
+            "line_items[0][price_data][product_data][name]": f"Parcours « {parcours['titre']} »",
+            "line_items[0][price_data][product_data][description]": f"Accès de {months} mois : cours, lab, exercices "
+                                                                     "corrigés et certificat",
             "success_url": success_url,
             "cancel_url": cancel_url,
             "client_reference_id": str(user.id),
-            "subscription_data[metadata][user_id]": str(user.id),
+            "metadata[user_id]": str(user.id),
+            "metadata[parcours_id]": parcours["id"],
+            "customer_email": user.email,
             "locale": "fr",
         }
-        if user.stripe_customer_id:
-            data["customer"] = user.stripe_customer_id
-        else:
-            data["customer_email"] = user.email
         return self._call("POST", "/checkout/sessions", data)["url"]
 
-    def create_portal(self, customer_id, return_url):
-        return self._call("POST", "/billing_portal/sessions", {"customer": customer_id, "return_url": return_url})["url"]
 
-    def subscription(self, subscription_id):
-        return self._call("GET", f"/subscriptions/{subscription_id}")
-
-    def price(self, price_id):
-        return self._call("GET", f"/prices/{price_id}")
-
-
-def _period_end(sub):
-    """Fin de la période en cours (au niveau de l'abonnement ou, en API récente, de ses lignes)."""
-    end = sub.get("current_period_end")
-    if end is None:
-        items = (sub.get("items") or {}).get("data") or []
-        ends = [i.get("current_period_end") for i in items if i.get("current_period_end")]
-        end = max(ends) if ends else None
-    return datetime.fromtimestamp(end, timezone.utc).replace(tzinfo=None) if end else None
+def price_cents(parcours):
+    """Prix d'un parcours en centimes (champ « prix » en euros) ; None s'il n'est pas en vente."""
+    prix = parcours.get("prix")
+    if prix is None or parcours.get("offert"):
+        return None
+    try:
+        cents = round(float(prix) * 100)
+    except (TypeError, ValueError):
+        return None
+    return cents if cents > 0 else None
 
 
-def apply_subscription(user: User, sub: dict):
-    """Met la formule du compte en accord avec l'abonnement relu chez Stripe.
-
-    Un ancien abonnement qui se termine ne retire pas la formule pro portée par un autre
-    abonnement, plus récent, du même compte.
-    """
-    paying = sub.get("status") in PAYING
-    if user.stripe_subscription_id and user.stripe_subscription_id != sub["id"] and not paying:
-        return False
-    user.stripe_subscription_id = sub["id"]
-    user.abonnement_statut = sub.get("status")
-    user.abonnement_fin = _period_end(sub)
-    user.abonnement_resilie = bool(sub.get("cancel_at_period_end"))
-    user.formule = "pro" if paying else "free"
-    return True
-
-
-def format_price(price):
-    """« 9,00 € / mois » à partir d'un objet Price de Stripe."""
-    amount = (price.get("unit_amount") or 0) / 100
-    currency = {"eur": "€", "usd": "$", "gbp": "£"}.get(price.get("currency", ""), price.get("currency", "").upper())
-    interval = {"month": "mois", "year": "an", "week": "semaine", "day": "jour"}.get(
-        (price.get("recurring") or {}).get("interval", ""), "")
-    text = f"{amount:.2f}".replace(".", ",") + f" {currency}"
-    return f"{text} / {interval}" if interval else text
+def format_amount(cents):
+    """3000 → « 30 € » ; 2950 → « 29,50 € »."""
+    euros, rest = divmod(int(cents), 100)
+    return f"{euros} €" if not rest else f"{euros},{rest:02d} €"

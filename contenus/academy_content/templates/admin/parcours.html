@@ -17,6 +17,7 @@
   <label>Prérequis (une ligne par prérequis) <textarea name="prerequis" rows="3"></textarea></label>
   <label>Outils, en badges (une ligne par outil, 8 au plus) <textarea name="outils" rows="3"></textarea></label>
   <label class="row"><input type="checkbox" name="offert"> Annoncé comme offert après un parcours validé</label>
+  <label>Prix en euros TTC, pour 12 mois d'accès <span class="muted small">(vide : pas en vente ; ignoré si le parcours est offert)</span> <input name="prix" type="number" min="1" max="10000" step="0.5"></label>
   <h2>Modules, dans l'ordre</h2>
   <table class="list" id="parcours-modules">
     <thead><tr><th>Module</th><th>Coefficient</th><th title="Les modules consécutifs d'une même partie sont regroupés sur la page du parcours">Partie</th><th title="Suivi et noté, mais hors note finale et hors certificat">Bonus</th><th></th></tr></thead>

@@ -8,7 +8,8 @@ export type SessionState =
   | { kind: "noauth" }
   | { kind: "starting"; progress: number; message: string }
   | { kind: "full"; retryInMs: number; position?: number }
-  | { kind: "quota" }
+  /** Lab refusé : minutes du mois épuisées, ou (sansParcours) aucun parcours acheté ni offert. */
+  | { kind: "quota"; sansParcours?: boolean }
   | { kind: "ready" }
   | { kind: "failed"; message: string }
   | { kind: "stopped"; reason: "idle" | "external" | "user" };
@@ -82,7 +83,8 @@ export class Session {
   async launch(): Promise<void> {
     this.timers.clearTimeout(this.retryTimer);
     this.set({ kind: "starting", progress: 0, message: "Demande d'un environnement ROS…" });
-    if (await this.quotaExhausted()) return this.set({ kind: "quota" });
+    const refus = await this.labRefused();
+    if (refus) return this.set(refus);
     try {
       // une coupure pendant la demande ne dit rien du démarrage, qui continue côté Hub :
       // l'état réel est lu ensuite par waitReady (qui redemande le démarrage si besoin)
@@ -108,25 +110,28 @@ export class Session {
     } catch (e) {
       if (e instanceof NotLoggedIn) return this.set({ kind: "noauth" });
       // le Hub refuse le démarrage d'un étudiant dont le quota est épuisé
-      if (await this.quotaExhausted()) return this.set({ kind: "quota" });
+      const refus = await this.labRefused();
+      if (refus) return this.set(refus);
       console.warn("Démarrage du lab en échec", e);
       this.set({ kind: "failed", message: "Le conteneur n'a pas pu démarrer." });
     }
   }
 
   /**
-   * Vrai seulement si Comptes répond que les minutes du mois sont épuisées. Une requête coupée
+   * État « quota » seulement si Comptes répond qu'il ne reste aucune minute de lab : minutes du mois
+   * épuisées, ou aucun parcours ouvert au compte (formule « aucune »). Une requête coupée
    * (réseau qui change, Comptes qui redémarre) est refaite deux fois : sans cela, un lab arrêté
    * pour quota s'afficherait « arrêté » sans dire pourquoi.
    */
-  private async quotaExhausted(): Promise<boolean> {
-    if (!this.account) return false;
+  private async labRefused(): Promise<SessionState | null> {
+    if (!this.account) return null;
     for (let essai = 1; ; essai++) {
       try {
-        return (await this.account.me()).minutes_restantes === 0;
+        const me = await this.account.me();
+        return me.minutes_restantes === 0 ? { kind: "quota", sansParcours: me.formule === "aucune" } : null;
       } catch (e) {
         // pas de session Comptes (lab ouvert sans compte) ou Comptes injoignable : le Hub tranche
-        if (e instanceof NoAccount || essai >= 3) return false;
+        if (e instanceof NoAccount || essai >= 3) return null;
         await sleep(1000, this.timers);
       }
     }
@@ -212,7 +217,7 @@ export class Session {
     }
     if (server?.ready) return true;
     // arrêté par Comptes au passage à zéro du quota, ou par le Hub
-    this.set((await this.quotaExhausted()) ? { kind: "quota" } : { kind: "stopped", reason: "external" });
+    this.set((await this.labRefused()) ?? { kind: "stopped", reason: "external" });
     return false;
   }
 

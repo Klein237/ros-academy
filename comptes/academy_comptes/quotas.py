@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 
+from .acces import plan
 from .db import QueueTicket, UsageTick, User, utcnow
 
 HUB_NAME_RE = re.compile(r"^u(\d+)$")
@@ -24,8 +25,8 @@ def minutes_used(db, user, now=None):
 
 
 def minutes_left(db, user, settings, now=None):
-    """Minutes restantes ce mois-ci ; None si la formule est sans limite."""
-    quota = settings.plan_minutes.get(user.formule, settings.plan_minutes["free"])
+    """Minutes restantes ce mois-ci ; None si la formule est sans limite (0 : pas de lab)."""
+    quota = settings.plan_minutes.get(plan(db, user, settings, now or utcnow()), 0)
     if quota is None:
         return None
     return max(0, quota - minutes_used(db, user, now))

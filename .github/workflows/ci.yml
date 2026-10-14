@@ -134,11 +134,11 @@ jobs:
         run: |
           set -a; . ../deploy/.env; set +a
           npx playwright test --grep-invert "@limit|@stripe"
-      - name: Abonnement pro (Stripe simulé)
+      - name: Achat d'un parcours (Stripe simulé)
         run: |
           set -a; . deploy/.env; set +a
           (cd deploy && docker compose -f docker-compose.yml -f docker-compose.stripe-simule.yml up -d --build comptes fake-stripe)
-          for _ in $(seq 1 30); do curl -sf -H "Authorization: Bearer sk_test_simule" http://localhost:12111/v1/prices/price_pro_test >/dev/null && curl -ksf https://localhost/connexion >/dev/null && break; sleep 2; done
+          for _ in $(seq 1 30); do curl -sf http://localhost:12111/__etat >/dev/null && curl -ksf https://localhost/connexion >/dev/null && break; sleep 2; done
           cd lab-ui && npx playwright test --grep @stripe
           cd ../deploy && docker compose up -d comptes   # retour à Comptes sans Stripe pour la suite
       - name: Capacité

@@ -68,6 +68,14 @@ export class WaitingScreen {
         );
         break;
       case "quota":
+        if (state.sansParcours) {
+          card.append(
+            h("h1", { text: "Le lab est inclus avec un parcours" }),
+            h("p", { text: "Le lab s'ouvre avec l'achat d'un parcours ou un accès offert. « Découvrir ROS 2 » reste ouvert à tous." }),
+            h("a", { class: "button primary", text: "Voir les tarifs", attrs: { href: "/tarifs/" } }),
+          );
+          break;
+        }
         card.append(
           h("h1", { text: "Quota de lab épuisé" }),
           h("p", { text: "Vous avez utilisé toutes vos minutes de lab ce mois-ci. Vos fichiers sont conservés ; le lab sera de nouveau disponible le mois prochain." }),
