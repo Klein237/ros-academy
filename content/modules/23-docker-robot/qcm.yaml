@@ -1,0 +1,73 @@
+questions:
+  - id: exec-format
+    question: Une image construite sur un PC démarre sur un Raspberry Pi avec « exec format error ». Pourquoi ?
+    choix:
+      - texte: Elle a été compilée pour amd64, et le Raspberry Pi est en arm64
+        correct: true
+      - texte: Le Raspberry Pi n'a pas assez de mémoire
+      - texte: Le point d'entrée n'est pas exécutable
+    explication: Une image contient des programmes compilés pour une architecture ; il faut une variante arm64.
+  - id: buildx
+    question: Que produit docker buildx build --platform linux/amd64,linux/arm64 -t ghcr.io/roboforge/livraison:1.1.0 --push . ?
+    choix:
+      - texte: Une image multi-architecture ; chaque machine télécharge la variante de son processeur
+        correct: true
+      - texte: Deux images, livraison-amd64 et livraison-arm64, à choisir à la main
+      - texte: Une seule image qui fonctionne en émulation partout
+    explication: Un seul nom, une variante par plateforme ; docker pull choisit automatiquement la bonne.
+  - id: emulation
+    question: Pourquoi éviter de compiler un gros workspace C++ pour arm64 par émulation sur un PC ?
+    choix:
+      - texte: L'émulation rend la compilation beaucoup plus lente
+        correct: true
+      - texte: Le résultat ne fonctionne pas sur un vrai processeur ARM
+      - texte: buildx refuse d'émuler ARM
+    explication: Le résultat est correct, mais la construction peut prendre dix fois plus de temps ; une machine ARM native est préférable.
+  - id: latest
+    question: Pourquoi ne pas déployer l'image latest sur une flotte de robots ?
+    choix:
+      - texte: latest change à chaque construction ; deux robots peuvent tourner sur deux versions sans qu'on le sache
+        correct: true
+      - texte: latest n'existe que sur Docker Hub
+      - texte: latest est toujours plus lente
+    explication: Un tag de version qu'on ne déplace jamais (1.1.0) garde la flotte dans un état connu.
+  - id: rollback
+    question: Avec image ghcr.io/roboforge/livraison:${VERSION} dans compose.yaml, comment revenir à la version 1.0.0 ?
+    choix:
+      - texte: Mettre VERSION=1.0.0 dans .env, puis docker compose up -d
+        correct: true
+      - texte: Reconstruire l'image 1.0.0 depuis Git sur le robot
+      - texte: docker compose down, puis réinstaller le robot
+    explication: L'ancienne image est encore sur le robot ; up -d recrée les conteneurs avec elle, même sans réseau.
+  - id: healthcheck
+    question: Pourquoi un healthcheck qui vérifie qu'un topic arrive, plutôt que se fier à l'état « Up » du conteneur ?
+    choix:
+      - texte: Un conteneur peut tourner alors qu'un nœud du robot a planté
+        correct: true
+      - texte: Docker arrête les conteneurs sans healthcheck au bout d'une heure
+      - texte: Le healthcheck accélère le démarrage
+    explication: « Up » dit que le processus principal tourne ; le healthcheck vérifie ce que le robot doit vraiment faire.
+  - id: journaux
+    question: Que risque un robot qui tourne des semaines sans limite de taille sur les journaux Docker ?
+    choix:
+      - texte: Remplir son disque
+        correct: true
+      - texte: Perdre ses journaux à chaque redémarrage
+      - texte: Ralentir le réseau DDS
+    explication: "logging: options: max-size et max-file plafonnent la place prise par les journaux de chaque conteneur."
+  - id: secrets
+    question: Où mettre le jeton qui permet au robot d'appeler l'API de l'entrepôt ?
+    choix:
+      - texte: Dans un fichier .env ou un secret, fourni au démarrage, hors de Git et hors de l'image
+        correct: true
+      - texte: Dans le Dockerfile, avec ENV, pour qu'il soit toujours là
+      - texte: Dans le code source, en constante
+    explication: Tout ce qui est dans une couche de l'image se lit par quiconque récupère l'image.
+  - id: mise-a-jour
+    question: Quelle est la bonne façon de mettre à jour une flotte de trois robots ?
+    choix:
+      - texte: Un robot à l'arrêt sur sa base d'abord, puis les autres, en notant la version de chacun
+        correct: true
+      - texte: Les trois en même temps, en mission, pour gagner du temps
+      - texte: Directement depuis le portable d'un développeur, avec une image construite localement
+    explication: On limite le risque et on sait toujours quelle version tourne où ; l'image déployée est celle publiée et testée par la CI.
