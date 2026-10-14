@@ -1,0 +1,73 @@
+questions:
+  - id: run-cmd
+    question: Quand l'instruction RUN colcon build s'exécute-t-elle ?
+    choix:
+      - texte: Pendant docker build, et son résultat devient une couche de l'image
+        correct: true
+      - texte: À chaque docker run
+      - texte: Seulement si on la passe en argument à docker run
+    explication: "RUN agit à la construction ; ENTRYPOINT et CMD, au démarrage du conteneur."
+  - id: deux-etapes
+    question: Pourquoi compiler dans une étape build, puis copier /ws/install dans une étape robot basée sur ros-core ?
+    choix:
+      - texte: L'image finale n'emporte ni compilateurs ni outils de compilation ; elle est plus petite
+        correct: true
+      - texte: Parce que colcon ne fonctionne pas dans ros-core
+      - texte: Pour que l'image se construise deux fois plus vite
+    explication: Seule la dernière étape devient l'image ; elle ne contient que ce qu'on y copie explicitement.
+  - id: cache
+    question: Pourquoi copier les package.xml et lancer rosdep install avant COPY src src ?
+    choix:
+      - texte: Modifier le code ne relance alors que la compilation, pas l'installation des dépendances
+        correct: true
+      - texte: rosdep refuse de fonctionner si le code est déjà copié
+      - texte: L'ordre des instructions n'a aucune importance
+    explication: Dès qu'une couche change, toutes les suivantes sont refaites ; on place en premier ce qui change rarement.
+  - id: source-run
+    question: "Dans RUN . /opt/ros/$ROS_DISTRO/setup.sh && colcon build, pourquoi le source est-il dans la même instruction ?"
+    choix:
+      - texte: Chaque RUN est un nouveau shell ; rien n'est gardé d'une instruction à l'autre
+        correct: true
+      - texte: Pour gagner une couche dans l'image
+      - texte: colcon exige que la commande tienne sur une ligne
+    explication: Les variables chargées par setup.sh n'existent que dans le shell de ce RUN.
+  - id: entree
+    question: Que doit faire le point d'entrée d'une image de robot, dans l'ordre ?
+    choix:
+      - texte: Sourcer ROS, sourcer le workspace, puis exec "$@"
+        correct: true
+      - texte: Compiler le workspace, puis lancer ros2 launch
+      - texte: Sourcer le workspace seulement ; ROS est déjà chargé dans un conteneur
+    explication: Un conteneur démarre sans aucun setup.bash chargé ; l'underlay puis l'overlay, puis la commande reçue.
+  - id: exec
+    question: "Pourquoi exec \"$@\" plutôt que \"$@\" à la fin du point d'entrée ?"
+    choix:
+      - texte: La commande remplace le script et reçoit directement les signaux de docker stop
+        correct: true
+      - texte: exec rend la commande plus rapide
+      - texte: Sans exec, la commande n'est pas lancée
+    explication: Avec exec, ros2 launch devient le processus principal du conteneur et s'arrête proprement quand Docker le lui demande.
+  - id: cmd-override
+    question: Que lance docker run --rm -it livraison:dev bash ?
+    choix:
+      - texte: Le point d'entrée, avec bash à la place de la commande par défaut
+        correct: true
+      - texte: bash à la place du point d'entrée
+      - texte: La commande par défaut, puis bash une fois le robot arrêté
+    explication: Les arguments de docker run remplacent CMD ; ENTRYPOINT reste. On obtient un terminal où ROS et le workspace sont déjà chargés.
+  - id: user
+    question: Pourquoi ajouter USER robot dans l'image d'exécution ?
+    choix:
+      - texte: Pour que les nœuds ne tournent pas en root dans le conteneur
+        correct: true
+      - texte: ROS 2 refuse de démarrer en root
+      - texte: Pour pouvoir se connecter au robot en SSH
+    explication: Moins de droits, moins de dégâts possibles si un programme a une faille.
+  - id: dockerignore
+    question: À quoi sert un fichier .dockerignore contenant build/, install/ et log/ ?
+    choix:
+      - texte: Ne pas envoyer ces dossiers dans le contexte de construction, ni casser le cache avec eux
+        correct: true
+      - texte: Empêcher colcon de créer ces dossiers dans l'image
+      - texte: Supprimer ces dossiers après la construction
+    explication: Ces dossiers sont produits par une compilation locale ; l'image recompile proprement à partir de src/.

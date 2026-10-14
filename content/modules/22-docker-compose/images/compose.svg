@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 330" role="img" aria-labelledby="t d">
+<title id="t">Compose et DDS : le robot et le poste de développement</title>
+<desc id="d">Sur l&#x27;ordinateur du robot, les conteneurs robot (ros2 launch) et supervision (ros2 topic echo /etat) sont dans le domaine 42, avec network_mode host et ipc host : ils partagent le réseau et la mémoire de l&#x27;hôte et se découvrent. Le portable du développeur, sur le même Wi-Fi et dans le même domaine, lance RViz dans un conteneur en réseau host et voit les nœuds du robot par DDS.</desc>
+<style>
+.fond { fill: #fbfbf9; stroke: #c9cfc9; stroke-width: 1.5; }
+.grille { stroke: #e7eae6; stroke-width: 1; }
+.boite { fill: #ffffff; stroke: #c9cfc9; stroke-width: 1.5; }
+.calcul { fill: #e3f1ee; stroke: #0b5e57; stroke-width: 2; }
+.capteur { fill: #fff8e8; stroke: #d39a2c; stroke-width: 2; }
+.actionneur { fill: #eef1f5; stroke: #56606a; stroke-width: 2; }
+.robot { fill: #e3f1ee; stroke: #0b5e57; stroke-width: 2; }
+.roue { fill: #12171c; }
+.roulette { fill: #ffffff; stroke: #12171c; stroke-width: 1.5; }
+.nez { fill: #0b5e57; }
+.ax-x { stroke: #d64545; stroke-width: 3; fill: none; } .ax-y { stroke: #2f9e44; stroke-width: 3; fill: none; }
+.px { fill: #d64545; } .py { fill: #2f9e44; }
+.trait { stroke: #56606a; stroke-width: 2; fill: none; }
+.tirets { stroke: #8a949c; stroke-width: 1.5; stroke-dasharray: 5 5; fill: none; }
+.trajet { stroke: #d39a2c; stroke-width: 3; fill: none; stroke-linecap: round; }
+.trajet-pointe { fill: #d39a2c; }
+.vitesse { stroke: #0b5e57; stroke-width: 3; fill: none; }
+.vitesse-pointe { fill: #0b5e57; }
+.pointe { fill: #56606a; }
+.cir { fill: #d39a2c; }
+.t { fill: #12171c; font: 400 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-gras { fill: #12171c; font: 600 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-titre { fill: #12171c; font: 600 16px "IBM Plex Sans", system-ui, sans-serif; }
+.t-petit { fill: #56606a; font: 400 12.5px "IBM Plex Sans", system-ui, sans-serif; }
+.t-sur { fill: #56606a; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; letter-spacing: 0.08em; }
+.t-math { fill: #12171c; font: italic 500 15px "IBM Plex Serif", Georgia, serif; }
+.t-code { fill: #12171c; font: 500 13px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+.t-accent { fill: #0b5e57; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-ambre { fill: #8a5d10; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-x { fill: #d64545; font: 600 13px "JetBrains Mono", monospace; } .t-y { fill: #2f9e44; font: 600 13px "JetBrains Mono", monospace; }
+.badge { fill: #0b5e57; } .t-badge { fill: #ffffff; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; }
+.sep { stroke: #e2e5e1; stroke-width: 1.5; }
+@media (prefers-color-scheme: dark) {
+  .fond { fill: #0f161d; stroke: #34424f; } .grille { stroke: #1b2630; }
+  .boite { fill: #121a22; stroke: #34424f; }
+  .calcul, .robot { fill: #12302d; stroke: #4fb3a7; }
+  .capteur { fill: #2a2212; stroke: #f2b544; }
+  .actionneur { fill: #1a222b; stroke: #8a99a8; }
+  .roue { fill: #c9d3dc; } .roulette { fill: #121a22; stroke: #c9d3dc; } .nez { fill: #4fb3a7; }
+  .ax-x { stroke: #ff6b6b; } .ax-y { stroke: #51cf66; } .px, .t-x { fill: #ff6b6b; } .py, .t-y { fill: #51cf66; }
+  .trait { stroke: #8a99a8; } .tirets { stroke: #5d6b78; } .pointe { fill: #8a99a8; }
+  .trajet { stroke: #f2b544; } .trajet-pointe, .cir { fill: #f2b544; }
+  .vitesse { stroke: #4fb3a7; } .vitesse-pointe { fill: #4fb3a7; }
+  .t, .t-gras, .t-titre, .t-math, .t-code { fill: #e3e8ee; }
+  .t-petit, .t-sur { fill: #8a99a8; } .t-accent { fill: #4fb3a7; } .t-ambre { fill: #f2b544; }
+  .badge { fill: #4fb3a7; } .t-badge { fill: #0b1015; } .sep { stroke: #22303c; }
+}
+</style>
+<defs>
+<marker id="m-trait" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-trajet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="trajet-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-vitesse" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="vitesse-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-x" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="px" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-y" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="py" d="M0 0 L10 5 L0 10 z"/></marker>
+</defs>
+<rect class="fond" x="20.0" y="20.0" width="520.0" height="300.0" rx="12"/>
+<text class="t-sur" x="38.0" y="48.0" text-anchor="start">ORDINATEUR DU ROBOT</text>
+<text class="t-petit" x="522.0" y="48.0" text-anchor="end">réseau et mémoire de l&#x27;hôte</text>
+<rect class="calcul" x="40.0" y="66.0" width="300.0" height="90.0" rx="10"/>
+<text class="t-gras" x="56.0" y="94.0" text-anchor="start">conteneur robot</text>
+<text class="t-code" x="56.0" y="118.0" text-anchor="start">ros2 launch livraison_bringup</text>
+<text class="t-code" x="56.0" y="140.0" text-anchor="start">ROS_DOMAIN_ID=42</text>
+<rect class="calcul" x="40.0" y="190.0" width="300.0" height="90.0" rx="10"/>
+<text class="t-gras" x="56.0" y="218.0" text-anchor="start">conteneur supervision</text>
+<text class="t-code" x="56.0" y="242.0" text-anchor="start">ros2 topic echo /etat</text>
+<text class="t-code" x="56.0" y="264.0" text-anchor="start">ROS_DOMAIN_ID=42</text>
+<rect class="boite" x="370.0" y="70.0" width="150.0" height="200.0" rx="10"/>
+<text class="t-code" x="445.0" y="100.0" text-anchor="middle">network_mode:</text>
+<text class="t-code" x="445.0" y="120.0" text-anchor="middle">host</text>
+<text class="t-code" x="445.0" y="160.0" text-anchor="middle">ipc: host</text>
+<text class="t-petit" x="445.0" y="200.0" text-anchor="middle">mémoire</text>
+<text class="t-petit" x="445.0" y="218.0" text-anchor="middle">partagée</text>
+<text class="t-petit" x="445.0" y="236.0" text-anchor="middle">et réseau</text>
+<text class="t-petit" x="445.0" y="254.0" text-anchor="middle">communs</text>
+<line class="trait" x1="342.0" y1="111.0" x2="368.0" y2="111.0" marker-end="url(#m-trait)"/>
+<line class="trait" x1="342.0" y1="235.0" x2="368.0" y2="235.0" marker-end="url(#m-trait)"/>
+<line class="trait" x1="190.0" y1="160.0" x2="190.0" y2="186.0" marker-end="url(#m-trait)" marker-start="url(#m-trait)"/>
+<text class="t-code" x="202.0" y="178.0" text-anchor="start">/etat</text>
+<text class="t-petit" x="280.0" y="300.0" text-anchor="middle">les deux conteneurs se découvrent : même domaine, même réseau</text>
+<rect class="fond" x="600.0" y="70.0" width="260.0" height="200.0" rx="12"/>
+<text class="t-sur" x="618.0" y="98.0" text-anchor="start">PORTABLE DU DÉVELOPPEUR</text>
+<rect class="boite" x="618.0" y="116.0" width="224.0" height="90.0" rx="10"/>
+<text class="t-gras" x="634.0" y="144.0" text-anchor="start">conteneur rviz</text>
+<text class="t-code" x="634.0" y="168.0" text-anchor="start">network_mode: host</text>
+<text class="t-code" x="634.0" y="190.0" text-anchor="start">ROS_DOMAIN_ID=42</text>
+<text class="t-petit" x="730.0" y="236.0" text-anchor="middle">même Wi-Fi, même domaine</text>
+<path class="tirets" d="M522 170 C 560 170, 560 160, 598 160" marker-end="url(#m-trait)"/>
+<text class="t-accent" x="560.0" y="150.0" text-anchor="middle">DDS</text>
+</svg>

@@ -1,16 +1,40 @@
 titre: Docker pour la robotique
 description: >-
-  Des environnements ROS 2 reproductibles, du poste de développement au robot :
-  images et couches, volumes, compose, réseau DDS entre conteneurs, image de
-  développement et image du robot. Cours, QCM et exercices sur vos Dockerfile ;
-  offert aux étudiants qui ont validé un parcours.
+  Des environnements ROS 2 reproductibles, du poste de développement au robot.
+  Vous écrivez l'image du robot de livraison (Dockerfile en deux étapes, point
+  d'entrée), assemblez ses conteneurs avec Docker Compose en réglant DDS, puis
+  la livrez sur un robot ARM, avec versions, mise à jour et retour arrière. Le
+  lab n'a pas Docker : les exercices simulent le démarrage des conteneurs à
+  partir de vos fichiers, et chaque module donne les commandes à refaire chez
+  vous. Offert aux étudiants qui ont validé un parcours.
 accroche: Images ROS, compose et réseau DDS, pour un logiciel qui tourne partout pareil.
-statut: bientot
+statut: disponible
 niveau: intermediaire
 ordre: 50
 offert: true
+objectifs:
+  - expliquer ce qu'est une image, un conteneur, une couche et un registre
+  - écrire le Dockerfile d'un robot ROS 2, en deux étapes, avec rosdep
+  - écrire un point d'entrée qui charge ROS et le workspace
+  - assembler plusieurs conteneurs avec Docker Compose et les faire communiquer par DDS
+  - livrer une image multi-architecture sur un robot, et revenir en arrière
 prerequis:
-  - un parcours validé
+  - Apprendre ROS 2 avec un robot mobile, ou un parcours équivalent
 outils:
   - Docker
   - Docker Compose
+  - buildx
+  - rosdep
+modules:
+  - id: 20-docker-conteneurs
+    coef: 1
+    partie: Comprendre les conteneurs
+  - id: 21-docker-image
+    coef: 2
+    partie: Construire et assembler
+  - id: 22-docker-compose
+    coef: 2
+    partie: Construire et assembler
+  - id: 23-docker-robot
+    coef: 1
+    partie: Livrer sur le robot

@@ -1,0 +1,73 @@
+questions:
+  - id: service
+    question: Dans un compose.yaml, que représente un service ?
+    choix:
+      - texte: Un conteneur, avec son image, sa commande, ses variables et ses volumes
+        correct: true
+      - texte: Un nœud ROS 2
+      - texte: Une machine du réseau
+    explication: Un service peut lancer plusieurs nœuds (un ros2 launch) ; Compose gère les conteneurs, pas les nœuds.
+  - id: domaine
+    question: Deux services sont en network_mode host, avec ipc host, mais l'un a ROS_DOMAIN_ID=42 et l'autre 24. Que se passe-t-il ?
+    choix:
+      - texte: Leurs nœuds ne se voient pas du tout
+        correct: true
+      - texte: Ils se voient, mais avec du retard
+      - texte: Ils se voient, le domaine ne compte qu'entre machines différentes
+    explication: Le domaine sépare complètement les nœuds, sur la même machine comme entre machines.
+  - id: host
+    question: Pourquoi network_mode host est-il le choix habituel sur un robot ?
+    choix:
+      - texte: DDS découvre alors les nœuds entre conteneurs et avec les autres machines, comme hors conteneur
+        correct: true
+      - texte: C'est la seule façon de donner Internet au conteneur
+      - texte: Il rend les messages plus petits
+    explication: Le réseau privé d'un projet Compose permet aux conteneurs de se voir entre eux, mais pas au portable du développeur de les voir.
+  - id: ipc
+    question: "ros2 topic list voit /camera/image dans l'autre conteneur, mais ros2 topic echo ne reçoit rien. Que manque-t-il probablement ?"
+    choix:
+      - texte: "ipc: host, pour partager la mémoire partagée de l'hôte"
+        correct: true
+      - texte: Le même ROS_DOMAIN_ID
+      - texte: "restart: unless-stopped"
+    explication: La découverte passe par le réseau (le topic est vu), les données entre processus d'une même machine par la mémoire partagée, propre à chaque conteneur par défaut.
+  - id: devices
+    question: Comment donner à un conteneur l'accès au lidar branché sur /dev/ttyUSB0 ?
+    choix:
+      - texte: "devices: - /dev/ttyUSB0:/dev/ttyUSB0"
+        correct: true
+      - texte: "privileged: true, toujours"
+      - texte: "volumes: - /dev:/dev, toujours"
+    explication: On donne le périphérique précis dont le service a besoin ; privileged donne presque tous les droits de l'hôte.
+  - id: restart
+    question: À quoi sert restart unless-stopped sur un robot ?
+    choix:
+      - texte: Relancer le service après une panne ou un redémarrage de l'ordinateur du robot
+        correct: true
+      - texte: Redémarrer le conteneur chaque nuit
+      - texte: Empêcher docker compose down d'arrêter le service
+    explication: Le robot repart seul ; seul un arrêt volontaire (docker compose stop ou down) le laisse arrêté.
+  - id: depends-on
+    question: "depends_on: [robot] sur le service supervision garantit-il que les nœuds du robot sont prêts quand supervision démarre ?"
+    choix:
+      - texte: Non, seulement que le conteneur robot est démarré avant
+        correct: true
+      - texte: Oui, Compose attend que tous les nœuds du robot publient
+      - texte: Oui, Compose attend 10 secondes
+    explication: depends_on règle l'ordre de démarrage des conteneurs ; un nœud ROS doit de toute façon tolérer qu'un autre arrive plus tard.
+  - id: ancre
+    question: Pourquoi mettre ROS_DOMAIN_ID dans une ancre x-ros ou un env_file plutôt que dans chaque service ?
+    choix:
+      - texte: La valeur n'est écrite qu'une fois, elle ne peut plus différer d'un service à l'autre
+        correct: true
+      - texte: Compose refuse une variable répétée
+      - texte: Les ancres rendent les conteneurs plus rapides
+    explication: Une valeur recopiée finit par diverger ; une valeur partagée, jamais.
+  - id: exec
+    question: Quelle commande donne un terminal dans le conteneur du service robot, avec le même environnement ROS ?
+    choix:
+      - texte: docker compose exec robot bash
+        correct: true
+      - texte: docker compose run robot
+      - texte: docker compose up robot bash
+    explication: exec entre dans le conteneur en cours ; run en créerait un nouveau.

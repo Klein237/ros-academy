@@ -31,6 +31,7 @@
   <section class="colonne-principale serree" aria-labelledby="programme">
     <h2 id="programme">Programme</h2>
     <ol class="programme">
+      {% if parcours.niveau == "debutant" %}{# l'introduction à ROS 2, pour le parcours des débutants #}
       <li class="intro">
         <span class="pastille-numero">0</span>
         <div class="programme-texte">
@@ -38,6 +39,7 @@
           <span>20 min · histoire, usages réels, liens utiles · sans note</span>
         </div>
       </li>
+      {% endif %}
       {% for m in parcours.modules %}
       {% if m.partie and (loop.first or m.partie != loop.previtem.partie) %}
       <li class="partie"><span>{{ m.partie }}</span></li>

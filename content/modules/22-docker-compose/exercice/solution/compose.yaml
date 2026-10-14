@@ -1,0 +1,24 @@
+# Le robot de livraison et sa supervision, chacun dans son conteneur, sur l'ordinateur du robot.
+# Réglages communs aux deux services (ancre YAML, reprise par « <<: *ros »).
+x-ros: &ros
+  image: ghcr.io/roboforge/livraison:1.0
+  network_mode: host        # DDS voit les autres nœuds comme hors conteneur
+  ipc: host                 # mémoire partagée de DDS entre conteneurs de la même machine
+  restart: unless-stopped   # redémarre après une panne ou un redémarrage du robot
+
+services:
+  robot:
+    <<: *ros
+    command: ros2 launch livraison_bringup robot.launch.py
+    environment:
+      - ROS_DOMAIN_ID=42
+    volumes:
+      - ./bags:/bags        # les enregistrements survivent au conteneur
+
+  supervision:
+    <<: *ros
+    command: ros2 topic echo /etat std_msgs/msg/String
+    environment:
+      - ROS_DOMAIN_ID=42
+    depends_on:
+      - robot

@@ -1,0 +1,73 @@
+questions:
+  - id: image-conteneur
+    question: Quelle est la différence entre une image et un conteneur ?
+    choix:
+      - texte: L'image est un modèle figé ; le conteneur est une image en cours d'exécution
+        correct: true
+      - texte: L'image tourne sur le robot, le conteneur sur le poste de développement
+      - texte: Ce sont deux noms pour la même chose
+    explication: On lance autant de conteneurs qu'on veut depuis une même image, qui, elle, ne change jamais.
+  - id: ephemere
+    question: Un conteneur lancé avec --rm enregistre un fichier .mcap dans /tmp, puis s'arrête. Que devient le fichier ?
+    choix:
+      - texte: Il disparaît avec la couche d'écriture du conteneur
+        correct: true
+      - texte: Il est ajouté à l'image, pour le prochain lancement
+      - texte: Il est copié dans le registre
+    explication: "Ce qu'un conteneur écrit va dans sa couche d'écriture. Pour garder des enregistrements, on monte un volume ou un dossier de l'hôte (-v ~/bags:/bags)."
+  - id: noyau
+    question: Que partage un conteneur avec la machine hôte ?
+    choix:
+      - texte: Le noyau Linux
+        correct: true
+      - texte: Le système de fichiers complet
+      - texte: Rien, il émule un ordinateur entier
+    explication: Un conteneur n'est pas une machine virtuelle ; ses processus tournent sur le noyau de l'hôte, isolés par celui-ci.
+  - id: couches
+    question: Pourquoi dix images construites sur ros:jazzy n'occupent-elles pas dix fois la place de ros:jazzy ?
+    choix:
+      - texte: Elles partagent les couches de ros:jazzy, stockées une seule fois
+        correct: true
+      - texte: Docker compresse les images au démarrage
+      - texte: Les couches de ros:jazzy sont téléchargées à chaque lancement puis effacées
+    explication: Une image est une pile de couches ; les couches communes ne sont stockées et téléchargées qu'une fois.
+  - id: tag
+    question: Pour savoir exactement quelle version tourne sur un robot en production, que faut-il noter ?
+    choix:
+      - texte: L'empreinte de l'image (@sha256:…), ou au moins un tag de version qu'on ne déplace jamais
+        correct: true
+      - texte: Le tag latest
+      - texte: Le nom de l'image, sans tag
+    explication: Un tag comme latest ou jazzy est déplacé à chaque nouvelle version ; une empreinte désigne une image précise, pour toujours.
+  - id: image-robot
+    question: Quelle image officielle est le point de départ habituel pour l'image d'un robot ?
+    choix:
+      - texte: ros:jazzy-ros-base
+        correct: true
+      - texte: osrf/ros:jazzy-desktop-full
+      - texte: ubuntu:24.04, en installant ROS soi-même
+    explication: ros-base contient ROS 2, ros2 bag, TF2 et les outils de compilation ; desktop-full ajoute RViz et Gazebo, inutiles et lourds sur le robot.
+  - id: architecture
+    question: Une image construite sur un PC portable (amd64) est envoyée sur un Jetson (arm64). Que se passe-t-il ?
+    choix:
+      - texte: Elle ne démarre pas, sauf si elle a aussi été construite pour arm64
+        correct: true
+      - texte: Elle démarre normalement, Docker traduit les instructions
+      - texte: Elle démarre, mais sans accès au réseau
+    explication: Une image contient des programmes compilés pour un processeur ; il faut une image pour chaque architecture (le module 4 montre comment).
+  - id: temps-reel
+    question: Que change Docker pour une boucle de commande moteur à 1 kHz ?
+    choix:
+      - texte: Rien de ce côté-là ; le temps réel dépend du noyau de l'hôte, conteneur ou pas
+        correct: true
+      - texte: Docker garantit le temps réel grâce à l'isolation
+      - texte: Elle devient impossible dans un conteneur
+    explication: Un conteneur ne ralentit pas un nœud, mais n'apporte pas non plus de garantie de temps réel.
+  - id: reproductible
+    question: Quel est le principal intérêt de Docker pour une équipe qui développe un robot ?
+    choix:
+      - texte: Le même environnement sur les postes, en intégration continue et sur le robot
+        correct: true
+      - texte: Le code s'exécute plus vite
+      - texte: Il n'est plus nécessaire d'écrire des tests
+    explication: Une image décrit tout l'environnement ; ce qui passe en CI dans l'image du robot passe aussi sur le robot.
