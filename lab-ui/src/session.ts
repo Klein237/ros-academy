@@ -1,4 +1,4 @@
-import type { ComptesClient, QueueTicket } from "./api/comptes";
+import { NoAccount, type ComptesClient, type QueueTicket } from "./api/comptes";
 import { FULL_RETRY_MS, START_TIMEOUT_MS } from "./config";
 import { HttpError, NotLoggedIn, type HubClient, type ServerStatus } from "./api/hub";
 import { realTimers, sleep, type Timers } from "./backoff";
@@ -114,13 +114,21 @@ export class Session {
     }
   }
 
-  /** Vrai seulement si Comptes répond que les minutes du mois sont épuisées. */
+  /**
+   * Vrai seulement si Comptes répond que les minutes du mois sont épuisées. Une requête coupée
+   * (réseau qui change, Comptes qui redémarre) est refaite deux fois : sans cela, un lab arrêté
+   * pour quota s'afficherait « arrêté » sans dire pourquoi.
+   */
   private async quotaExhausted(): Promise<boolean> {
     if (!this.account) return false;
-    try {
-      return (await this.account.me()).minutes_restantes === 0;
-    } catch {
-      return false; // pas de compte ou Comptes injoignable : le Hub tranche
+    for (let essai = 1; ; essai++) {
+      try {
+        return (await this.account.me()).minutes_restantes === 0;
+      } catch (e) {
+        // pas de session Comptes (lab ouvert sans compte) ou Comptes injoignable : le Hub tranche
+        if (e instanceof NoAccount || essai >= 3) return false;
+        await sleep(1000, this.timers);
+      }
     }
   }
 

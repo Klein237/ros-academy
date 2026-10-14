@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { HttpError, NotLoggedIn, type ProgressEvent, type ServerStatus, type StartResult } from "../../src/api/hub";
+import { NoAccount } from "../../src/api/comptes";
 import { Session, type SessionState } from "../../src/session";
 import { flush } from "./fakes";
 
@@ -214,7 +215,7 @@ it("démarrage refusé par le Hub et quota à zéro → état quota", async () =
 
 it("sans compte (401 de Comptes), le lab démarre quand même", async () => {
   const account = fakeAccount();
-  account.me.mockRejectedValue(new Error("401"));
+  account.me.mockRejectedValue(new NoAccount("session Comptes absente"));
   const s = new Session(fakeHub({}) as never, { account });
   await s.open();
   expect(s.state.kind).toBe("ready");
@@ -247,6 +248,31 @@ it("ticket expiré → nouvelle place dans la file", async () => {
   await flush();
   expect(account.joinQueue).toHaveBeenCalledTimes(2);
   expect(s.state.kind).toBe("ready");
+});
+
+it("serveur arrêté, Comptes momentanément injoignable puis quota à zéro → état quota", async () => {
+  const hub = fakeHub({ server: [{ ready: true, pending: null }, null] });
+  const account = fakeAccount({ minutes: [10, 0] });
+  const s = new Session(hub as never, { account });
+  await s.open();
+  account.me.mockRejectedValueOnce(new TypeError("network error"));
+  const alive = s.checkAlive();
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(await alive).toBe(false);
+  expect(s.state.kind).toBe("quota");
+});
+
+it("serveur arrêté, Comptes injoignable à chaque essai → état arrêté", async () => {
+  const hub = fakeHub({ server: [{ ready: true, pending: null }, null] });
+  const account = fakeAccount({ minutes: [10] });
+  const s = new Session(hub as never, { account });
+  await s.open();
+  account.me.mockRejectedValue(new TypeError("network error"));
+  const alive = s.checkAlive();
+  await vi.advanceTimersByTimeAsync(2000);
+  expect(await alive).toBe(false);
+  expect(account.me).toHaveBeenCalledTimes(4); // 1 à l'ouverture, puis 3 essais
+  expect(s.state).toEqual({ kind: "stopped", reason: "external" });
 });
 
 it("serveur arrêté pendant la session, quota à zéro → état quota", async () => {
