@@ -56,7 +56,8 @@ test("le module demande une connexion, puis le QCM compte 2 tentatives au plus",
   const row = page.getByRole("row", { name: /Écrire un nœud/ });
   await expect(row).toContainText("(2/2)");
   await expect(row).toContainText("à faire"); // exercice pas encore réussi
-  await expect(page.getByText("Note finale : disponible quand")).toBeVisible();
+  // une ligne par parcours disponible : celle du premier parcours, qui contient le module 05-noeud
+  await expect(page.getByText("Note finale : disponible quand").first()).toBeVisible();
 });
 
 test("parcours terminé : la note finale pondérée s'affiche sur la page Résultats", async ({ page }) => {
