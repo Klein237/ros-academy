@@ -1,0 +1,73 @@
+questions:
+  - id: unicite
+    question: Pour une pose donnée des articulations, combien de positions de la pince la cinématique directe peut-elle donner ?
+    choix:
+      - texte: Une seule.
+        correct: true
+      - texte: Zéro, une ou plusieurs.
+      - texte: Deux, coude en haut ou en bas.
+    explication: Les angles déterminent entièrement la position. C'est la cinématique inverse qui peut avoir zéro, une ou plusieurs solutions.
+  - id: cumul
+    question: L'épaule est à 0,5 rad et le coude à 0,8 rad. De combien l'avant-bras est-il incliné par rapport à la verticale ?
+    choix:
+      - texte: 1,3 rad
+        correct: true
+      - texte: 0,8 rad
+      - texte: 0,3 rad
+    explication: L'angle du coude se mesure par rapport au bras, lui-même incliné de 0,5 rad ; les angles se cumulent.
+  - id: zero
+    question: Tous les angles du bras de tri valent 0. Où est la pince ?
+    choix:
+      - texte: En (0 ; 0 ; 0,75), à la verticale du socle.
+        correct: true
+      - texte: En (0,65 ; 0 ; 0,10).
+      - texte: En (0 ; 0 ; 0).
+    explication: Bras tendu vers le haut, z vaut H + L1 + L2 + L3 = 0,10 + 0,30 + 0,25 + 0,10.
+  - id: horizontal
+    question: L'épaule est à π/2, les autres angles à 0. Que valent r et z ?
+    choix:
+      - texte: r = 0,65 m et z = 0,10 m
+        correct: true
+      - texte: r = 0,75 m et z = 0 m
+      - texte: r = 0 m et z = 0,65 m
+    explication: "Le bras est horizontal, à la hauteur de l'épaule : r = L1 + L2 + L3, z = H."
+  - id: tourelle
+    question: Comment la rotation de la tourelle q0 intervient-elle dans le calcul ?
+    choix:
+      - texte: Elle fait tourner le plan du bras ; x = r·cos(q0), y = r·sin(q0).
+        correct: true
+      - texte: Elle s'ajoute à l'angle de l'épaule.
+      - texte: Elle change la hauteur z de la pince.
+    explication: La tourelle tourne autour de la verticale ; r et z, calculés dans le plan du bras, ne dépendent pas d'elle.
+  - id: noms
+    question: Pourquoi le nœud retrouve-t-il les angles par leur nom dans /joint_states, plutôt que par leur position dans la liste ?
+    choix:
+      - texte: L'ordre des joints dans le message n'est pas garanti, et un message peut n'en contenir qu'une partie.
+        correct: true
+      - texte: Parce que position est un dictionnaire.
+      - texte: Pour aller plus vite.
+    explication: name[i] donne le joint de position[i] ; d'un publieur à l'autre, l'ordre et la liste peuvent changer.
+  - id: fonction-pure
+    question: Pourquoi écrire la formule dans une fonction séparée du nœud ?
+    choix:
+      - texte: Elle se teste sans lancer ROS, et d'autres nœuds peuvent la réutiliser.
+        correct: true
+      - texte: rclpy interdit les calculs dans un callback.
+      - texte: Pour que colcon la compile plus vite.
+    explication: Le module suivant importe position_pince et LIMITES depuis le même fichier.
+  - id: reference
+    question: /position_pince et tf2_echo base_link tool0 donnent des valeurs différentes. Que peut-on conclure ?
+    choix:
+      - texte: La formule ou la description URDF est fausse (un axe, une longueur, un angle non cumulé).
+        correct: true
+      - texte: TF2 est toujours en retard, c'est normal.
+      - texte: Rien, les deux calculs n'ont pas à coïncider.
+    explication: Les deux calculent la même chose, l'un par la formule, l'autre par les transformations de l'URDF ; ils doivent coïncider.
+  - id: matrices
+    question: Comment calcule-t-on la cinématique directe d'un bras à six axes non parallèles ?
+    choix:
+      - texte: En enchaînant une matrice de transformation homogène par joint.
+        correct: true
+      - texte: Avec la même formule en sinus et cosinus que le bras plan.
+      - texte: Ce n'est pas possible, seule la cinématique inverse existe.
+    explication: C'est ce que fait robot_state_publisher à partir de l'URDF ; Denavit-Hartenberg est une convention pour écrire ces matrices.

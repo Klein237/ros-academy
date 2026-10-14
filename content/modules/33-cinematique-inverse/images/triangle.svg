@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 430" role="img" aria-labelledby="t d">
+<title id="t">Le triangle de la cinématique inverse</title>
+<desc id="d">La pince doit pointer vers le bas : le poignet se place donc à L3 au-dessus de la cible. Dans le plan du bras, il est à une distance horizontale u et une hauteur v de l&#x27;épaule. Le bras et l&#x27;avant-bras forment avec la droite épaule-poignet un triangle dont on connaît les trois côtés : la loi des cosinus donne l&#x27;angle du coude q2. L&#x27;angle de l&#x27;épaule q1 est la direction du poignet, atan2 de u et v depuis la verticale, moins l&#x27;angle que fait le bras avec cette direction. Le poignet compense pour que la somme des trois angles vaille pi, et la tourelle tourne de atan2 de y et x.</desc>
+<style>
+.fond { fill: #fbfbf9; stroke: #c9cfc9; stroke-width: 1.5; }
+.grille { stroke: #e7eae6; stroke-width: 1; }
+.boite { fill: #ffffff; stroke: #c9cfc9; stroke-width: 1.5; }
+.calcul { fill: #e3f1ee; stroke: #0b5e57; stroke-width: 2; }
+.capteur { fill: #fff8e8; stroke: #d39a2c; stroke-width: 2; }
+.actionneur { fill: #eef1f5; stroke: #56606a; stroke-width: 2; }
+.robot { fill: #e3f1ee; stroke: #0b5e57; stroke-width: 2; }
+.roue { fill: #12171c; }
+.roulette { fill: #ffffff; stroke: #12171c; stroke-width: 1.5; }
+.nez { fill: #0b5e57; }
+.ax-x { stroke: #d64545; stroke-width: 3; fill: none; } .ax-y { stroke: #2f9e44; stroke-width: 3; fill: none; }
+.px { fill: #d64545; } .py { fill: #2f9e44; }
+.trait { stroke: #56606a; stroke-width: 2; fill: none; }
+.tirets { stroke: #8a949c; stroke-width: 1.5; stroke-dasharray: 5 5; fill: none; }
+.trajet { stroke: #d39a2c; stroke-width: 3; fill: none; stroke-linecap: round; }
+.trajet-pointe { fill: #d39a2c; }
+.vitesse { stroke: #0b5e57; stroke-width: 3; fill: none; }
+.vitesse-pointe { fill: #0b5e57; }
+.pointe { fill: #56606a; }
+.cir { fill: #d39a2c; }
+.t { fill: #12171c; font: 400 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-gras { fill: #12171c; font: 600 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-titre { fill: #12171c; font: 600 16px "IBM Plex Sans", system-ui, sans-serif; }
+.t-petit { fill: #56606a; font: 400 12.5px "IBM Plex Sans", system-ui, sans-serif; }
+.t-sur { fill: #56606a; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; letter-spacing: 0.08em; }
+.t-math { fill: #12171c; font: italic 500 15px "IBM Plex Serif", Georgia, serif; }
+.t-code { fill: #12171c; font: 500 13px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+.t-accent { fill: #0b5e57; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-ambre { fill: #8a5d10; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-x { fill: #d64545; font: 600 13px "JetBrains Mono", monospace; } .t-y { fill: #2f9e44; font: 600 13px "JetBrains Mono", monospace; }
+.badge { fill: #0b5e57; } .t-badge { fill: #ffffff; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; }
+.sep { stroke: #e2e5e1; stroke-width: 1.5; }
+@media (prefers-color-scheme: dark) {
+  .fond { fill: #0f161d; stroke: #34424f; } .grille { stroke: #1b2630; }
+  .boite { fill: #121a22; stroke: #34424f; }
+  .calcul, .robot { fill: #12302d; stroke: #4fb3a7; }
+  .capteur { fill: #2a2212; stroke: #f2b544; }
+  .actionneur { fill: #1a222b; stroke: #8a99a8; }
+  .roue { fill: #c9d3dc; } .roulette { fill: #121a22; stroke: #c9d3dc; } .nez { fill: #4fb3a7; }
+  .ax-x { stroke: #ff6b6b; } .ax-y { stroke: #51cf66; } .px, .t-x { fill: #ff6b6b; } .py, .t-y { fill: #51cf66; }
+  .trait { stroke: #8a99a8; } .tirets { stroke: #5d6b78; } .pointe { fill: #8a99a8; }
+  .trajet { stroke: #f2b544; } .trajet-pointe, .cir { fill: #f2b544; }
+  .vitesse { stroke: #4fb3a7; } .vitesse-pointe { fill: #4fb3a7; }
+  .t, .t-gras, .t-titre, .t-math, .t-code { fill: #e3e8ee; }
+  .t-petit, .t-sur { fill: #8a99a8; } .t-accent { fill: #4fb3a7; } .t-ambre { fill: #f2b544; }
+  .badge { fill: #4fb3a7; } .t-badge { fill: #0b1015; } .sep { stroke: #22303c; }
+}
+</style>
+<defs>
+<marker id="m-trait" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-trajet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="trajet-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-vitesse" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="vitesse-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-x" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="px" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-y" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="py" d="M0 0 L10 5 L0 10 z"/></marker>
+</defs>
+<rect class="fond" x="20.0" y="20.0" width="840.0" height="390.0" rx="12"/>
+<text class="t-sur" x="38.0" y="48.0" text-anchor="start">LA CIBLE, VUE DANS LE PLAN DU BRAS</text>
+<rect class="actionneur" x="62.0" y="378.0" width="96.0" height="22.0" rx="4"/>
+<rect class="boite" x="84.0" y="340.0" width="52.0" height="38.0" rx="4"/>
+<line class="trajet" x1="110.0" y1="340.0" x2="162.3" y2="193.0"/>
+<line class="trajet" x1="162.3" y1="193.0" x2="292.0" y2="184.0"/>
+<line class="vitesse" x1="292.0" y1="184.0" x2="292.0" y2="236.0"/>
+<circle class="boite" cx="110.0" cy="340.0" r="9"/>
+<circle class="roue" cx="110.0" cy="340.0" r="3"/>
+<circle class="boite" cx="162.3" cy="193.0" r="9"/>
+<circle class="roue" cx="162.3" cy="193.0" r="3"/>
+<circle class="boite" cx="292.0" cy="184.0" r="9"/>
+<circle class="roue" cx="292.0" cy="184.0" r="3"/>
+<circle class="cir" cx="292.0" cy="236.0" r="6"/>
+<line class="tirets" x1="110.0" y1="340.0" x2="292.0" y2="184.0"/>
+<line class="tirets" x1="110.0" y1="340.0" x2="292.0" y2="340.0"/>
+<line class="tirets" x1="292.0" y1="340.0" x2="292.0" y2="184.0"/>
+<text class="t-math" x="201.0" y="360.0" text-anchor="middle">u</text>
+<text class="t-math" x="304.0" y="302.0" text-anchor="start">v</text>
+<text class="t-code" x="96.0" y="345.0" text-anchor="end">épaule</text>
+<text class="t-code" x="150.3" y="183.0" text-anchor="end">coude</text>
+<text class="t-code" x="306.0" y="176.0" text-anchor="start">poignet</text>
+<text class="t-ambre" x="306.0" y="241.0" text-anchor="start">cible</text>
+<text class="t-math" x="284.0" y="214.0" text-anchor="end">L3</text>
+<path class="trait" d="M110.0 270.0 A70.0 70.0 0 0 1 163.1 294.4" marker-end="url(#m-trait)"/>
+<text class="t-code" x="118.0" y="244.0" text-anchor="start">atan2(u, v)</text>
+<rect class="boite" x="520.0" y="70.0" width="320.0" height="320.0" rx="10"/>
+<text class="t-gras" x="538.0" y="98.0" text-anchor="start">1. Le poignet, au-dessus de la cible</text>
+<text class="t-code" x="538.0" y="122.0" text-anchor="start">u = √(x² + y²) ; v = z + L3 − H</text>
+<text class="t-gras" x="538.0" y="160.0" text-anchor="start">2. Le coude : loi des cosinus</text>
+<text class="t-code" x="538.0" y="184.0" text-anchor="start">d = (u² + v² − L1² − L2²) / (2·L1·L2)</text>
+<text class="t-code" x="538.0" y="206.0" text-anchor="start">q2 = acos(d) ; |d| &gt; 1 : trop loin</text>
+<text class="t-gras" x="538.0" y="244.0" text-anchor="start">3. L&#x27;épaule</text>
+<text class="t-code" x="538.0" y="268.0" text-anchor="start">q1 = atan2(u, v)</text>
+<text class="t-code" x="572.0" y="290.0" text-anchor="start">− atan2(L2·sin q2, L1 + L2·cos q2)</text>
+<text class="t-gras" x="538.0" y="328.0" text-anchor="start">4. Le poignet, pince vers le bas</text>
+<text class="t-code" x="538.0" y="352.0" text-anchor="start">q3 = π − q1 − q2 ; q0 = atan2(y, x)</text>
+</svg>

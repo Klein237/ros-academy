@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 410" role="img" aria-labelledby="t d">
+<title id="t">Les angles se cumulent le long du bras</title>
+<desc id="d">Dans le plan vertical du bras, chaque angle se mesure depuis la verticale. Le bras penche de q1, l&#x27;avant-bras de q1 plus q2, la pince de q1 plus q2 plus q3 : chaque segment hérite de l&#x27;inclinaison de tous ceux qui le portent. La distance horizontale r et la hauteur z s&#x27;obtiennent en ajoutant les trois segments, puis la rotation de la tourelle q0 donne x égal r cosinus q0 et y égal r sinus q0.</desc>
+<style>
+.fond { fill: #fbfbf9; stroke: #c9cfc9; stroke-width: 1.5; }
+.grille { stroke: #e7eae6; stroke-width: 1; }
+.boite { fill: #ffffff; stroke: #c9cfc9; stroke-width: 1.5; }
+.calcul { fill: #e3f1ee; stroke: #0b5e57; stroke-width: 2; }
+.capteur { fill: #fff8e8; stroke: #d39a2c; stroke-width: 2; }
+.actionneur { fill: #eef1f5; stroke: #56606a; stroke-width: 2; }
+.robot { fill: #e3f1ee; stroke: #0b5e57; stroke-width: 2; }
+.roue { fill: #12171c; }
+.roulette { fill: #ffffff; stroke: #12171c; stroke-width: 1.5; }
+.nez { fill: #0b5e57; }
+.ax-x { stroke: #d64545; stroke-width: 3; fill: none; } .ax-y { stroke: #2f9e44; stroke-width: 3; fill: none; }
+.px { fill: #d64545; } .py { fill: #2f9e44; }
+.trait { stroke: #56606a; stroke-width: 2; fill: none; }
+.tirets { stroke: #8a949c; stroke-width: 1.5; stroke-dasharray: 5 5; fill: none; }
+.trajet { stroke: #d39a2c; stroke-width: 3; fill: none; stroke-linecap: round; }
+.trajet-pointe { fill: #d39a2c; }
+.vitesse { stroke: #0b5e57; stroke-width: 3; fill: none; }
+.vitesse-pointe { fill: #0b5e57; }
+.pointe { fill: #56606a; }
+.cir { fill: #d39a2c; }
+.t { fill: #12171c; font: 400 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-gras { fill: #12171c; font: 600 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-titre { fill: #12171c; font: 600 16px "IBM Plex Sans", system-ui, sans-serif; }
+.t-petit { fill: #56606a; font: 400 12.5px "IBM Plex Sans", system-ui, sans-serif; }
+.t-sur { fill: #56606a; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; letter-spacing: 0.08em; }
+.t-math { fill: #12171c; font: italic 500 15px "IBM Plex Serif", Georgia, serif; }
+.t-code { fill: #12171c; font: 500 13px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+.t-accent { fill: #0b5e57; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-ambre { fill: #8a5d10; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-x { fill: #d64545; font: 600 13px "JetBrains Mono", monospace; } .t-y { fill: #2f9e44; font: 600 13px "JetBrains Mono", monospace; }
+.badge { fill: #0b5e57; } .t-badge { fill: #ffffff; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; }
+.sep { stroke: #e2e5e1; stroke-width: 1.5; }
+@media (prefers-color-scheme: dark) {
+  .fond { fill: #0f161d; stroke: #34424f; } .grille { stroke: #1b2630; }
+  .boite { fill: #121a22; stroke: #34424f; }
+  .calcul, .robot { fill: #12302d; stroke: #4fb3a7; }
+  .capteur { fill: #2a2212; stroke: #f2b544; }
+  .actionneur { fill: #1a222b; stroke: #8a99a8; }
+  .roue { fill: #c9d3dc; } .roulette { fill: #121a22; stroke: #c9d3dc; } .nez { fill: #4fb3a7; }
+  .ax-x { stroke: #ff6b6b; } .ax-y { stroke: #51cf66; } .px, .t-x { fill: #ff6b6b; } .py, .t-y { fill: #51cf66; }
+  .trait { stroke: #8a99a8; } .tirets { stroke: #5d6b78; } .pointe { fill: #8a99a8; }
+  .trajet { stroke: #f2b544; } .trajet-pointe, .cir { fill: #f2b544; }
+  .vitesse { stroke: #4fb3a7; } .vitesse-pointe { fill: #4fb3a7; }
+  .t, .t-gras, .t-titre, .t-math, .t-code { fill: #e3e8ee; }
+  .t-petit, .t-sur { fill: #8a99a8; } .t-accent { fill: #4fb3a7; } .t-ambre { fill: #f2b544; }
+  .badge { fill: #4fb3a7; } .t-badge { fill: #0b1015; } .sep { stroke: #22303c; }
+}
+</style>
+<defs>
+<marker id="m-trait" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-trajet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="trajet-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-vitesse" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="vitesse-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-x" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="px" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-y" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="py" d="M0 0 L10 5 L0 10 z"/></marker>
+</defs>
+<rect class="fond" x="20.0" y="20.0" width="840.0" height="370.0" rx="12"/>
+<text class="t-sur" x="38.0" y="48.0" text-anchor="start">DANS LE PLAN DU BRAS</text>
+<rect class="actionneur" x="102.0" y="358.0" width="96.0" height="22.0" rx="4"/>
+<rect class="boite" x="124.0" y="310.0" width="52.0" height="48.0" rx="4"/>
+<line class="trajet" x1="150.0" y1="310.0" x2="211.3" y2="183.0"/>
+<line class="trajet" x1="211.3" y1="183.0" x2="324.5" y2="151.6"/>
+<line class="vitesse" x1="324.5" y1="151.6" x2="359.6" y2="182.9"/>
+<circle class="boite" cx="150.0" cy="310.0" r="9"/>
+<circle class="roue" cx="150.0" cy="310.0" r="3"/>
+<circle class="boite" cx="211.3" cy="183.0" r="9"/>
+<circle class="roue" cx="211.3" cy="183.0" r="3"/>
+<circle class="boite" cx="324.5" cy="151.6" r="9"/>
+<circle class="roue" cx="324.5" cy="151.6" r="3"/>
+<circle class="cir" cx="359.6" cy="182.9" r="6"/>
+<line class="tirets" x1="150.0" y1="310.0" x2="150.0" y2="240.0"/>
+<path class="trait" d="M150.0 266.0 A44.0 44.0 0 0 1 169.1 270.4" marker-end="url(#m-trait)"/>
+<text class="t-math" x="156.0" y="234.0" text-anchor="start">q1</text>
+<line class="tirets" x1="211.3" y1="183.0" x2="211.3" y2="113.0"/>
+<path class="trait" d="M211.3 139.0 A44.0 44.0 0 0 1 253.7 171.3" marker-end="url(#m-trait)"/>
+<text class="t-math" x="217.3" y="107.0" text-anchor="start">q1 + q2</text>
+<line class="tirets" x1="324.5" y1="151.6" x2="324.5" y2="81.6"/>
+<path class="trait" d="M324.5 107.6 A44.0 44.0 0 0 1 357.4 180.9" marker-end="url(#m-trait)"/>
+<text class="t-math" x="330.5" y="75.6" text-anchor="start">q1 + q2 + q3</text>
+<line class="tirets" x1="150.0" y1="310.0" x2="359.6" y2="310.0"/>
+<text class="t-math" x="254.8" y="330.0" text-anchor="middle">r</text>
+<line class="tirets" x1="359.6" y1="310.0" x2="359.6" y2="182.9"/>
+<text class="t-math" x="369.6" y="266.5" text-anchor="start">z − H</text>
+<rect class="boite" x="560.0" y="70.0" width="280.0" height="290.0" rx="10"/>
+<text class="t-gras" x="578.0" y="98.0" text-anchor="start">Chaque segment penche de la</text>
+<text class="t-gras" x="578.0" y="118.0" text-anchor="start">somme des angles avant lui</text>
+<text class="t-code" x="578.0" y="156.0" text-anchor="start">r = L1·sin(q1)</text>
+<text class="t-code" x="590.0" y="178.0" text-anchor="start">+ L2·sin(q1 + q2)</text>
+<text class="t-code" x="590.0" y="200.0" text-anchor="start">+ L3·sin(q1 + q2 + q3)</text>
+<text class="t-code" x="578.0" y="236.0" text-anchor="start">z = H + L1·cos(q1)</text>
+<text class="t-code" x="590.0" y="258.0" text-anchor="start">+ L2·cos(q1 + q2)</text>
+<text class="t-code" x="590.0" y="280.0" text-anchor="start">+ L3·cos(q1 + q2 + q3)</text>
+<text class="t-petit" x="578.0" y="318.0" text-anchor="start">puis la tourelle tourne de q0 :</text>
+<text class="t-code" x="578.0" y="340.0" text-anchor="start">x = r·cos(q0) ; y = r·sin(q0)</text>
+</svg>

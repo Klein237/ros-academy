@@ -1,0 +1,73 @@
+questions:
+  - id: origin
+    question: Dans quel repère s'exprime l'origin d'un joint ?
+    choix:
+      - texte: Dans le repère du link parent, avant tout mouvement de l'articulation.
+        correct: true
+      - texte: Dans le repère base_link, quel que soit le parent.
+      - texte: Dans le repère du link enfant.
+    explication: L'origin place le repère du joint dans celui du parent ; le link enfant y est attaché, et le mouvement se fait autour de l'axis.
+  - id: axis
+    question: Dans quel repère s'exprime l'axis d'un joint ?
+    choix:
+      - texte: Dans le repère du joint, celui que place son origin.
+        correct: true
+      - texte: Toujours dans base_link.
+      - texte: Dans le repère du monde (map).
+    explication: "C'est pourquoi des repères alignés quand les angles sont nuls simplifient la description : l'axe y de chaque segment est le même."
+  - id: plan
+    question: Pourquoi l'épaule, le coude et le poignet du bras de tri tournent-ils tous autour de y ?
+    choix:
+      - texte: Leurs axes parallèles font plier le bras dans un seul plan vertical, que la tourelle oriente.
+        correct: true
+      - texte: Parce qu'un joint revolute ne peut tourner qu'autour de y.
+      - texte: Pour que check_urdf accepte la description.
+    explication: "Un axe différent sur le coude ferait sortir l'avant-bras du plan : c'est le bug de l'exercice."
+  - id: radians
+    question: Le coude doit tourner de -126° à +126°. Quelle balise limit convient ?
+    choix:
+      - texte: '<limit lower="-2.2" upper="2.2" effort="10" velocity="1.5"/>'
+        correct: true
+      - texte: '<limit lower="-126" upper="126" effort="10" velocity="1.5"/>'
+      - texte: '<limit lower="-126°" upper="126°"/>'
+    explication: Les limites d'un joint revolute sont en radians ; 126° font environ 2,2 rad.
+  - id: boite
+    question: Pourquoi la boîte du segment est-elle décalée de l/2 dans son visual ?
+    choix:
+      - texte: Une boîte est centrée sur son origine ; décalée de l/2, elle part de l'articulation.
+        correct: true
+      - texte: Pour que la Vue 3D l'affiche plus petite.
+      - texte: Parce que l'articulation est au milieu du segment.
+    explication: Sans ce décalage, la moitié de la barre serait sous l'articulation, à l'intérieur du segment précédent.
+  - id: check-urdf
+    question: Le coude a un axe faux. Que dit check_urdf ?
+    choix:
+      - texte: Rien, l'arbre est valide ; check_urdf vérifie la structure, pas la géométrie.
+        correct: true
+      - texte: Il signale un axe incohérent avec les autres.
+      - texte: Il refuse la description.
+    explication: Pour la géométrie, il faut regarder (Vue 3D) et comparer une pose connue avec TF2.
+  - id: mimic
+    question: Le joint pince_miroir porte mimic joint="pince". Que faut-il publier dans /joint_states ?
+    choix:
+      - texte: Seulement pince ; la position de pince_miroir s'en déduit.
+        correct: true
+      - texte: Les deux joints, avec la même valeur.
+      - texte: Seulement pince_miroir.
+    explication: robot_state_publisher et la Vue 3D calculent eux-mêmes les joints qui en imitent un autre.
+  - id: tool0
+    question: Quel type de joint relie tool0 à la main ?
+    choix:
+      - texte: fixed
+        correct: true
+      - texte: revolute
+      - texte: prismatic
+    explication: tool0 est un repère au point de prise, solidaire de la main ; il ne bouge pas par rapport à elle.
+  - id: launch
+    question: Que fait l'argument jsp:=false du fichier de lancement du bras ?
+    choix:
+      - texte: Il ne lance pas joint_state_publisher, pour qu'un autre nœud publie l'état des joints.
+        correct: true
+      - texte: Il désactive robot_state_publisher.
+      - texte: Il empêche la Vue 3D de se connecter.
+    explication: Deux sources sur /joint_states se contrediraient ; la vérification de l'exercice publie sa propre pose.

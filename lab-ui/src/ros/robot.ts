@@ -3,6 +3,8 @@
 export interface JointLimits {
   jointType: string;
   limit: { lower: number; upper: number };
+  /** Joint qui imite un autre (balise <mimic>) : il suit son modèle, sans curseur à lui. */
+  mimicJoint?: string;
 }
 
 /** Description URDF dans la réponse de GetParameters (robot_state_publisher), ou null. */
@@ -33,6 +35,7 @@ export function jointPositions(msg: unknown): Map<string, number> {
 
 /** Joints qu'un curseur peut faire bouger, et leur plage. */
 export function isMovable(joint: JointLimits): boolean {
+  if (joint.mimicJoint) return false;
   return joint.jointType === "revolute" || joint.jointType === "continuous" || joint.jointType === "prismatic";
 }
 

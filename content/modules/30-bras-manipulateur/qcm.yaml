@@ -1,0 +1,73 @@
+questions:
+  - id: effecteur
+    question: Qu'appelle-t-on l'effecteur d'un bras manipulateur ?
+    choix:
+      - texte: L'outil au bout du bras, qui agit sur le monde (pince, ventouse…).
+        correct: true
+      - texte: Le moteur le plus puissant du bras.
+      - texte: Le socle fixé à la table.
+    explication: L'effecteur est porté par le dernier segment ; son point de travail est en général le repère tool0.
+  - id: rotoide
+    question: Quel joint URDF correspond à une articulation rotoïde avec des butées ?
+    choix:
+      - texte: revolute
+        correct: true
+      - texte: continuous
+      - texte: prismatic
+    explication: revolute tourne entre lower et upper ; continuous tourne sans limite (une roue) ; prismatic est une translation.
+  - id: ddl
+    question: Combien de degrés de liberté faut-il pour placer un objet dans n'importe quelle position et orientation ?
+    choix:
+      - texte: Six, trois pour la position et trois pour l'orientation.
+        correct: true
+      - texte: Trois, un par axe x, y et z.
+      - texte: Quatre, comme le bras de tri.
+    explication: C'est pourquoi les bras industriels ont six axes. Le bras de tri, avec quatre, se limite à une pince tournée vers le bas.
+  - id: articulaire
+    question: Dans quel espace s'exprime la pose (q0, q1, q2, q3) = (0, 1.57, 0, 0) ?
+    choix:
+      - texte: Dans l'espace articulaire, un angle par articulation.
+        correct: true
+      - texte: Dans l'espace cartésien, une position dans base_link.
+      - texte: Dans le repère tool0.
+    explication: Les angles sont l'espace articulaire, celui des moteurs ; la position de la pince (x, y, z) est l'espace cartésien.
+  - id: directe
+    question: Que calcule la cinématique directe ?
+    choix:
+      - texte: La position de l'effecteur à partir des angles des articulations.
+        correct: true
+      - texte: Les angles des articulations pour atteindre une position donnée.
+      - texte: La vitesse des moteurs.
+    explication: Directe va des angles vers la position, avec un seul résultat ; inverse va de la position vers les angles, avec zéro, une ou plusieurs solutions.
+  - id: tool0
+    question: Pourquoi ajouter un link tool0 sans géométrie au bout du bras ?
+    choix:
+      - texte: Pour avoir un repère au point de prise, dont TF2 donne la position.
+        correct: true
+      - texte: Parce qu'un URDF doit finir par un link vide.
+      - texte: Pour que la Vue 3D affiche la pince.
+    explication: La tâche s'intéresse au point où l'outil agit, pas au poignet ; tool0 le matérialise et tf2_echo base_link tool0 donne sa position.
+  - id: mimic
+    question: Que fait la balise mimic sur le joint pince_miroir ?
+    choix:
+      - texte: Le joint suit la valeur du joint pince ; il n'a pas de commande à lui.
+        correct: true
+      - texte: Elle copie la géométrie du doigt gauche.
+      - texte: Elle interdit au joint de bouger.
+    explication: Les deux doigts s'écartent ensemble ; c'est aussi pourquoi la Vue 3D n'affiche pas de curseur pour pince_miroir.
+  - id: rotation-base
+    question: La tourelle seule tourne de 90°. Qu'est-ce qui ne change pas pour la pince ?
+    choix:
+      - texte: Sa hauteur z et sa distance à l'axe vertical.
+        correct: true
+      - texte: Ses coordonnées x et y.
+      - texte: Rien ne change, la tourelle ne porte pas la pince.
+    explication: base_rotation fait tourner tout le bras autour de la verticale ; le point décrit un cercle à hauteur constante.
+  - id: jsp
+    question: Pourquoi relancer display.launch.py avec jsp:=false avant de publier l'état des joints depuis la Vue 3D ?
+    choix:
+      - texte: Sinon joint_state_publisher publie aussi les angles, à 0, et les deux se contredisent.
+        correct: true
+      - texte: Parce que la Vue 3D ne fonctionne pas avec robot_state_publisher.
+      - texte: Pour accélérer le lancement.
+    explication: Deux nœuds qui publient /joint_states avec des valeurs différentes font sauter le modèle de l'un à l'autre.
