@@ -20,7 +20,11 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1400, height: 900 },
-        launchOptions: process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {},
+        launchOptions: {
+          // WebGL logiciel pour la Vue 3D (sans carte graphique) : explicite, le repli automatique est déprécié
+          args: ["--enable-unsafe-swiftshader"],
+          ...(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {}),
+        },
       },
     },
   ],

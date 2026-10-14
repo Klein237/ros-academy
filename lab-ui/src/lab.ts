@@ -1,4 +1,4 @@
-/** Le lab complet : arborescence, éditeur, terminaux, bureau graphique, vue 2D, module du parcours. */
+/** Le lab complet : arborescence, éditeur, terminaux, bureau graphique, vues 2D et 3D, module du parcours. */
 import { ComptesClient, NoAccount } from "./api/comptes";
 import { ContentsClient } from "./api/contents";
 import { HubClient } from "./api/hub";
@@ -18,6 +18,7 @@ import { FileTree } from "./ui/files";
 import { ModulePanel } from "./ui/modulePanel";
 import { TerminalPanel } from "./ui/terminals";
 import { View2D } from "./ui/view2d";
+import { View3DPanel } from "./ui/view3d";
 import { WaitingScreen } from "./ui/waiting";
 
 const config = readConfig(location.search);
@@ -37,6 +38,7 @@ const stopButton = button("Arrêter le lab", () => {
   if (confirm("Arrêter le lab ? Vos fichiers sont conservés.")) void session.stop("user");
 });
 const show2d = button("Vue 2D", () => toggle2d(), { attrs: { "aria-pressed": "true" } });
+const show3d = button("Vue 3D", () => toggle3d(), { attrs: { "aria-pressed": "false" } });
 const showDesktop = button("Bureau (RViz, Gazebo)", () => toggleDesktop(), { attrs: { "aria-pressed": "false" } });
 // Lab à côté du cours (?integre=1) : place comptée, fichiers et panneau du module repliés au départ
 if (config.embedded) document.body.classList.add("integre");
@@ -57,6 +59,7 @@ app.append(
     user,
     h("span", { class: "spacer" }),
     showFiles,
+    show3d,
     showDesktop,
     show2d,
     stopButton,
@@ -82,6 +85,7 @@ let current: {
   terminals: TerminalPanel;
   ros: RosbridgeClient;
   view: View2D;
+  view3d: View3DPanel;
   editor: EditorPanel;
   desktop: DesktopPanel;
 } | null = null;
@@ -100,13 +104,38 @@ const pendingMessages: CourseMessage[] = [];
 function toggleDesktop(): void {
   if (!current) return;
   const show = !current.desktop.visible;
-  if (show) current.desktop.show();
-  else {
+  if (show) {
+    hide3d();
+    current.desktop.show();
+  } else {
     current.desktop.hide();
     setDesktopMaximized(false);
   }
   current.editor.el.hidden = show;
   showDesktop.setAttribute("aria-pressed", String(show));
+}
+
+/** La vue 3D prend aussi la place de l'éditeur ; le bureau, s'il était ouvert, se range. */
+function toggle3d(): void {
+  if (!current) return;
+  if (current.view3d.visible) {
+    hide3d();
+    current.editor.el.hidden = false;
+    return;
+  }
+  if (current.desktop.visible) {
+    current.desktop.hide();
+    setDesktopMaximized(false);
+    showDesktop.setAttribute("aria-pressed", "false");
+  }
+  current.editor.el.hidden = true;
+  current.view3d.show();
+  show3d.setAttribute("aria-pressed", "true");
+}
+
+function hide3d(): void {
+  current?.view3d.hide();
+  show3d.setAttribute("aria-pressed", "false");
 }
 
 /** « Agrandir » : le bureau occupe tout l'espace de travail (sans fichiers, terminaux ni vue 2D). */
@@ -227,9 +256,13 @@ async function startWorkspace(): Promise<void> {
   });
   const ros = new RosbridgeClient({
     url: () => hub.wsUrl("rosbridge/"),
-    onStatus: (status) => view.setStatus(status),
+    onStatus: (status) => {
+      view.setStatus(status);
+      view3d.setStatus(status);
+    },
   });
   const view = new View2D(ros);
+  const view3d = new View3DPanel(ros);
   const desktop = new DesktopPanel({
     url: () => hub.wsUrl("bureau/"),
     onMaximize: () => setDesktopMaximized(!workspace.classList.contains("bureau-agrandi")),
@@ -259,14 +292,16 @@ async function startWorkspace(): Promise<void> {
       { class: "center" },
       editor.el,
       desktop.el,
+      view3d.el,
       h("div", { class: "splitter", attrs: { "aria-hidden": "true" } }),
       terminals.el,
     ),
     side,
   );
   setupSplitter(workspace.querySelector(".center")!);
-  current = { terminals, ros, view, editor, desktop };
+  current = { terminals, ros, view, view3d, editor, desktop };
   showDesktop.setAttribute("aria-pressed", "false");
+  show3d.setAttribute("aria-pressed", "false");
   setDesktopMaximized(false);
   if (config.embedded) {
     files.el.hidden = true;
@@ -309,6 +344,7 @@ function teardown(): void {
   if (!current) return;
   current.terminals.disposeAll();
   current.view.stop();
+  current.view3d.dispose();
   current.ros.close();
   closeDesktopWindow();
   current.desktop.dispose();

@@ -539,7 +539,7 @@ ament_package()
 <package format="3">
   <name>my_robot_description</name>
   <version>0.1.0</version>
-  <description>Description URDF du robot du parcours ROS 2 Fondamentaux</description>
+  <description>Description URDF du robot du parcours « Apprendre ROS 2 avec un robot mobile »</description>
   <maintainer email="etudiant@ros-academy.local">etudiant</maintainer>
   <license>Apache-2.0</license>
 

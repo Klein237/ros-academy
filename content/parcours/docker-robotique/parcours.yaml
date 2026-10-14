@@ -1,10 +1,16 @@
 titre: Docker pour la robotique
 description: >-
   Des environnements ROS 2 reproductibles, du poste de développement au robot :
-  images, compose, réseau DDS et déploiement.
-accroche: Images ROS, développement et déploiement reproductibles.
+  images et couches, volumes, compose, réseau DDS entre conteneurs, image de
+  développement et image du robot. Cours, QCM et exercices sur vos Dockerfile ;
+  offert aux étudiants qui ont validé un parcours.
+accroche: Images ROS, compose et réseau DDS, pour un logiciel qui tourne partout pareil.
 statut: bientot
 niveau: intermediaire
 ordre: 50
+offert: true
 prerequis:
-  - quelques commandes de terminal Linux
+  - un parcours validé
+outils:
+  - Docker
+  - Docker Compose

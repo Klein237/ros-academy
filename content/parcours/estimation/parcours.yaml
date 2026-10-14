@@ -1,0 +1,17 @@
+titre: Capteurs, bruit et estimation
+description: >-
+  Un capteur ne dit jamais tout à fait la vérité. Mesurer le bruit, filtrer un
+  signal, fusionner l'odométrie et la centrale inertielle, puis écrire son
+  propre filtre de Kalman avant de découvrir robot_localization. Sur des
+  données enregistrées du robot de livraison, rejouées avec ros2 bag.
+accroche: Filtrer, fusionner des capteurs et écrire son filtre de Kalman.
+statut: bientot
+niveau: intermediaire
+ordre: 40
+prerequis:
+  - Apprendre ROS 2 avec un robot mobile
+  - notions de probabilités (moyenne, variance)
+outils:
+  - ros2 bag
+  - NumPy
+  - robot_localization

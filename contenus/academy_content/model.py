@@ -14,7 +14,7 @@ L'exercice est facultatif : un module de cours, sans dossier exercice/, est not�
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
@@ -119,6 +119,10 @@ class ParcoursDef(_Strict):
     ordre: int = Field(default=100, ge=0, le=1000)
     objectifs: list[str] = Field(default_factory=list, max_length=12)
     prerequis: list[str] = Field(default_factory=list, max_length=12)
+    # Outils et bibliothèques utilisés (badges des cartes du catalogue) : la compétence d'abord, l'outil ensuite.
+    outils: list[Annotated[str, Field(min_length=1, max_length=40)]] = Field(default_factory=list, max_length=8)
+    # Annoncé comme offert aux étudiants qui ont validé un parcours (certificat).
+    offert: bool = False
     modules: list[ModuleRef] = Field(default_factory=list)
 
     @field_validator("modules")
@@ -165,6 +169,8 @@ class Parcours:
     ordre: int = 100
     objectifs: list[str] = field(default_factory=list)
     prerequis: list[str] = field(default_factory=list)
+    outils: list[str] = field(default_factory=list)
+    offert: bool = False
 
 
 def _pydantic_errors(fichier, exc):

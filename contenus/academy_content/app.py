@@ -94,7 +94,7 @@ def _parcours_list(root):
         out.append({"id": p.id, "titre": p.titre, "description": p.description, "modules": mods,
                     "statut": p.statut, "niveau": p.niveau, "niveau_texte": NIVEAUX[p.niveau],
                     "accroche": p.accroche or p.description, "ordre": p.ordre,
-                    "objectifs": p.objectifs, "prerequis": p.prerequis,
+                    "objectifs": p.objectifs, "prerequis": p.prerequis, "outils": p.outils, "offert": p.offert,
                     "duree_totale": format_minutes(total) if total else ""})
     out.sort(key=lambda p: (p["statut"] != "disponible", p["ordre"], p["titre"]))
     return out

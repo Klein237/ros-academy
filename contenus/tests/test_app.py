@@ -223,6 +223,15 @@ def test_catalogue_announces_upcoming_parcours(store, client):
     assert [p["id"] for p in client.get("/api/contenus/parcours").json()["parcours"]] == ["demo"]
 
 
+def test_catalogue_shows_tools_and_offered_parcours(store, client):
+    store.write_parcours("docker", {"titre": "Docker pour la robotique", "statut": "bientot", "niveau": "intermediaire",
+                                    "outils": ["Docker", "Docker Compose"], "offert": True})
+    store.publish(Runner())
+    page = client.get("/catalogue/").text
+    assert "<span>Docker Compose</span>" in page and "Offert après un parcours validé" in page
+    assert "docker compose" in page  # la recherche porte aussi sur les outils
+
+
 def test_parcours_page_and_discover_page(client):
     page = client.get("/parcours/demo/").text
     assert "Programme" in page and 'href="/modules/01-demo/"' in page and 'href="/decouvrir/"' in page

@@ -159,4 +159,17 @@ def test_upcoming_parcours_needs_no_module(tmp_path):
 
 def test_repo_content_is_valid(real_content):
     assert validate_tree(real_content) == []
-    assert load_parcours(real_content, "nav2").statut == "bientot"
+    assert load_parcours(real_content, "bras-robotique").statut == "bientot"
+    docker = load_parcours(real_content, "docker-robotique")
+    assert docker.offert and "Docker" in docker.outils
+
+
+def test_parcours_tools_are_bounded(tmp_path):
+    p = tmp_path / "parcours" / "bras" / "parcours.yaml"
+    p.parent.mkdir(parents=True)
+    p.write_text("titre: Bras\nstatut: bientot\noutils: [URDF, ros2_control]\noffert: true\n", encoding="utf-8")
+    parcours = load_parcours(tmp_path, "bras")
+    assert (parcours.outils, parcours.offert) == (["URDF", "ros2_control"], True)
+    p.write_text("titre: Bras\nstatut: bientot\noutils: [" + ", ".join(f"o{i}" for i in range(9)) + "]\n", encoding="utf-8")
+    with pytest.raises(ContentError):
+        load_parcours(tmp_path, "bras")

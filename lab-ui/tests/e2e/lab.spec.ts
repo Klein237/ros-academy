@@ -213,6 +213,31 @@ test("vue 2D : le robot simulé avance avec la téléopération @ros", async ({ 
   await expect(page.locator(".topic-list")).toContainText("/odom");
 });
 
+test("vue 3D : le modèle de robot_state_publisher s'affiche et suit /joint_states @ros", async ({ page }) => {
+  const name = student();
+  await openLab(page, name);
+  const urdf =
+    '<robot name="essai3d"><link name="base_link"><visual><geometry><box size="0.3 0.2 0.1"/></geometry></visual></link>' +
+    '<joint name="roue" type="continuous"><parent link="base_link"/><child link="roue_link"/><axis xyz="0 1 0"/></joint>' +
+    '<link name="roue_link"><visual><geometry><cylinder radius="0.05" length="0.03"/></geometry></visual></link></robot>';
+  await run(page, `printf '%s' '${urdf}' > /tmp/essai3d.urdf && ros2 run robot_state_publisher robot_state_publisher /tmp/essai3d.urdf &`);
+  await page.getByRole("button", { name: "Vue 3D" }).click();
+  const view = page.locator(".view3d");
+  // modèle lu sur /robot_description ou demandé à robot_state_publisher
+  await expect(view).toHaveAttribute("data-model", "essai3d", { timeout: 60_000 });
+  await expect(view.locator(".pill")).toContainText("2 links · 1 joint mobile");
+  await expect(page.locator(".panel.editor")).toBeHidden();
+  await page.getByRole("button", { name: "Nouveau terminal" }).click();
+  await expect(page.locator(".terminals .tab")).toHaveCount(2); // sinon le terminal 1, bientôt masqué, répond encore
+  await expect(activeTerminal(page)).toHaveAttribute("data-status", "open");
+  await run(page, 'ros2 topic pub -r 5 /joint_states sensor_msgs/msg/JointState "{name: [roue], position: [1.0]}"');
+  await expect(view).toHaveAttribute("data-joint-states", /.+/, { timeout: 30_000 });
+  await expect(view.locator(".view3d-joint")).toContainText("57°");
+  // l'éditeur revient quand on referme la vue
+  await page.getByRole("button", { name: "Vue 3D" }).click();
+  await expect(page.locator(".panel.editor")).toBeVisible();
+});
+
 /** Couleurs de l'écran du bureau (canvas de noVNC), échantillonnées sur une grille. */
 async function desktopColors(page: Page): Promise<string[]> {
   return page.locator(".desktop-screen canvas").evaluate((el) => {

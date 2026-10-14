@@ -12,7 +12,7 @@
   <div class="encart feuille-de-route">
     <div>
       <h2 id="feuille-de-route">La feuille de route</h2>
-      <p>Commencez par les bases, puis choisissez votre spécialité.</p>
+      <p>Commencez par ROS 2, puis choisissez votre spécialité. Le même robot de livraison vous suit d'un parcours à l'autre : il apprend à rouler, puis à trier ses colis avec un bras, à se fiabiliser, à filtrer ses capteurs et à planifier son trajet.</p>
     </div>
     <ol class="niveaux">
       {% for cle, nom in niveaux.items() %}
@@ -35,7 +35,7 @@
 <section class="conteneur bloc-serre" aria-labelledby="tous">
   <h2 id="tous" class="sr-only">Tous les parcours</h2>
   <form class="filtres" role="search" data-filtres hidden>
-    <label class="recherche"><span class="sr-only">Rechercher un parcours</span><input type="search" name="q" placeholder="Rechercher un parcours (nav2, urdf, docker…)"></label>
+    <label class="recherche"><span class="sr-only">Rechercher un parcours</span><input type="search" name="q" placeholder="Rechercher un parcours (urdf, tests, docker…)"></label>
     <div class="segments" role="group" aria-label="Niveau">
       <button type="button" data-niveau="" aria-pressed="true">Tous</button>
       {% for cle, nom in niveaux.items() %}<button type="button" data-niveau="{{ cle }}" aria-pressed="false">{{ nom }}</button>{% endfor %}

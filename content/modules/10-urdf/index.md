@@ -11,7 +11,7 @@ duree: 1 h 30
 
 - décrire le robot en URDF : links, joints, géométries et matériaux ;
 - factoriser la description avec Xacro (propriétés, macros) ;
-- publier la description avec `robot_state_publisher` et la voir dans RViz.
+- publier la description avec `robot_state_publisher` et la voir en 3D, dans la Vue 3D du lab et dans RViz.
 
 ## L'essentiel en théorie
 
@@ -141,7 +141,7 @@ Déclarez les outils dont la description a besoin à l'exécution :
 <package format="3">
   <name>my_robot_description</name>
   <version>0.1.0</version>
-  <description>Description URDF du robot du parcours ROS 2 Fondamentaux</description>
+  <description>Description URDF du robot du parcours « Apprendre ROS 2 avec un robot mobile »</description>
   <maintainer email="etudiant@ros-academy.local">etudiant</maintainer>
   <license>Apache-2.0</license>
 
@@ -451,9 +451,27 @@ ros2 run tf2_tools view_frames
 
 `tf2_echo` affiche la position de la roulette dans le repère `base_link`. `view_frames` enregistre l'arbre des repères dans `frames_*.pdf` : ouvrez-le depuis l'arborescence des fichiers.
 
-## 7. Visualiser le robot dans RViz2
+## 7. Voir le robot en 3D
 
-Le lab a un bureau graphique : cliquez sur **Bureau (RViz, Gazebo)** dans la barre du haut. Il prend la place de l'éditeur ; les terminaux restent dessous, et les fenêtres lancées depuis un terminal s'y affichent.
+### Dans la Vue 3D du lab
+
+Le robot lancé avec `display.launch.py`, cliquez sur **Vue 3D** dans la barre du haut. Elle prend la place de l'éditeur ; les terminaux restent dessous. La vue lit la description sur `/robot_description` (ou la demande à `robot_state_publisher`), puis suit `/joint_states` et `/tf` : c'est ce que fait le *RobotModel* de RViz, mais dessiné par votre navigateur, sans rien calculer dans le lab.
+
+- **Faire tourner la vue** : glisser avec la souris ; molette pour zoomer ; **Recadrer** pour revenir au robot.
+- **Repères** : un petit trièdre par link (x rouge, y vert, z bleu). Vérifiez que l'axe de rotation des roues est bien le z de leur repère, comme dans votre `<axis xyz="0 0 1"/>`.
+- **Articulations** : un curseur par joint mobile, ici les deux roues (`continuous`). Les curseurs déplacent le modèle dans la vue ; **Suivre /joint_states** rend la main à `joint_state_publisher`.
+- **Publier sur /joint_states** : les curseurs publient alors l'état des joints, comme `joint_state_publisher_gui` ; `robot_state_publisher` calcule les TF en conséquence (`tf2_echo base_link left_wheel` le montre). À faire **sans** `joint_state_publisher`, sinon les deux se contredisent :
+
+```bash
+ros2 run robot_state_publisher robot_state_publisher --ros-args \
+  -p robot_description:="$(xacro install/my_robot_description/share/my_robot_description/urdf/my_robot.urdf.xacro)"
+```
+
+Une erreur dans l'URDF se voit tout de suite : une roue dans le châssis, un axe mal orienté, un link manquant. Modifiez le fichier, recompilez, relancez, puis **Recharger le modèle**.
+
+### Dans RViz2, sur le Bureau
+
+RViz2 reste l'outil de référence, et vous en aurez besoin pour Gazebo. Le lab a un bureau graphique : cliquez sur **Bureau (RViz, Gazebo)** dans la barre du haut. Il prend la place de l'éditeur ; les terminaux restent dessous, et les fenêtres lancées depuis un terminal s'y affichent.
 
 Le Bureau ouvert, lancez la description du robot **avec** RViz2 :
 
@@ -469,9 +487,7 @@ RViz2 s'ouvre déjà configuré par `config/display.rviz` : le modèle du robot 
 
 Après avoir modifié l'affichage, **File** → **Save Config** l'enregistre ; copiez le fichier dans `config/` pour le retrouver au prochain lancement.
 
-Pour faire tourner les roues avec des **curseurs**, remplacez dans `display.launch.py` le nœud `joint_state_publisher` par `joint_state_publisher_gui` (même nom pour `package` et `executable`), recompilez et relancez : une fenêtre de curseurs s'ouvre sur le bureau.
-
-Le rendu est logiciel (sans carte graphique) : un peu lent, mais suffisant pour une description de robot.
+Le rendu de RViz2 est logiciel (le lab n'a pas de carte graphique) : un peu lent, et il occupe le processeur du lab. Pour regarder un modèle et ses articulations, la Vue 3D suffit ; gardez RViz2 pour ce qu'elle ne fait pas (nuages de points, scans laser, cartes, plugins).
 
 ## 8. Rappel et ouverture
 
