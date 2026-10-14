@@ -34,6 +34,8 @@ it("plage et affichage des curseurs selon le type de joint", () => {
   expect(sliderRange(continuous)).toEqual([-Math.PI, Math.PI]);
   expect(sliderRange(prismatic)).toEqual([0, 0.2]);
   expect(isMovable({ jointType: "fixed", limit: { lower: 0, upper: 0 } })).toBe(false);
+  // le second doigt d'une pince suit le premier : pas de curseur à lui
+  expect(isMovable({ ...prismatic, mimicJoint: "pince" })).toBe(false);
   expect(formatJoint(revolute, Math.PI / 2)).toBe("90°");
   expect(formatJoint(prismatic, 0.05)).toBe("0.050 m");
 });

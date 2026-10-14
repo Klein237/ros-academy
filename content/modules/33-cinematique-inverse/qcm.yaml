@@ -1,0 +1,73 @@
+questions:
+  - id: solutions
+    question: Combien de solutions la cinématique inverse d'un bras peut-elle avoir ?
+    choix:
+      - texte: Zéro, une, plusieurs, voire une infinité pour un bras redondant.
+        correct: true
+      - texte: Toujours une seule.
+      - texte: Toujours deux, coude en haut et coude en bas.
+    explication: Une cible hors d'atteinte n'en a aucune ; un bras à six axes en a jusqu'à huit ; un bras redondant peut bouger sans déplacer la pince.
+  - id: contrainte
+    question: Pourquoi impose-t-on que la pince du bras de tri pointe vers le bas ?
+    choix:
+      - texte: Le bras a quatre articulations pour trois coordonnées ; la tâche fixe le choix qui reste.
+        correct: true
+      - texte: Parce que la pince ne peut pas pointer ailleurs.
+      - texte: Pour que la cinématique directe soit plus simple.
+    explication: Saisir un colis par le dessus fixe l'orientation de la pince ; q1 + q2 + q3 = π.
+  - id: poignet
+    question: La pince pointe vers le bas. Où est le poignet par rapport à la cible ?
+    choix:
+      - texte: À L3 au-dessus d'elle, sur la même verticale.
+        correct: true
+      - texte: Exactement sur la cible.
+      - texte: À L3 devant elle, à la même hauteur.
+    explication: Le segment du poignet à la pince est vertical, de longueur L3 ; d'où v = z + L3 − H.
+  - id: cosinus
+    question: Le calcul donne d = 1,3 dans la loi des cosinus. Que faut-il en conclure ?
+    choix:
+      - texte: La cible est hors d'atteinte ; il faut la refuser.
+        correct: true
+      - texte: Il faut prendre acos(1) à la place.
+      - texte: Le coude doit être plié vers l'arrière.
+    explication: Un cosinus est compris entre -1 et 1 ; au-delà, le triangle bras, avant-bras, épaule-poignet n'existe pas.
+  - id: coude
+    question: Que donnerait q2 = -acos(d) au lieu de acos(d) ?
+    choix:
+      - texte: L'autre solution, avec le coude plié dans l'autre sens.
+        correct: true
+      - texte: Une position de pince différente.
+      - texte: Une erreur, acos ne renvoie que des angles positifs.
+    explication: Les deux mènent le poignet au même point ; on choisit celle qui respecte les butées et évite les obstacles.
+  - id: atan2
+    question: Les angles du bras se mesurent depuis la verticale. Quel calcul donne l'angle de la direction du poignet (u horizontal, v vertical) ?
+    choix:
+      - texte: atan2(u, v)
+        correct: true
+      - texte: atan2(v, u)
+      - texte: atan(v / u)
+    explication: atan2(a, b) mesure l'angle depuis l'axe de b ; atan2(v, u) le mesurerait depuis l'horizontale, c'est le bug de l'exercice.
+  - id: butees
+    question: Les calculs donnent un coude à 2,3 rad alors que sa butée est 2,2 rad. Que doit faire le nœud ?
+    choix:
+      - texte: Refuser la cible et le signaler, sans bouger le bras.
+        correct: true
+      - texte: Envoyer 2,2 rad, la valeur la plus proche.
+      - texte: Envoyer 2,3 rad, le contrôleur s'arrêtera à la butée.
+    explication: Saturer un angle déplacerait la pince ailleurs que sur la cible, sans que personne le sache.
+  - id: test
+    question: Quel est le moyen le plus simple de tester une cinématique inverse ?
+    choix:
+      - texte: Lui appliquer la cinématique directe et vérifier qu'elle redonne la cible.
+        correct: true
+      - texte: Vérifier que les angles sont tous positifs.
+      - texte: Lancer le bras et regarder s'il bouge.
+    explication: position_pince(*angles_pour(x, y, z)) doit redonner (x, y, z), sans ROS, en une ligne.
+  - id: numerique
+    question: Un bras à six axes n'a pas de solution géométrique simple. Que fait-on ?
+    choix:
+      - texte: On utilise un solveur numérique (KDL, TRAC-IK, MoveIt), qui corrige une estimation pas à pas.
+        correct: true
+      - texte: On se limite à la cinématique directe.
+      - texte: On bloque deux articulations pour revenir à quatre.
+    explication: "Les solveurs numériques ont les mêmes choix à faire : quelle solution, et que faire hors d'atteinte."

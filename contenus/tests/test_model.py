@@ -159,7 +159,9 @@ def test_upcoming_parcours_needs_no_module(tmp_path):
 
 def test_repo_content_is_valid(real_content):
     assert validate_tree(real_content) == []
-    assert load_parcours(real_content, "bras-robotique").statut == "bientot"
+    assert load_parcours(real_content, "estimation").statut == "bientot"
+    bras = load_parcours(real_content, "bras-robotique")
+    assert bras.statut == "disponible" and [m.id for m in bras.modules][-1] == "33-cinematique-inverse"
     docker = load_parcours(real_content, "docker-robotique")
     assert docker.offert and "Docker" in docker.outils
 

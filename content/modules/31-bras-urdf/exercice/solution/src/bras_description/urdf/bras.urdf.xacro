@@ -1,0 +1,105 @@
+<?xml version="1.0"?>
+<!-- Le bras de tri : un socle, une tourelle qui pivote, trois articulations dans un même plan
+     (épaule, coude, poignet) et une pince à deux doigts. Bras tendu vers le haut quand tous
+     les angles valent 0 ; un angle positif penche le bras vers l'avant (+x de la tourelle). -->
+<robot name="bras" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- Dimensions (m) : hauteur de l'épaule, bras, avant-bras, poignet jusqu'au centre de la pince -->
+  <xacro:property name="h_epaule" value="0.10"/>
+  <xacro:property name="l_bras" value="0.30"/>
+  <xacro:property name="l_avant_bras" value="0.25"/>
+  <xacro:property name="l_poignet" value="0.10"/>
+
+  <material name="gris"><color rgba="0.35 0.38 0.42 1"/></material>
+  <material name="orange"><color rgba="1.0 0.5 0.1 1"/></material>
+  <material name="noir"><color rgba="0.1 0.1 0.1 1"/></material>
+
+  <!-- Le socle, fixé à la table : le repère de référence du bras -->
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0.025"/>
+      <geometry><cylinder radius="0.08" length="0.05"/></geometry>
+      <material name="gris"/>
+    </visual>
+  </link>
+
+  <!-- La tourelle tourne autour de la verticale -->
+  <joint name="base_rotation" type="revolute">
+    <parent link="base_link"/>
+    <child link="tourelle"/>
+    <origin xyz="0 0 0.05"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="${-pi}" upper="${pi}" effort="10" velocity="1.5"/>
+  </joint>
+
+  <link name="tourelle">
+    <visual>
+      <origin xyz="0 0 0.025"/>
+      <geometry><cylinder radius="0.05" length="0.05"/></geometry>
+      <material name="orange"/>
+    </visual>
+  </link>
+
+  <!-- Un segment du bras : une articulation autour de l'axe « axe », puis une barre de longueur l -->
+  <xacro:macro name="segment" params="articulation parent enfant z l largeur lower upper axe">
+    <joint name="${articulation}" type="revolute">
+      <parent link="${parent}"/>
+      <child link="${enfant}"/>
+      <origin xyz="0 0 ${z}"/>
+      <axis xyz="${axe}"/>
+      <limit lower="${lower}" upper="${upper}" effort="10" velocity="1.5"/>
+    </joint>
+    <link name="${enfant}">
+      <visual>
+        <origin xyz="0 0 ${l/2}"/>
+        <geometry><box size="${largeur} ${largeur} ${l}"/></geometry>
+        <material name="orange"/>
+      </visual>
+    </link>
+  </xacro:macro>
+
+  <xacro:segment articulation="epaule" parent="tourelle" enfant="bras" z="${h_epaule - 0.05}"
+                 l="${l_bras}" largeur="0.04" lower="-1.6" upper="1.6" axe="0 1 0"/>
+  <xacro:segment articulation="coude" parent="bras" enfant="avant_bras" z="${l_bras}"
+                 l="${l_avant_bras}" largeur="0.035" lower="-2.2" upper="2.2" axe="0 1 0"/>
+  <xacro:segment articulation="poignet" parent="avant_bras" enfant="main" z="${l_avant_bras}"
+                 l="0.04" largeur="0.06" lower="-1.8" upper="1.8" axe="0 1 0"/>
+
+  <!-- La pince : deux doigts qui s'écartent ensemble (le second imite le premier) -->
+  <xacro:macro name="doigt" params="nom cote">
+    <link name="doigt_${nom}">
+      <visual>
+        <origin xyz="0 ${cote * 0.005} 0.03"/>
+        <geometry><box size="0.02 0.01 0.06"/></geometry>
+        <material name="noir"/>
+      </visual>
+    </link>
+  </xacro:macro>
+  <xacro:doigt nom="gauche" cote="1"/>
+  <xacro:doigt nom="droit" cote="-1"/>
+
+  <joint name="pince" type="prismatic">
+    <parent link="main"/>
+    <child link="doigt_gauche"/>
+    <origin xyz="0 0.005 0.04"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0" upper="0.03" effort="5" velocity="0.1"/>
+  </joint>
+  <joint name="pince_miroir" type="prismatic">
+    <parent link="main"/>
+    <child link="doigt_droit"/>
+    <origin xyz="0 -0.005 0.04"/>
+    <axis xyz="0 -1 0"/>
+    <limit lower="0" upper="0.03" effort="5" velocity="0.1"/>
+    <mimic joint="pince"/>
+  </joint>
+
+  <!-- tool0 : le point de prise, entre les doigts, à l_poignet du poignet -->
+  <joint name="outil" type="fixed">
+    <parent link="main"/>
+    <child link="tool0"/>
+    <origin xyz="0 0 ${l_poignet}"/>
+  </joint>
+  <link name="tool0"/>
+
+</robot>
