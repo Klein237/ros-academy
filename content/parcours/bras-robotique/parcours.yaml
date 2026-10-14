@@ -6,10 +6,11 @@ description: >-
   moteur physique et s'affiche en 3D dans votre navigateur. Les trajectoires,
   ros2_control et la séquence complète de prise et de dépose arrivent dans les
   prochains modules.
-accroche: Cinématique, trajectoires et contrôleurs, jusqu'à prendre et déposer un objet.
+accroche: Décrire un bras en URDF et calculer sa cinématique, directe et inverse, en 3D dans le navigateur.
 statut: disponible
 niveau: intermediaire
 ordre: 20
+prix: 30
 objectifs:
   - décrire un bras manipulateur et compter ses degrés de liberté
   - écrire la description URDF d'un bras et vérifier ses axes

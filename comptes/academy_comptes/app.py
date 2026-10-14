@@ -21,8 +21,8 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from sqlalchemy import select
 
-from . import certificats, formateur, grading, rgpd
-from .billing import PAYING, BadSignature, StripeClient, StripeError, apply_subscription, format_price, verify_signature
+from . import acces, certificats, formateur, grading, rgpd
+from .billing import BadSignature, StripeClient, StripeError, format_amount, price_cents, verify_signature
 from .auth import (
     OAUTH_COOKIE,
     SESSION_COOKIE,
@@ -44,6 +44,7 @@ from .auth import (
 )
 from .clients import INTERNAL_HEADER, ContenusClient, HubClient, UpstreamError, comptes_token
 from .db import (
+    Access,
     Base,
     Certificate,
     Exercise,
@@ -65,7 +66,7 @@ HERE = Path(__file__).parent
 MODULE_ID_RE = re.compile(r"^[0-9]{2}-[a-z0-9]+(?:-[a-z0-9]+)*$")
 LAB_TOKEN_TTL = 300
 def csp(form_targets=()):
-    # form-action s'applique aussi à la redirection qui suit un formulaire (« S'abonner » → Stripe)
+    # form-action s'applique aussi à la redirection qui suit un formulaire (« Payer » → Stripe)
     form = " ".join(("'self'", *form_targets))
     return ("default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; "
             f"connect-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action {form}; object-src 'none'")
@@ -75,9 +76,9 @@ class QcmBody(BaseModel):
     reponses: dict[str, list[int]] = {}
 
 
-def mint_lab_token(secret, user):
+def mint_lab_token(secret, user, plan):
     now = int(time.time())
-    return jwt.encode({"sub": user.hub_name, "plan": user.formule, "aud": "ros-lab", "iat": now,
+    return jwt.encode({"sub": user.hub_name, "plan": plan, "aud": "ros-lab", "iat": now,
                        "exp": now + LAB_TOKEN_TTL}, secret, algorithm="HS256")
 
 
@@ -110,7 +111,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
     if settings.billing_enabled:
         stripe = stripe or StripeClient(settings.stripe_secret_key, base=settings.stripe_api_base)
     page_csp = csp(settings.stripe_redirect_origins if settings.billing_enabled else ())
-    state = {"actifs": 0, "releve": 0.0, "prix": None, "prix_lu": 0.0}
+    state = {"actifs": 0, "releve": 0.0, "parcours": [], "parcours_lu": 0.0}
 
     def tick():
         with SessionLocal() as db:
@@ -181,6 +182,35 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
     def check_module(module):
         if not MODULE_ID_RE.fullmatch(module):
             raise HTTPException(404, "Module introuvable")
+
+    # --- Accès aux parcours (achat, accès offert, parcours offerts avec un certificat)
+
+    def catalogue():
+        """Parcours disponibles, relus chez Contenus au plus une fois par minute (dernière liste si injoignable)."""
+        if time.time() - state["parcours_lu"] > 60:
+            try:
+                state["parcours"], state["parcours_lu"] = contenus.parcours(), time.time()
+            except Exception as exc:  # noqa: BLE001
+                log.warning("Parcours illisibles chez Contenus : %s", exc)
+        return state["parcours"]
+
+    def offerts():
+        return [p["id"] for p in catalogue() if p.get("offert")]
+
+    def accessible(db, user):
+        return acces.accessible(db, user, settings, utcnow(), offerts())
+
+    def require_module_access(db, user, module):
+        """QCM, indices, vérification : réservés aux parcours ouverts au compte (une fois l'accès payant activé)."""
+        check_module(module)
+        if not settings.acces_payant:
+            return
+        ids = [p["id"] for p in catalogue() if any(m["id"] == module for m in p["modules"])]
+        if not acces.can_open(accessible(db, user), ids):
+            raise HTTPException(403, "Ce module fait partie d'un parcours que vous n'avez pas encore acheté")
+
+    def lab_plan(db, user):
+        return acces.plan(db, user, settings, utcnow())
 
     @app.exception_handler(HTTPException)
     async def http_error(request: Request, exc: HTTPException):
@@ -402,19 +432,31 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
 
     # --- Compte, lab, administration
 
+    def access_rows(db, user):
+        """Accès du compte, du plus récent au plus ancien, avec le titre du parcours et leur état."""
+        titres = {p["id"]: p["titre"] for p in catalogue()}
+        now = utcnow()
+        rows = db.scalars(select(Access).where(Access.user_id == user.id).order_by(Access.debut.desc()))
+        return [{"acces": a, "titre": "Tous les parcours" if a.parcours_id == acces.TOUS else titres.get(a.parcours_id, a.parcours_id),
+                 "valable": a.retire_le is None and a.debut <= now and (a.fin is None or a.fin > now)} for a in rows]
+
+    def account_ctx(db, user):
+        return {"user": user, "utilisees": minutes_used(db, user), "restantes": minutes_left(db, user, settings),
+                "admin": user.email in settings.admin_emails, "acces": access_rows(db, user),
+                "acces_payant": settings.acces_payant, "certificat": acces.has_certificate(db, user),
+                "formule": lab_plan(db, user)}
+
     @app.get("/compte/", response_class=HTMLResponse)
     def compte(request: Request, user=Depends(current_user), db=Depends(get_db)):
         if not user:
             return login_redirect("/compte/")
-        return page(request, "compte.html", user=user, utilisees=minutes_used(db, user),
-                    restantes=minutes_left(db, user, settings), admin=user.email in settings.admin_emails)
+        return page(request, "compte.html", **account_ctx(db, user))
 
     @app.post("/compte/mot-de-passe", response_class=HTMLResponse)
     def compte_mot_de_passe(request: Request, actuel: str = Form(""), nouveau: str = Form(...),
                             user=Depends(require_user), db=Depends(get_db), _=Depends(same_origin)):
         def retour(status, **ctx):
-            return page(request, "compte.html", status, user=user, utilisees=minutes_used(db, user),
-                        restantes=minutes_left(db, user, settings), admin=user.email in settings.admin_emails, **ctx)
+            return page(request, "compte.html", status, **account_ctx(db, user), **ctx)
         if user.mot_de_passe and not check_password(actuel, user.mot_de_passe):
             return retour(400, erreur_mdp="Mot de passe actuel incorrect.")
         try:
@@ -431,14 +473,17 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         suite = safe_lab_next(suite)
         if not user:
             return login_redirect(f"/compte/lab?suite={quote(suite, safe='')}")
+        formule = lab_plan(db, user)
+        if formule == "aucune":
+            return page(request, "message.html", 403, titre="Le lab est inclus avec un parcours",
+                        message="Le lab s'ouvre avec l'achat d'un parcours (ou un accès offert). « Découvrir ROS 2 » "
+                                "reste ouvert à tous, sans compte.", lien="/tarifs/", lien_texte="Voir les tarifs")
         if minutes_left(db, user, settings) == 0:
             return page(request, "message.html", 403, titre="Quota de lab épuisé",
                         message="Vous avez utilisé toutes vos minutes de lab ce mois-ci. Les cours, les QCM et vos "
                                 "notes restent accessibles ; le lab sera de nouveau disponible le mois prochain.",
-                        **({"lien": "/compte/abonnement", "lien_texte": "Passer en pro : lab sans limite"}
-                           if settings.billing_enabled else
-                           {"lien": "/compte/resultats", "lien_texte": "Voir mes résultats"}))
-        token = mint_lab_token(settings.jwt_secret, user)
+                        lien="/compte/resultats", lien_texte="Voir mes résultats")
+        token = mint_lab_token(settings.jwt_secret, user, formule)
         return RedirectResponse(f"/hub/jwt_login?token={token}&next={quote(suite, safe='')}", status_code=303)
 
     @app.get("/compte/admin")
@@ -475,8 +520,6 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
                         erreur="Recopiez exactement votre adresse e-mail pour confirmer.")
         try:
             rgpd.delete_account(db, user, hub)
-        except rgpd.DeletionRefused as exc:
-            return page(request, "supprimer.html", 409, user=user, erreur=str(exc))
         except (UpstreamError, httpx.HTTPError):
             log.exception("Suppression du compte %s : Hub injoignable", user.id)
             return page(request, "supprimer.html", 502, user=user,
@@ -496,49 +539,50 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
     def confidentialite(request: Request):
         return page(request, "confidentialite.html", s=settings, conservation=settings.sauvegarde_jours)
 
-    # --- Abonnement (formule pro, Stripe)
+    # --- Achat d'un parcours (paiement unique, Stripe)
 
     def require_billing():
         if not settings.billing_enabled:
             raise HTTPException(404, "Page introuvable")
 
-    def price_text():
-        if time.time() - state["prix_lu"] > 3600:
-            try:
-                state["prix"], state["prix_lu"] = format_price(stripe.price(settings.stripe_price_id)), time.time()
-            except StripeError as exc:
-                log.warning("Prix Stripe illisible : %s", exc)
-        return state["prix"]
+    def parcours_for_sale(parcours_id):
+        p = next((x for x in catalogue() if x["id"] == parcours_id), None)
+        if not p:
+            raise HTTPException(404, "Parcours introuvable")
+        return p
 
-    @app.get("/compte/abonnement", response_class=HTMLResponse, dependencies=[Depends(require_billing)])
-    def abonnement(request: Request, retour: str = "", user=Depends(current_user)):
+    def purchase_page(request, db, user, p, status=200, **ctx):
+        prix = price_cents(p)
+        actuel = next((r for r in access_rows(db, user) if r["valable"]
+                       and r["acces"].parcours_id in (p["id"], acces.TOUS)), None)
+        return page(request, "acheter.html", status, user=user, parcours=p, prix=format_amount(prix) if prix else None,
+                    mois=settings.acces_duree_mois, actuel=actuel, billing=settings.billing_enabled,
+                    certificat=acces.has_certificate(db, user), **ctx)
+
+    @app.get("/compte/acheter/{parcours_id}", response_class=HTMLResponse)
+    def acheter(request: Request, parcours_id: str, retour: str = "", user=Depends(current_user), db=Depends(get_db)):
         if not user:
-            return login_redirect("/compte/abonnement")
-        return page(request, "abonnement.html", user=user, prix=price_text(), actif=user.abonnement_statut in PAYING,
-                    en_attente=retour == "paye" and user.formule != "pro")
+            return login_redirect(f"/compte/acheter/{parcours_id}")
+        return purchase_page(request, db, user, parcours_for_sale(parcours_id), en_attente=retour == "paye")
 
-    @app.post("/compte/abonnement/souscrire", dependencies=[Depends(require_billing)])
-    def souscrire(user=Depends(require_user), _=Depends(same_origin)):
-        if user.abonnement_statut in PAYING:
-            raise HTTPException(409, "Vous êtes déjà abonné : gérez votre abonnement depuis votre compte")
+    @app.post("/compte/acheter/{parcours_id}", dependencies=[Depends(require_billing)])
+    def payer(request: Request, parcours_id: str, renonciation: str = Form(""), user=Depends(require_user),
+              db=Depends(get_db), _=Depends(same_origin)):
+        p = parcours_for_sale(parcours_id)
+        prix = price_cents(p)
+        if not prix:
+            raise HTTPException(404, "Ce parcours n'est pas en vente")
+        if renonciation != "oui":
+            return purchase_page(request, db, user, p, 400,
+                                 erreur="Cochez la case : l'accès est ouvert dès le paiement, ce qui met fin au droit "
+                                        "de rétractation.")
         try:
-            url = stripe.create_checkout(user, settings.stripe_price_id,
-                                         f"{settings.public_url}/compte/abonnement?retour=paye",
-                                         f"{settings.public_url}/compte/abonnement")
+            url = stripe.create_checkout(user, p, prix, settings.acces_duree_mois,
+                                         f"{settings.public_url}/compte/acheter/{p['id']}?retour=paye",
+                                         f"{settings.public_url}/compte/acheter/{p['id']}")
         except StripeError as exc:
             log.warning("Session de paiement impossible : %s", exc)
             raise HTTPException(502, "Le paiement est momentanément indisponible, réessayez plus tard") from None
-        return RedirectResponse(url, status_code=303)
-
-    @app.post("/compte/abonnement/gerer", dependencies=[Depends(require_billing)])
-    def gerer(user=Depends(require_user), _=Depends(same_origin)):
-        if not user.stripe_customer_id:
-            raise HTTPException(404, "Aucun abonnement à gérer")
-        try:
-            url = stripe.create_portal(user.stripe_customer_id, f"{settings.public_url}/compte/abonnement")
-        except StripeError as exc:
-            log.warning("Portail client impossible : %s", exc)
-            raise HTTPException(502, "La gestion de l'abonnement est momentanément indisponible") from None
         return RedirectResponse(url, status_code=303)
 
     def handle_event(event):
@@ -547,29 +591,31 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
             if db.get(StripeEvent, event["id"]):
                 return False
             obj = (event.get("data") or {}).get("object") or {}
-            user, subscription_id = None, None
-            if event.get("type") == "checkout.session.completed" and obj.get("mode") == "subscription":
-                ref = str(obj.get("client_reference_id") or "")
-                user = db.get(User, int(ref)) if ref.isdigit() else None
-                if user and obj.get("customer"):
-                    other = db.scalar(select(User).where(User.stripe_customer_id == obj["customer"]))
-                    if other and other.id != user.id:
-                        log.warning("Client Stripe %s déjà rattaché à un autre compte", obj["customer"])
-                        user = None
-                    else:
-                        user.stripe_customer_id = obj["customer"]
-                subscription_id = obj.get("subscription")
-            elif event.get("type", "").startswith("customer.subscription."):
-                user = db.scalar(select(User).where(User.stripe_customer_id == obj.get("customer")))
-                subscription_id = obj.get("id")
-            if user and subscription_id:
-                # relu chez Stripe : l'ordre d'arrivée des événements ne compte pas
-                sub = stripe.subscription(subscription_id)
-                if sub.get("customer") == user.stripe_customer_id and apply_subscription(user, sub):
-                    log.info("Abonnement de u%s : %s → formule %s", user.id, sub.get("status"), user.formule)
+            if (event.get("type") in ("checkout.session.completed", "checkout.session.async_payment_succeeded")
+                    and obj.get("mode") == "payment" and obj.get("payment_status") == "paid"):
+                record_purchase(db, obj)
             db.add(StripeEvent(id=event["id"]))
             db.commit()
             return True
+
+    def record_purchase(db, obj):
+        """Ouvre l'accès payé (une fois par session de paiement, même si l'événement revient)."""
+        meta = obj.get("metadata") or {}
+        ref = str(obj.get("client_reference_id") or meta.get("user_id") or "")
+        user = db.get(User, int(ref)) if ref.isdigit() else None
+        parcours_id = str(meta.get("parcours_id") or "")
+        if not user or not parcours_id or db.scalar(select(Access).where(Access.stripe_session_id == obj.get("id"))):
+            if not user or not parcours_id:
+                log.warning("Paiement %s sans compte ou sans parcours : accès non ouvert", obj.get("id"))
+            return
+        now = utcnow()
+        fin = acces.purchase_end(db, user, parcours_id, now, settings.acces_duree_mois)
+        db.add(Access(user_id=user.id, parcours_id=parcours_id, origine="achat", debut=now, fin=fin,
+                      montant_centimes=obj.get("amount_total"), stripe_session_id=obj.get("id")))
+        if obj.get("customer") and not user.stripe_customer_id:
+            if not db.scalar(select(User).where(User.stripe_customer_id == obj["customer"])):
+                user.stripe_customer_id = obj["customer"]
+        log.info("Achat de u%s : parcours %s jusqu'au %s", user.id, parcours_id, fin.date())
 
     @app.post("/api/comptes/stripe/webhook", dependencies=[Depends(require_billing)])
     async def stripe_webhook(request: Request):
@@ -580,11 +626,8 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
             event_id = event["id"]
         except (BadSignature, ValueError, KeyError, TypeError):
             raise HTTPException(400, "Signature ou contenu invalide") from None
-        try:
-            await asyncio.to_thread(handle_event, event)
-        except StripeError as exc:
-            log.warning("Événement Stripe %s non traité : %s", event_id, exc)
-            raise HTTPException(503, "Stripe injoignable : l'événement sera renvoyé") from None
+        await asyncio.to_thread(handle_event, event)
+        log.debug("Événement Stripe %s reçu", event_id)
         return {"recu": True}
 
     # --- Tableau de bord formateur (adresses ADMIN_EMAILS)
@@ -601,6 +644,11 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         parcours = next((p for p in all_parcours if p["id"] == parcours_id), all_parcours[0] if all_parcours else None)
         return all_parcours, parcours, formateur.students(db, parcours, settings.admin_emails, utcnow())
 
+    def users_with_access(db):
+        now = utcnow()
+        return {a.user_id for a in db.scalars(select(Access).where(Access.retire_le.is_(None), Access.debut <= now))
+                if a.fin is None or a.fin > now}
+
     @app.get("/compte/formateur", response_class=HTMLResponse)
     def trainer(request: Request, parcours: str = "", q: str = "", user=Depends(current_user), db=Depends(get_db)):
         if not user:
@@ -612,7 +660,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         except Exception:  # noqa: BLE001 - Hub injoignable : le reste du tableau reste utile
             labs = None
         return page(request, "formateur.html", user=user, all_parcours=all_parcours, parcours=current, q=q,
-                    resume=formateur.overview(students, labs, utcnow()),
+                    resume=formateur.overview(students, labs, utcnow(), users_with_access(db)),
                     modules=formateur.module_stats(students, current),
                     students=sorted((st for st in students if formateur.matches(st, q)),
                                     key=lambda st: st.derniere_activite or datetime.min, reverse=True),
@@ -643,6 +691,80 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         name = f"etudiants-{current['id'] if current else 'parcours'}-{utcnow():%Y-%m-%d}.csv"
         return Response(formateur.to_csv(students, current), media_type="text/csv; charset=utf-8",
                         headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+    # --- Accès offerts (bêta-testeurs, partenaires) : formateurs seulement
+
+    def offered_page(request, user, db, status=200, **ctx):
+        rows = db.execute(select(Access, User.email).join(User, User.id == Access.user_id)
+                          .order_by(Access.debut.desc()).limit(300)).all()
+        titres = {p["id"]: p["titre"] for p in catalogue()}
+        now = utcnow()
+        return page(request, "formateur_acces.html", status, user=user, parcours=catalogue(), titres=titres,
+                    lignes=[{"acces": a, "email": email,
+                             "valable": a.retire_le is None and a.debut <= now and (a.fin is None or a.fin > now)}
+                            for a, email in rows],
+                    acces_payant=settings.acces_payant, **ctx)
+
+    @app.get("/compte/formateur/acces", response_class=HTMLResponse)
+    def offered(request: Request, user=Depends(current_user), db=Depends(get_db)):
+        if not user:
+            return login_redirect("/compte/formateur/acces")
+        require_trainer(user)
+        return offered_page(request, user, db)
+
+    @app.post("/compte/formateur/acces", response_class=HTMLResponse)
+    def offer(request: Request, emails: str = Form(""), tous_les_comptes: str = Form(""), parcours: str = Form("*"),
+              fin: str = Form(""), motif: str = Form(""), user=Depends(require_user), db=Depends(get_db),
+              _=Depends(same_origin)):
+        require_trainer(user)
+        if parcours != acces.TOUS and parcours not in {p["id"] for p in catalogue()}:
+            return offered_page(request, user, db, 400, erreur="Parcours inconnu.")
+        try:
+            end = datetime.strptime(fin, "%Y-%m-%d").replace(hour=23, minute=59) if fin.strip() else None
+        except ValueError:
+            return offered_page(request, user, db, 400, erreur="Date de fin illisible (attendu AAAA-MM-JJ).")
+        if end and end <= utcnow():
+            return offered_page(request, user, db, 400, erreur="La date de fin est déjà passée.")
+        if tous_les_comptes == "oui":
+            targets = list(db.scalars(select(User)))
+            inconnues = []
+        else:
+            adresses, invalides = set(), []
+            for e in (e for e in re.split(r"[\s,;]+", emails) if e.strip()):
+                try:
+                    adresses.add(normalize_email(e))
+                except AuthError:
+                    invalides.append(e)
+            targets = list(db.scalars(select(User).where(User.email.in_(adresses)))) if adresses else []
+            inconnues = sorted(adresses - {u.email for u in targets}) + invalides
+        if not targets:
+            return offered_page(request, user, db, 400, erreur="Aucun compte trouvé"
+                                + (f" ({', '.join(inconnues)})" if inconnues else "") + ".")
+        now = utcnow()
+        for target in targets:
+            db.add(Access(user_id=target.id, parcours_id=parcours, origine="offert", debut=now, fin=end,
+                          motif=" ".join(motif.split())[:200]))
+        db.commit()
+        log.info("Accès offert par %s à %d compte(s) : %s jusqu'au %s", user.email, len(targets), parcours,
+                 end.date() if end else "sans fin")
+        info = f"Accès offert à {len(targets)} compte{'s' if len(targets) > 1 else ''}."
+        if inconnues:
+            info += f" Sans compte (à créer d'abord) : {', '.join(inconnues)}."
+        return offered_page(request, user, db, info=info)
+
+    @app.post("/compte/formateur/acces/{access_id}/retirer")
+    def offer_remove(access_id: int, user=Depends(require_user), db=Depends(get_db), _=Depends(same_origin)):
+        require_trainer(user)
+        row = db.get(Access, access_id)
+        if not row:
+            raise HTTPException(404, "Accès introuvable")
+        if row.origine != "offert":
+            raise HTTPException(409, "Un accès payé ne se retire pas ici : remboursez-le depuis Stripe")
+        if not row.retire_le:
+            row.retire_le = utcnow()
+            db.commit()
+            log.info("Accès %s (u%s, %s) retiré par %s", row.id, row.user_id, row.parcours_id, user.email)
+        return RedirectResponse("/compte/formateur/acces", status_code=303)
 
     # --- Résultats
 
@@ -726,7 +848,8 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         if not p:
             raise HTTPException(404, "Parcours introuvable")
         r = parcours_progress(db, user, p)
-        return {"connecte": True, "termines": r["termines"], "total": r["requis"],
+        return {"connecte": True, "acces": acces.can_open(accessible(db, user), [parcours_id]),
+                "termines": r["termines"], "total": r["requis"],
                 "prochain": r["prochain"]["id"] if r["prochain"] else None,
                 "prochain_titre": r["prochain"]["titre"] if r["prochain"] else None,
                 "modules": {m["module"]["id"]: {"etat": m["etat"], "note": m["grade"].note if m["etat"] == "termine" else None}
@@ -794,22 +917,26 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         return {"connecte": True, "nom": user.nom, "email": user.email}
 
     @app.get("/api/comptes/interne/session")
-    def internal_session(user=Depends(current_user)):
+    def internal_session(user=Depends(current_user), db=Depends(get_db)):
         """Caddy (forward_auth) avant le cours d'un module : session ouverte ou non.
 
-        Toujours 200 : le service Contenus affiche la page réservée sans session. Caddy bloque
-        /api/comptes/interne/ depuis le navigateur ; seul cet en-tête est recopié vers Contenus.
+        Toujours 200 : le service Contenus affiche la page réservée sans session, ou sans accès au
+        parcours (X-Academy-Acces : « * » ou les parcours ouverts). Caddy bloque /api/comptes/interne/
+        depuis le navigateur ; seuls ces en-têtes sont recopiés vers Contenus.
         """
-        return Response(status_code=200, headers={"X-Academy-Etudiant": "1" if user else "0"})
+        headers = {"X-Academy-Etudiant": "1" if user else "0"}
+        if user:
+            headers["X-Academy-Acces"] = acces.header_value(accessible(db, user))
+        return Response(status_code=200, headers=headers)
 
     @app.get("/api/comptes/moi")
     def moi(user=Depends(require_user), db=Depends(get_db)):
-        return {"nom": user.nom, "email": user.email, "formule": user.formule, "hub": user.hub_name,
+        return {"nom": user.nom, "email": user.email, "formule": lab_plan(db, user), "hub": user.hub_name,
                 "minutes_restantes": minutes_left(db, user, settings), "minutes_utilisees": minutes_used(db, user)}
 
     @app.get("/api/comptes/qcm/{module}")
     def qcm_state(module: str, user=Depends(require_user), db=Depends(get_db)):
-        check_module(module)
+        require_module_access(db, user, module)
         notes, _ = progress(db, user, module)
         return {"tentatives": len(notes), "restantes": max(0, grading.MAX_QCM_ATTEMPTS - len(notes)),
                 "meilleure": max(notes) if notes else None}
@@ -817,7 +944,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
     @app.post("/api/comptes/qcm/{module}")
     def qcm_submit(module: str, body: QcmBody, user=Depends(require_user), db=Depends(get_db),
                    _=Depends(same_origin)):
-        check_module(module)
+        require_module_access(db, user, module)
         notes, _ = progress(db, user, module)
         if len(notes) >= grading.MAX_QCM_ATTEMPTS:
             raise HTTPException(409, "Vous avez déjà utilisé vos 2 tentatives pour ce QCM")
@@ -841,13 +968,13 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
 
     @app.get("/api/comptes/exercices/{module}")
     def exercise_state(module: str, user=Depends(require_user), db=Depends(get_db)):
-        check_module(module)
+        require_module_access(db, user, module)
         ex = db.get(Exercise, (user.id, module))
         return {"indices": ex.indices if ex else 0, "reussi": bool(ex and ex.reussi_le)}
 
     @app.post("/api/comptes/exercices/{module}/indices/{n}")
     def exercise_hint(module: str, n: int, user=Depends(require_user), db=Depends(get_db), _=Depends(same_origin)):
-        check_module(module)
+        require_module_access(db, user, module)
         ex = exercise_row(db, user, module)
         if not 1 <= n <= grading.MAX_HINTS or n > ex.indices + 1:
             raise HTTPException(400, "Les indices se demandent dans l'ordre")
@@ -866,7 +993,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
     @app.post("/api/comptes/exercices/{module}/verification")
     def exercise_verification(module: str, user=Depends(require_user), db=Depends(get_db), _=Depends(same_origin)):
         """La réussite n'est enregistrée que si le check.sh officiel réussit hors du conteneur de l'étudiant."""
-        check_module(module)
+        require_module_access(db, user, module)
         with verifying_lock:
             if user.id in verifying:
                 raise HTTPException(409, "Une vérification est déjà en cours")
@@ -890,7 +1017,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
 
     @app.get("/api/comptes/exercices/{module}/explication")
     def exercise_explanation(module: str, user=Depends(require_user), db=Depends(get_db)):
-        check_module(module)
+        require_module_access(db, user, module)
         ex = db.get(Exercise, (user.id, module))
         if not ex or not ex.reussi_le:
             raise HTTPException(403, "L'explication s'affiche une fois l'exercice réussi")

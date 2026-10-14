@@ -6,6 +6,7 @@
 export interface Me {
   nom: string;
   email: string;
+  /** « free » (bêta, quota de minutes), « pro » (un parcours ouvert, sans limite), « aucune » (pas de lab). */
   formule: string;
   hub: string;
   /** null : formule sans limite. */

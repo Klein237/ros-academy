@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ parcours.titre }}{% endblock %}
+{% block content %}
+<h1>{{ parcours.titre }}</h1>
+{% if en_attente and not actuel %}
+<section class="card notice" role="status">
+  <p><strong>Paiement reçu, ouverture de l'accès en cours.</strong> Votre parcours s'ouvre dans quelques secondes : rechargez cette page.</p>
+</section>
+{% endif %}
+<section class="card">
+  {% if actuel %}
+  <p class="verdict ok" role="status">Vous avez accès à ce parcours{% if actuel.acces.fin %} jusqu'au {{ actuel.acces.fin.strftime('%d/%m/%Y') }}{% endif %}{% if actuel.acces.origine == "offert" %} (accès offert){% endif %}.</p>
+  <p class="row"><a class="button primary" href="/parcours/{{ parcours.id }}/">Aller au parcours</a> <a class="button" href="/compte/apprentissage">Mon apprentissage</a></p>
+  {% elif parcours.offert %}
+  <p>Ce parcours est <strong>offert aux étudiants qui ont obtenu un certificat</strong> sur un autre parcours.</p>
+  {% if certificat %}
+  <p class="row"><a class="button primary" href="/parcours/{{ parcours.id }}/">Aller au parcours</a></p>
+  {% else %}
+  <p class="row"><a class="button primary" href="/tarifs/">Voir les parcours</a> <a class="button" href="/compte/resultats">Mes résultats</a></p>
+  {% endif %}
+  {% elif not prix %}
+  <p>Ce parcours n'est pas encore en vente.</p>
+  <p><a class="button" href="/tarifs/">Voir les tarifs</a></p>
+  {% else %}
+  <ul class="plan">
+    <li><strong>Accès de {{ mois }} mois</strong> à tous les modules du parcours : cours, QCM et exercices corrigés automatiquement</li>
+    <li>Le lab ROS 2 dans votre navigateur, sans limite de minutes, pendant toute la durée de l'accès</li>
+    <li>Le certificat du parcours, vérifiable en ligne et valable sans limite de durée</li>
+    <li>Paiement unique, sans abonnement ni renouvellement automatique</li>
+  </ul>
+  <p class="price">{{ prix }} <span class="muted small">TTC, en une fois</span></p>
+  {% if billing %}
+  {% if erreur %}<p class="form-error" role="alert">{{ erreur }}</p>{% endif %}
+  <form method="post" action="/compte/acheter/{{ parcours.id }}" class="stack">
+    <label class="check"><input type="checkbox" name="renonciation" value="oui" required>
+      Je demande l'accès immédiat au parcours et je reconnais perdre mon droit de rétractation de 14 jours dès l'ouverture de l'accès.</label>
+    <p><button class="button primary" type="submit">Payer {{ prix }}</button></p>
+  </form>
+  <p class="muted small">Le paiement se fait sur la page sécurisée de Stripe : vos coordonnées bancaires ne passent pas par RoboForge. Le reçu vous est envoyé par e-mail.</p>
+  {% else %}
+  <p class="muted">Le paiement en ligne n'est pas encore ouvert. Écrivez-nous pour obtenir un accès.</p>
+  {% endif %}
+  {% endif %}
+</section>
+<p><a href="/tarifs/">← Tous les tarifs</a></p>
+{% endblock %}

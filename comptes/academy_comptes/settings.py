@@ -6,8 +6,8 @@ from dataclasses import dataclass, field
 from urllib.parse import urlsplit
 
 ORIGIN_RE = re.compile(r"^https?://[A-Za-z0-9.-]+(:\d{1,5})?$")
-# Pages de Stripe vers lesquelles « S'abonner » et « Gérer mon abonnement » redirigent
-STRIPE_REDIRECT_ORIGINS = ("https://checkout.stripe.com", "https://billing.stripe.com")
+# Page de paiement de Stripe, vers laquelle « Payer » redirige
+STRIPE_REDIRECT_ORIGINS = ("https://checkout.stripe.com",)
 
 
 def _origins(value):
@@ -18,8 +18,9 @@ def _origins(value):
     return origins or STRIPE_REDIRECT_ORIGINS
 
 
-# Formule → minutes de lab par mois civil (None : sans limite).
-PLAN_MINUTES = {"free": 600, "pro": None}
+# Formule → minutes de lab par mois civil (None : sans limite). « free » : la bêta, avant l'accès
+# payant ; « pro » : un parcours acheté ou offert ; « aucune » : pas de lab.
+PLAN_MINUTES = {"free": 600, "pro": None, "aucune": 0}
 
 
 def _secret(name):
@@ -51,10 +52,12 @@ class Settings:
     google_client_secret: str = ""
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
-    stripe_price_id: str = ""
     stripe_api_base: str = "https://api.stripe.com/v1"
     stripe_redirect_origins: tuple = STRIPE_REDIRECT_ORIGINS
     certificat_note_min: float = 10.0
+    # Accès payant : désactivé pendant la bêta (tout est ouvert, quota de la formule gratuite)
+    acces_payant: bool = False
+    acces_duree_mois: int = 12
     # Mentions légales : éditeur du site (obligatoire en ligne) et hébergeur
     editeur_nom: str = ""
     editeur_adresse: str = ""
@@ -87,8 +90,8 @@ class Settings:
 
     @property
     def billing_enabled(self):
-        """Abonnement pro proposé seulement quand Stripe est entièrement configuré."""
-        return bool(self.stripe_secret_key and self.stripe_webhook_secret and self.stripe_price_id)
+        """Achat des parcours proposé seulement quand Stripe est configuré (clé et secret du webhook)."""
+        return bool(self.stripe_secret_key and self.stripe_webhook_secret)
 
     @classmethod
     def from_env(cls):
@@ -114,11 +117,12 @@ class Settings:
             google_client_secret=env("GOOGLE_CLIENT_SECRET", ""),
             stripe_secret_key=env("STRIPE_SECRET_KEY", ""),
             stripe_webhook_secret=env("STRIPE_WEBHOOK_SECRET", ""),
-            stripe_price_id=env("STRIPE_PRICE_ID", ""),
             # tests de bout en bout seulement (Stripe simulé)
             stripe_api_base=env("STRIPE_API_BASE") or "https://api.stripe.com/v1",
             stripe_redirect_origins=_origins(env("STRIPE_REDIRECT_ORIGINS", "")),
             certificat_note_min=float(env("CERTIFICAT_NOTE_MIN") or "10"),
+            acces_payant=env("ACCES_PAYANT", "0") == "1",
+            acces_duree_mois=int(env("ACCES_DUREE_MOIS") or "12"),
             editeur_nom=env("EDITEUR_NOM", ""),
             editeur_adresse=env("EDITEUR_ADRESSE", ""),
             editeur_contact=env("EDITEUR_CONTACT", "") or next(iter(sorted(

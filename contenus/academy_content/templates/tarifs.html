@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% from "partiels/icones.html" import coche, fleche %}
+{% set nav_actif = "tarifs" %}
+{% block title %}Tarifs · RoboForge{% endblock %}
+{% block description %}Un prix par parcours, payé une fois : 12 mois d'accès au cours, au lab ROS 2 dans le navigateur, aux exercices corrigés et au certificat.{% endblock %}
+{% block main_class %}page plein{% endblock %}
+{% block content %}
+<div class="conteneur page-titre">
+  <p class="eyebrow">Tarifs</p>
+  <h1 class="titre-xl">Un parcours, un prix, payé une fois</h1>
+  <p class="chapeau">Pas d'abonnement : vous achetez le parcours qui vous intéresse et vous y avez accès pendant 12 mois, lab compris.</p>
+</div>
+
+<section class="conteneur bloc" aria-labelledby="parcours-en-vente">
+  <h2 id="parcours-en-vente" class="sr-only">Parcours en vente</h2>
+  <div class="grille-parcours">
+    {% for p in en_vente %}
+    <article class="carte-parcours carte-tarif">
+      <div class="pastilles"><span class="pastille claire">{{ p.niveau_texte }}</span></div>
+      <h3><a href="/parcours/{{ p.id }}/">{{ p.titre }}</a></h3>
+      <p>{{ p.accroche }}</p>
+      <p class="tarif-prix">{{ p.prix_texte }}</p>
+      <p class="meta">{{ p.modules | length }} module{{ "s" if p.modules | length > 1 }}{% if p.duree_totale %} · {{ p.duree_totale }}{% endif %} · 12 mois d'accès</p>
+      <a class="button primary" href="/compte/acheter/{{ p.id }}">Acheter le parcours</a>
+    </article>
+    {% else %}
+    <p class="muted">Aucun parcours n'est encore en vente.</p>
+    {% endfor %}
+    {% for p in offerts %}
+    <article class="carte-parcours carte-tarif">
+      <div class="pastilles"><span class="pastille ambre">Offert après un parcours validé</span></div>
+      <h3><a href="/parcours/{{ p.id }}/">{{ p.titre }}</a></h3>
+      <p>{{ p.accroche }}</p>
+      <p class="tarif-prix">Offert</p>
+      <p class="meta">Ouvert aux étudiants qui ont obtenu le certificat d'un parcours.</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="conteneur bloc" aria-labelledby="inclus">
+  <div class="encart">
+    <h2 id="inclus">Ce que comprend un parcours</h2>
+    <ul class="liste-cochee">
+      <li>{{ coche() }}Tous les modules du parcours : le cours, les schémas et le QCM de chaque module</li>
+      <li>{{ coche() }}Le lab ROS 2 dans votre navigateur (terminal, éditeur, Vue 3D, simulateur), sans limite de minutes</li>
+      <li>{{ coche() }}Des exercices tirés de situations réelles, corrigés automatiquement, avec indices et explications</li>
+      <li>{{ coche() }}Une note par module et un certificat vérifiable en ligne, qui reste valable après les 12 mois</li>
+      <li>{{ coche() }}Le parcours « Docker pour la robotique », offert dès que vous avez obtenu un certificat</li>
+    </ul>
+  </div>
+</section>
+
+<section class="conteneur bloc" aria-labelledby="commencer-ici">
+  <div class="encart encart-ambre encart-commencer">
+    <div>
+      <span class="pastille ambre">Gratuit, sans compte</span>
+      <h2 id="commencer-ici">Découvrir ROS 2</h2>
+      <p>20 minutes pour savoir d'où vient ROS, à quoi il sert et ce que vous allez apprendre, avant de choisir un parcours.</p>
+    </div>
+    <a class="button sombre grand" href="/decouvrir/">Lire l'introduction {{ fleche() }}</a>
+  </div>
+</section>
+
+<section class="conteneur bloc" aria-labelledby="questions">
+  <h2 id="questions">Questions fréquentes</h2>
+  <div class="grille-petite grille-3">
+    <div class="carte-simple"><strong>Est-ce un abonnement ?</strong><p>Non. Vous payez une fois, par carte, sur la page sécurisée de Stripe. Rien n'est prélevé ensuite.</p></div>
+    <div class="carte-simple"><strong>Que se passe-t-il après 12 mois ?</strong><p>Le cours et le lab du parcours se ferment ; vos notes et votre certificat restent. Vous pouvez racheter le parcours pour 12 mois de plus.</p></div>
+    <div class="carte-simple"><strong>De quoi ai-je besoin ?</strong><p>Un ordinateur avec un navigateur récent (Chrome, Firefox, Edge, Safari). Rien à installer, aucun robot à acheter.</p></div>
+    <div class="carte-simple"><strong>Puis-je me rétracter ?</strong><p>L'accès est ouvert dès le paiement : vous le demandez expressément au moment de payer, ce qui met fin au délai de rétractation de 14 jours prévu pour les contenus numériques.</p></div>
+    <div class="carte-simple"><strong>Combien de temps faut-il ?</strong><p>La durée de chaque parcours est indiquée sur sa page. Vous avancez à votre rythme, 12 mois laissent de la marge.</p></div>
+    <div class="carte-simple"><strong>Pour une école ou une équipe ?</strong><p>Écrivez-nous : nous ouvrons l'accès aux comptes de vos étudiants ou de vos collègues.</p></div>
+  </div>
+</section>
+
+{% if bientot %}
+<section class="conteneur bloc" aria-labelledby="a-venir">
+  <h2 id="a-venir">Bientôt</h2>
+  <p class="muted">{% for p in bientot %}{{ p.titre }}{{ " · " if not loop.last }}{% endfor %}</p>
+</section>
+{% endif %}
+{% endblock %}

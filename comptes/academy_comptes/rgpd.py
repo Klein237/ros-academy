@@ -7,12 +7,7 @@ from collections import Counter
 from sqlalchemy import delete, select
 
 from . import certificats
-from .billing import PAYING
-from .db import Certificate, Exercise, Identity, LoginToken, QcmAttempt, UsageTick, User
-
-class DeletionRefused(Exception):
-    """Suppression impossible pour l'instant (message présentable)."""
-
+from .db import Access, Certificate, Exercise, Identity, LoginToken, QcmAttempt, UsageTick, User
 
 def _iso(d):
     return d.isoformat(timespec="seconds") + "Z" if d else None
@@ -29,12 +24,10 @@ def export_data(db, user):
             "formule": user.formule,
             "cree_le": _iso(user.cree_le),
             "connexions": sorted(i.fournisseur for i in db.scalars(select(Identity).where(Identity.user_id == user.id))),
-            "abonnement": {
-                "statut": user.abonnement_statut,
-                "fin": _iso(user.abonnement_fin),
-                "resilie": user.abonnement_resilie,
-            } if user.stripe_subscription_id else None,
         },
+        "acces": [{"parcours": a.parcours_id, "origine": a.origine, "debut": _iso(a.debut), "fin": _iso(a.fin),
+                   "retire_le": _iso(a.retire_le), "montant_centimes": a.montant_centimes}
+                  for a in db.scalars(select(Access).where(Access.user_id == user.id).order_by(Access.debut))],
         "minutes_de_lab_par_mois": dict(sorted(minutes.items())),
         "qcm": [{"module": q.module, "note": q.note, "le": _iso(q.cree_le)}
                 for q in db.scalars(select(QcmAttempt).where(QcmAttempt.user_id == user.id).order_by(QcmAttempt.cree_le))],
@@ -53,14 +46,10 @@ def export_json(db, user):
 
 
 def delete_account(db, user, hub):
-    """Supprime le compte : lab (Hub et dossier personnel), puis toutes les lignes en base.
-
-    Refusé tant qu'un abonnement est en cours (il continuerait d'être facturé). Les factures
-    restent chez Stripe (obligation comptable), sans lien avec un compte ici.
+    """Supprime le compte : lab (Hub et dossier personnel), puis toutes les lignes en base, accès
+    achetés compris. Les paiements et leurs reçus restent chez Stripe (obligation comptable), sans
+    lien avec un compte ici.
     """
-    if user.stripe_subscription_id and user.abonnement_statut in PAYING and not user.abonnement_resilie:
-        raise DeletionRefused("Votre abonnement pro est en cours : résiliez-le d'abord (Mon abonnement), "
-                              "puis supprimez votre compte.")
     hub.delete_user(user.hub_name)  # arrête le lab ; le Hub efface le dossier personnel
     db.execute(delete(LoginToken).where(LoginToken.email == user.email))
     db.delete(user)  # sessions, identités, notes, minutes, certificats : ON DELETE CASCADE

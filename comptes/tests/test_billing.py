@@ -3,27 +3,23 @@ import hmac
 import json
 import time
 from dataclasses import replace
+from datetime import datetime, timedelta
 from urllib.parse import parse_qs, urlsplit
 
 import httpx
 import jwt
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 import academy_comptes.app as appmod
-from academy_comptes.billing import (
-    BadSignature,
-    StripeClient,
-    StripeError,
-    apply_subscription,
-    format_price,
-    verify_signature,
-)
-from academy_comptes.db import StripeEvent, User
-from test_app import BASE, ORIGIN, SECRET, FakeContenus, FakeHub, client, db, env, login, oauth_transport  # noqa: F401 (fixtures)
+from academy_comptes import acces
+from academy_comptes.billing import BadSignature, StripeClient, StripeError, format_amount, price_cents, verify_signature
+from academy_comptes.clients import comptes_token
+from academy_comptes.db import Access, Certificate, StripeEvent, User, utcnow
+from test_app import BASE, ORIGIN, SECRET, FakeContenus, FakeHub, db, login, oauth_transport
 
 WHSEC = "whsec_test_secret"
-PRICE = "price_pro"
 
 
 # --- Signature du webhook
@@ -41,13 +37,7 @@ def test_signature_valid_and_with_several_v1():
     verify_signature(body, f"t={stamp},v1=deadbeef,{sign(body, stamp=stamp).split(',')[1]}", WHSEC)
 
 
-@pytest.mark.parametrize("header", [
-    "",
-    "v1=abc",
-    "t=abc,v1=abc",
-    "t=1,t=2,v1=abc",
-    "SIGNED",
-])
+@pytest.mark.parametrize("header", ["", "v1=abc", "t=abc,v1=abc", "t=1,t=2,v1=abc", "SIGNED"])
 def test_signature_unreadable_header_is_refused(header):
     with pytest.raises(BadSignature):
         verify_signature(b"{}", header, WHSEC)
@@ -65,54 +55,27 @@ def test_signature_wrong_secret_body_or_age_is_refused():
         verify_signature(body, sign(body, stamp=int(time.time()) + 301), WHSEC)
 
 
-# --- Statut → formule
+# --- Prix et durée
 
-def sub(status, id="sub_1", customer="cus_1", end=1_800_000_000, cancel=False, new_api=False):
-    s = {"id": id, "customer": customer, "status": status, "cancel_at_period_end": cancel}
-    if new_api:
-        s["items"] = {"data": [{"current_period_end": end}]}
-    else:
-        s["current_period_end"] = end
-    return s
+def test_price_of_a_parcours():
+    assert price_cents({"prix": 30}) == 3000 and price_cents({"prix": 29.5}) == 2950
+    assert price_cents({"prix": None}) is None and price_cents({}) is None and price_cents({"prix": 0}) is None
+    assert price_cents({"prix": 30, "offert": True}) is None  # offert avec un certificat : jamais vendu
+    assert format_amount(3000) == "30 €" and format_amount(2950) == "29,50 €"
 
 
-@pytest.mark.parametrize("status,formule", [
-    ("active", "pro"), ("trialing", "pro"), ("past_due", "pro"),
-    ("canceled", "free"), ("unpaid", "free"), ("incomplete", "free"), ("incomplete_expired", "free"), ("paused", "free"),
-])
-def test_status_decides_the_plan(status, formule):
-    user = User(email="a@b.fr", formule="free")
-    assert apply_subscription(user, sub(status)) is True
-    assert user.formule == formule and user.abonnement_statut == status
-
-
-def test_period_end_from_the_subscription_or_its_items():
-    for new_api in (False, True):
-        user = User(email="a@b.fr")
-        apply_subscription(user, sub("active", end=1_800_000_000, cancel=True, new_api=new_api))
-        assert user.abonnement_fin.isoformat() == "2027-01-15T08:00:00"
-        assert user.abonnement_resilie is True
-
-
-def test_old_subscription_ending_does_not_remove_a_newer_one():
-    user = User(email="a@b.fr")
-    apply_subscription(user, sub("active", id="sub_new"))
-    assert apply_subscription(user, sub("canceled", id="sub_old")) is False
-    assert user.formule == "pro" and user.stripe_subscription_id == "sub_new"
-
-
-def test_format_price():
-    assert format_price({"unit_amount": 900, "currency": "eur", "recurring": {"interval": "month"}}) == "9,00 € / mois"
-    assert format_price({"unit_amount": 1250, "currency": "usd"}) == "12,50 $"
+def test_twelve_months_later():
+    assert acces.add_months(datetime(2026, 10, 14, 9, 30), 12) == datetime(2027, 10, 14, 9, 30)
+    assert acces.add_months(datetime(2027, 1, 31), 1) == datetime(2027, 2, 28)
+    assert acces.add_months(datetime(2026, 11, 30), 3) == datetime(2027, 2, 28)
 
 
 # --- Client Stripe
 
 class FakeStripe:
-    """API Stripe simulée : abonnements modifiables par les tests, requêtes enregistrées."""
+    """API Stripe simulée : sessions de paiement, requêtes enregistrées."""
 
     def __init__(self):
-        self.subscriptions = {}
         self.requests = []
         self.down = False
 
@@ -122,48 +85,59 @@ class FakeStripe:
             return httpx.Response(401, json={"error": {"message": "clé invalide"}})
         if self.down:
             return httpx.Response(500, json={"error": {"message": "panne"}})
-        path = request.url.path
-        if path == "/v1/checkout/sessions":
+        if request.url.path == "/v1/checkout/sessions":
             return httpx.Response(200, json={"id": "cs_1", "url": "https://checkout.stripe.com/c/pay/cs_1"})
-        if path == "/v1/billing_portal/sessions":
-            return httpx.Response(200, json={"url": "https://billing.stripe.com/p/session/1"})
-        if path.startswith("/v1/subscriptions/"):
-            s = self.subscriptions.get(path.rsplit("/", 1)[1])
-            return httpx.Response(200, json=s) if s else httpx.Response(404, json={"error": {"message": "absent"}})
-        if path == f"/v1/prices/{PRICE}":
-            return httpx.Response(200, json={"unit_amount": 900, "currency": "eur", "recurring": {"interval": "month"}})
         return httpx.Response(404, json={"error": {"message": "inconnu"}})
 
     def client(self):
         return StripeClient("sk_test_cle", http=httpx.Client(transport=httpx.MockTransport(self.handler)))
 
+    def last_form(self):
+        return {k: v[0] for k, v in parse_qs(self.requests[-1].content.decode()).items()}
+
 
 def test_client_errors_become_stripe_errors():
     fake = FakeStripe()
-    with pytest.raises(StripeError, match="404"):
-        fake.client().subscription("sub_absent")
+    user = User(id=1, email="eleve@exemple.fr")
+    p = {"id": "ros2", "titre": "ROS 2"}
     fake.down = True
     with pytest.raises(StripeError, match="500"):
-        fake.client().price(PRICE)
+        fake.client().create_checkout(user, p, 3000, 12, "https://ok", "https://ko")
     with pytest.raises(StripeError):
         StripeClient("sk_test_cle", http=httpx.Client(transport=httpx.MockTransport(
-            lambda r: (_ for _ in ()).throw(httpx.ConnectError("x"))))).price(PRICE)
+            lambda r: (_ for _ in ()).throw(httpx.ConnectError("x"))))).create_checkout(user, p, 3000, 12, "a", "b")
 
 
 # --- Application
+
+class ShopContenus(FakeContenus):
+    def parcours(self):
+        return [
+            {"id": "ros2", "titre": "Apprendre ROS 2", "prix": 30, "modules": [
+                {"id": "01-a", "titre": "Module A", "coef": 1}, {"id": "02-b", "titre": "Module B", "coef": 3}]},
+            {"id": "bras", "titre": "Bras robotique", "prix": 29.5, "modules": [
+                {"id": "30-e", "titre": "Module E", "coef": 1}]},
+            {"id": "docker", "titre": "Docker", "offert": True, "modules": [
+                {"id": "20-d", "titre": "Module D", "coef": 1}]},
+        ]
+
 
 @pytest.fixture
 def benv(tmp_path, monkeypatch):
     sent = []
     monkeypatch.setattr(appmod, "send_account_mail", lambda settings, email, sorte, link: sent.append((email, link, sorte)))
-    settings = replace(
-        appmod.Settings(jwt_secret=SECRET, public_url=BASE, database_url=f"sqlite:///{tmp_path}/c.db"),
-        stripe_secret_key="sk_test_cle", stripe_webhook_secret=WHSEC, stripe_price_id=PRICE)
+    base = appmod.Settings(jwt_secret=SECRET, public_url=BASE, database_url=f"sqlite:///{tmp_path}/c.db",
+                           admin_emails=frozenset({"admin@exemple.fr"}))
     fake = FakeStripe()
-    app = appmod.create_app(settings, hub=FakeHub(), contenus=FakeContenus(),
-                            http=httpx.Client(transport=oauth_transport()), background=False, stripe=fake.client())
-    client = TestClient(app, base_url=BASE)
-    return {"client": client, "stripe": fake, "sent": sent, "settings": settings}
+
+    def make(**changes):
+        settings = replace(base, **{"stripe_secret_key": "sk_test_cle", "stripe_webhook_secret": WHSEC,
+                                    "acces_payant": True, **changes})
+        app = appmod.create_app(settings, hub=FakeHub(), contenus=ShopContenus(),
+                                http=httpx.Client(transport=oauth_transport()), background=False, stripe=fake.client())
+        return TestClient(app, base_url=BASE)
+
+    return {"client": make(), "make": make, "stripe": fake, "sent": sent}
 
 
 def webhook(client, event, secret=WHSEC):
@@ -172,158 +146,197 @@ def webhook(client, event, secret=WHSEC):
                        headers={"Stripe-Signature": sign(body, secret), "Content-Type": "application/json"})
 
 
-def checkout_completed(user_id, evt="evt_cs", customer="cus_1", subscription="sub_1"):
+def paid(user_id, parcours="ros2", evt="evt_1", session="cs_1", status="paid", amount=3000):
     return {"id": evt, "type": "checkout.session.completed", "data": {"object": {
-        "mode": "subscription", "client_reference_id": str(user_id), "customer": customer,
-        "subscription": subscription, "customer_details": {"email": "autre@pirate.fr"}}}}
+        "id": session, "mode": "payment", "payment_status": status, "client_reference_id": str(user_id),
+        "customer": "cus_1", "amount_total": amount, "metadata": {"user_id": str(user_id), "parcours_id": parcours}}}}
 
 
-def sub_event(evt, kind="updated", id="sub_1", customer="cus_1", status="active"):
-    return {"id": evt, "type": f"customer.subscription.{kind}",
-            "data": {"object": {"id": id, "customer": customer, "status": status}}}
-
-
-def formule(client, email="eleve@exemple.fr"):
+def accesses(client):
     with db(client) as s:
-        return s.query(User).filter_by(email=email).one().formule
+        return [(a.parcours_id, a.origine, a.fin) for a in s.scalars(select(Access).order_by(Access.id))]
 
 
-def test_billing_routes_absent_without_stripe(client, env):
-    login(client, env)
-    assert client.get("/compte/abonnement").status_code == 404
-    assert client.post("/compte/abonnement/souscrire", headers=ORIGIN).status_code == 404
+def header(client):
+    return client.get("/api/comptes/interne/session").headers.get("X-Academy-Acces")
+
+
+def test_no_payment_without_stripe(benv):
+    client = benv["make"](stripe_secret_key="", stripe_webhook_secret="")
+    login(client, benv)
+    page = client.get("/compte/acheter/ros2").text
+    assert "30 €" in page and "pas encore ouvert" in page and "Payer" not in page
+    assert client.post("/compte/acheter/ros2", data={"renonciation": "oui"}, headers=ORIGIN).status_code == 404
     assert client.post("/api/comptes/stripe/webhook", content=b"{}").status_code == 404
-    assert "Passer en pro" not in client.get("/compte/").text
 
 
-def test_subscribe_redirects_to_checkout_for_this_account(benv):
+def test_buy_redirects_to_stripe_with_the_price_of_the_parcours(benv):
     client, fake = benv["client"], benv["stripe"]
-    assert client.post("/compte/abonnement/souscrire", headers=ORIGIN).status_code == 401
+    assert client.get("/compte/acheter/ros2", follow_redirects=False).headers["location"].startswith("/connexion")
     login(client, benv)
-    page = client.get("/compte/abonnement").text
-    assert "9,00 € / mois" in page and "S'abonner" in page
-    assert "Passer en pro" in client.get("/compte/").text
-    assert client.post("/compte/abonnement/souscrire").status_code == 403  # sans Origin
-    r = client.post("/compte/abonnement/souscrire", headers=ORIGIN, follow_redirects=False)
+    page = client.get("/compte/acheter/ros2").text
+    assert "30 €" in page and "12 mois" in page and "droit de rétractation" in page
+    # sans la case « accès immédiat, renonciation au droit de rétractation » : pas de paiement
+    r = client.post("/compte/acheter/ros2", headers=ORIGIN)
+    assert r.status_code == 400 and not fake.requests
+    assert client.post("/compte/acheter/ros2", data={"renonciation": "oui"}).status_code == 403  # origine absente
+    r = client.post("/compte/acheter/ros2", data={"renonciation": "oui"}, headers=ORIGIN, follow_redirects=False)
     assert r.status_code == 303 and r.headers["location"] == "https://checkout.stripe.com/c/pay/cs_1"
-    form = parse_qs(fake.requests[-1].content.decode())
-    assert form["mode"] == ["subscription"] and form["line_items[0][price]"] == [PRICE]
-    assert form["client_reference_id"] == ["1"] and form["customer_email"] == ["eleve@exemple.fr"]
-    assert form["success_url"] == [f"{BASE}/compte/abonnement?retour=paye"]
-    assert "sk_test_cle" not in page
+    form = fake.last_form()
+    assert form["mode"] == "payment" and form["line_items[0][price_data][unit_amount]"] == "3000"
+    assert form["line_items[0][price_data][currency]"] == "eur"
+    assert form["metadata[parcours_id]"] == "ros2" and form["client_reference_id"] == "1"
+    assert form["customer_email"] == "eleve@exemple.fr"
+    assert form["success_url"] == f"{BASE}/compte/acheter/ros2?retour=paye"
+    # la redirection vers Stripe est permise par la CSP (form-action)
+    assert "https://checkout.stripe.com" in r.headers["content-security-policy"]
 
 
-def test_webhook_refuses_bad_signatures(benv):
+def test_not_for_sale(benv):
     client = benv["client"]
     login(client, benv)
-    body = json.dumps(checkout_completed(1)).encode()
-    for headers in ({}, {"Stripe-Signature": "t=1,v1=abc"}, {"Stripe-Signature": sign(body, "whsec_autre")},
-                    {"Stripe-Signature": sign(body, stamp=int(time.time()) - 600)}):
-        assert client.post("/api/comptes/stripe/webhook", content=body, headers=headers).status_code == 400
-    assert formule(client) == "free"
+    assert client.post("/compte/acheter/docker", data={"renonciation": "oui"}, headers=ORIGIN).status_code == 404
+    assert "certificat" in client.get("/compte/acheter/docker").text
+    assert client.get("/compte/acheter/inconnu").status_code == 404
 
 
-def test_checkout_then_subscription_lifecycle(benv):
-    client, fake = benv["client"], benv["stripe"]
+def test_paid_checkout_opens_twelve_months_once(benv):
+    client = benv["client"]
     login(client, benv)
-    fake.subscriptions["sub_1"] = sub("active")
-    assert client.get("/compte/abonnement?retour=paye").text.count("confirmation en cours") == 1
-    assert webhook(client, checkout_completed(1)).status_code == 200
-    assert formule(client) == "pro"
-    page = client.get("/compte/abonnement?retour=paye").text
-    assert "Gérer mon abonnement" in page and "confirmation en cours" not in page
-    assert "Prochain renouvellement le 15/01/2027" in page
-    # le JWT du lab porte la formule pro (limites du conteneur côté Hub)
-    q = parse_qs(urlsplit(client.get("/compte/lab", follow_redirects=False).headers["location"]).query)
-    assert jwt.decode(q["token"][0], SECRET, algorithms=["HS256"], audience="ros-lab")["plan"] == "pro"
+    assert "confirmation en cours" not in client.get("/compte/acheter/ros2?retour=paye").text.lower()
+    assert "ouverture de l'accès en cours" in client.get("/compte/acheter/ros2?retour=paye").text
+    assert webhook(client, paid(1, status="unpaid", evt="evt_0")).status_code == 200
+    assert accesses(client) == []
+    assert webhook(client, paid(1)).json() == {"recu": True}
+    [(pid, origine, fin)] = accesses(client)
+    assert (pid, origine) == ("ros2", "achat") and abs((fin - acces.add_months(utcnow(), 12)).total_seconds()) < 60
+    # le même événement, puis la même session dans un autre événement : un seul accès
+    webhook(client, paid(1))
+    webhook(client, paid(1, evt="evt_2"))
+    assert len(accesses(client)) == 1
+    with db(client) as s:
+        assert s.get(StripeEvent, "evt_2") and s.scalar(select(User)).stripe_customer_id == "cus_1"
+    assert "Vous avez accès à ce parcours jusqu'au" in client.get("/compte/acheter/ros2").text
+    assert "Apprendre ROS 2" in client.get("/compte/").text
+    # nouvel achat avant la fin : prolongé depuis la fin du premier
+    webhook(client, paid(1, evt="evt_3", session="cs_2"))
+    assert accesses(client)[1][2] == acces.add_months(fin, 12)
+
+
+def test_bad_webhooks_open_nothing(benv):
+    client = benv["client"]
+    login(client, benv)
+    body = json.dumps(paid(1)).encode()
+    r = client.post("/api/comptes/stripe/webhook", content=body, headers={"Stripe-Signature": sign(body, "whsec_x")})
+    assert r.status_code == 400
+    webhook(client, paid(99, evt="evt_u"))  # compte inconnu
+    event = paid(1, evt="evt_p")
+    del event["data"]["object"]["metadata"]["parcours_id"]
+    webhook(client, event)
+    subscription = {"id": "evt_s", "type": "checkout.session.completed",
+                    "data": {"object": {"id": "cs_s", "mode": "subscription", "client_reference_id": "1"}}}
+    webhook(client, subscription)
+    assert accesses(client) == []
+
+
+def test_access_header_follows_purchases_offers_and_certificates(benv):
+    client = benv["client"]
+    login(client, benv)
+    assert header(client) == ""
+    webhook(client, paid(1, parcours="bras"))
+    assert header(client) == "bras"
+    with db(client) as s:
+        s.add(Certificate(code="ABCDEFGHJKLMNPQR", user_id=1, parcours_id="bras", parcours_titre="Bras", nom="É",
+                          note=15, modules_json="[]"))
+        s.commit()
+    assert header(client) == "bras,docker"  # le certificat ouvre le parcours offert
+    with db(client) as s:
+        s.add(Access(user_id=1, parcours_id="*", origine="offert", fin=utcnow() - timedelta(days=1)))
+        s.commit()
+    assert header(client) == "bras,docker"  # accès offert terminé
+    with db(client) as s:
+        s.add(Access(user_id=1, parcours_id="*", origine="offert"))
+        s.commit()
+    assert header(client) == "*"
+
+
+def test_beta_opens_everything(benv):
+    client = benv["make"](acces_payant=False)
+    login(client, benv)
+    assert header(client) == "*"
+    assert client.get("/api/comptes/qcm/30-e").status_code == 200
+    claims = lab_claims(client)
+    assert claims["plan"] == "free"
+
+
+def lab_claims(client):
+    r = client.get("/compte/lab", follow_redirects=False)
+    assert r.status_code == 303, r.text
+    token = parse_qs(urlsplit(r.headers["location"]).query)["token"][0]
+    return jwt.decode(token, SECRET, algorithms=["HS256"], audience="ros-lab")
+
+
+def test_modules_and_lab_need_an_access(benv):
+    client = benv["client"]
+    login(client, benv)
+    ok = {"X-Academy-Interne": comptes_token(SECRET)}
+    assert client.get("/api/comptes/qcm/01-a").status_code == 403
+    assert client.post("/api/comptes/exercices/01-a/indices/1", headers=ORIGIN).status_code == 403
+    assert client.post("/api/comptes/qcm/01-a", json={"reponses": {}}, headers=ORIGIN).status_code == 403
+    r = client.get("/compte/lab", follow_redirects=False)
+    assert r.status_code == 403 and "/tarifs/" in r.text
+    assert client.get("/api/comptes/interne/lab/u1", headers=ok).json() == {"autorise": False}
+    assert client.get("/api/comptes/moi").json()["formule"] == "aucune"
+    webhook(client, paid(1))
+    assert client.get("/api/comptes/qcm/01-a").status_code == 200
+    assert client.get("/api/comptes/qcm/30-e").status_code == 403  # un autre parcours
+    assert lab_claims(client)["plan"] == "pro"
+    assert client.get("/api/comptes/interne/lab/u1", headers=ok).json() == {"autorise": True}
     assert client.get("/api/comptes/moi").json()["minutes_restantes"] is None
-    # déjà abonné : pas de seconde souscription
-    assert client.post("/compte/abonnement/souscrire", headers=ORIGIN).status_code == 409
-    # résiliation programmée, puis fin de l'abonnement
-    fake.subscriptions["sub_1"] = sub("active", cancel=True)
-    webhook(client, sub_event("evt_2"))
-    assert formule(client) == "pro" and "reste active jusqu'au 15/01/2027" in client.get("/compte/abonnement").text
-    fake.subscriptions["sub_1"] = sub("canceled")
-    webhook(client, sub_event("evt_3", kind="deleted", status="canceled"))
-    assert formule(client) == "free"
-    assert client.get("/api/comptes/moi").json()["minutes_restantes"] == 600
 
 
-def test_events_are_idempotent_and_order_does_not_matter(benv):
-    client, fake = benv["client"], benv["stripe"]
-    login(client, benv)
-    fake.subscriptions["sub_1"] = sub("active")
-    # la mise à jour arrive avant le paiement : client encore inconnu, ignorée sans erreur
-    assert webhook(client, sub_event("evt_early", kind="created")).status_code == 200
-    assert formule(client) == "free"
-    webhook(client, checkout_completed(1))
-    # un événement ancien (« incomplete ») livré en retard : la relecture chez Stripe dit « active »
-    webhook(client, sub_event("evt_late", status="incomplete"))
-    assert formule(client) == "pro"
-    # un événement déjà traité n'a aucun effet, même si Stripe a changé depuis
-    fake.subscriptions["sub_1"] = sub("canceled")
-    n = len(fake.requests)
-    assert webhook(client, checkout_completed(1)).status_code == 200
-    assert len(fake.requests) == n and formule(client) == "pro"
-    with db(client) as s:
-        assert s.query(StripeEvent).count() == 3
+def admin(client, benv):
+    login(client, benv, email="admin@exemple.fr")
 
 
-def test_subscription_is_linked_by_reference_never_by_email(benv):
-    client, fake = benv["client"], benv["stripe"]
-    login(client, benv, "a@exemple.fr")
-    other = TestClient(client.app, base_url=BASE)
-    login(other, benv, "b@exemple.fr")
-    fake.subscriptions["sub_1"] = sub("active")
-    webhook(client, checkout_completed(2, customer="cus_1"))
-    assert formule(client, "b@exemple.fr") == "pro" and formule(client, "a@exemple.fr") == "free"
-    # un même client Stripe ne peut pas être rattaché à un second compte
-    fake.subscriptions["sub_2"] = sub("active", id="sub_2", customer="cus_1")
-    webhook(client, checkout_completed(1, evt="evt_cs2", customer="cus_1", subscription="sub_2"))
-    assert formule(client, "a@exemple.fr") == "free"
-    # un abonnement relu chez Stripe pour un autre client ne s'applique pas
-    fake.subscriptions["sub_3"] = sub("active", id="sub_3", customer="cus_autre")
-    webhook(client, checkout_completed(1, evt="evt_cs3", customer="cus_9", subscription="sub_3"))
-    assert formule(client, "a@exemple.fr") == "free"
-    # référence inconnue ou absente : ignorée
-    assert webhook(client, checkout_completed(99, evt="evt_cs4", customer="cus_x")).status_code == 200
-
-
-def test_stripe_down_makes_stripe_retry(benv):
-    client, fake = benv["client"], benv["stripe"]
-    login(client, benv)
-    fake.down = True
-    assert webhook(client, checkout_completed(1)).status_code == 503
-    fake.down = False
-    fake.subscriptions["sub_1"] = sub("active")
-    assert webhook(client, checkout_completed(1)).status_code == 200  # renvoi du même événement
-    assert formule(client) == "pro"
-
-
-def test_portal_and_manual_pro_untouched(benv):
-    client, fake = benv["client"], benv["stripe"]
-    login(client, benv)
-    assert client.post("/compte/abonnement/gerer", headers=ORIGIN).status_code == 404  # pas de client Stripe
-    with db(client) as s:
-        s.query(User).one().formule = "pro"  # attribuée à la main
-        s.commit()
-    assert "attribuée par l'équipe" in client.get("/compte/abonnement").text
-    fake.subscriptions["sub_1"] = sub("active")
-    webhook(client, checkout_completed(1))
-    r = client.post("/compte/abonnement/gerer", headers=ORIGIN, follow_redirects=False)
-    assert r.headers["location"] == "https://billing.stripe.com/p/session/1"
-    assert parse_qs(fake.requests[-1].content.decode()) == {"customer": ["cus_1"], "return_url": [f"{BASE}/compte/abonnement"]}
-
-
-def test_quota_page_offers_pro(benv):
-    from datetime import timedelta
-
-    from academy_comptes.db import UsageTick, utcnow
+def test_offered_access_is_for_trainers(benv):
     client = benv["client"]
     login(client, benv)
+    assert client.get("/compte/formateur/acces").status_code == 403
+    assert client.post("/compte/formateur/acces", data={"emails": "eleve@exemple.fr"}, headers=ORIGIN).status_code == 403
+
+
+def test_trainer_offers_and_removes_access(benv):
+    other = benv["make"]()
+    login(other, benv)  # le compte eleve@exemple.fr (u1)
+    client = benv["client"]
+    admin(client, benv)
+    page = client.get("/compte/formateur/acces").text
+    assert "Offrir un accès" in page and "Tous les parcours" in page
+    r = client.post("/compte/formateur/acces", data={"emails": "eleve@exemple.fr\ninconnu@exemple.fr pas-une-adresse",
+                                                     "parcours": "*", "fin": "2099-12-31", "motif": "Bêta-test"},
+                    headers=ORIGIN)
+    assert r.status_code == 200 and "Accès offert à 1 compte." in r.text
+    assert "inconnu@exemple.fr" in r.text and "pas-une-adresse" in r.text
+    assert accesses(client) == [("*", "offert", datetime(2099, 12, 31, 23, 59))]
+    assert header(other) == "*"
+    for data, message in (({"emails": "eleve@exemple.fr", "parcours": "nav2"}, "Parcours inconnu"),
+                          ({"emails": "eleve@exemple.fr", "fin": "31/12/2099"}, "illisible"),
+                          ({"emails": "eleve@exemple.fr", "fin": "2020-01-01"}, "déjà passée"),
+                          ({"emails": "personne@exemple.fr"}, "Aucun compte")):
+        r = client.post("/compte/formateur/acces", data=data, headers=ORIGIN)
+        assert r.status_code == 400 and message in r.text
+    # tous les comptes (bêta-testeurs) : élève et administrateur
+    r = client.post("/compte/formateur/acces", data={"tous_les_comptes": "oui", "parcours": "ros2"}, headers=ORIGIN)
+    assert "Accès offert à 2 comptes." in r.text
     with db(client) as s:
-        start = utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        s.add_all([UsageTick(user_id=1, minute=start + timedelta(minutes=i)) for i in range(600)])
-        s.commit()
-    r = client.get("/compte/lab")
-    assert r.status_code == 403 and 'href="/compte/abonnement"' in r.text
+        first = s.scalar(select(Access).order_by(Access.id))
+    assert client.post(f"/compte/formateur/acces/{first.id}/retirer", headers=ORIGIN,
+                       follow_redirects=False).status_code == 303
+    assert header(other) == "ros2"
+    webhook(client, paid(1, parcours="bras"))
+    with db(client) as s:
+        bought = s.scalar(select(Access).where(Access.origine == "achat"))
+    assert client.post(f"/compte/formateur/acces/{bought.id}/retirer", headers=ORIGIN).status_code == 409
+    assert "achat (30,00 €)" in client.get("/compte/formateur/acces").text
+    assert "avec un accès payé ou offert" in client.get("/compte/formateur").text

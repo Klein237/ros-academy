@@ -65,7 +65,7 @@ def test_overview_and_module_stats(client, env):
     tiles = dict((label, value) for value, label in
                  re.findall(r'<span class="tile-value">([^<]*)</span><span class="tile-label">([^<]*)</span>', html))
     assert tiles == {"étudiants inscrits": "3", "actifs ces 7 derniers jours": "3", "labs en cours": "2",
-                     "minutes de lab ce mois-ci": "0", "parcours terminés": "1", "en formule pro": "0"}
+                     "minutes de lab ce mois-ci": "0", "parcours terminés": "1", "avec un accès payé ou offert": "0"}
     rows = re.findall(r"<tr>\s*<td><a href=\"/modules/([^/]+)/\">.*?</tr>", html, re.S)
     assert rows == ["01-a", "02-b"]
     row_a = re.search(r'href="/modules/01-a/".*?</tr>', html, re.S).group(0)

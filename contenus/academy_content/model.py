@@ -121,8 +121,10 @@ class ParcoursDef(_Strict):
     prerequis: list[str] = Field(default_factory=list, max_length=12)
     # Outils et bibliothèques utilisés (badges des cartes du catalogue) : la compétence d'abord, l'outil ensuite.
     outils: list[Annotated[str, Field(min_length=1, max_length=40)]] = Field(default_factory=list, max_length=8)
-    # Annoncé comme offert aux étudiants qui ont validé un parcours (certificat).
+    # Annoncé comme offert aux étudiants qui ont validé un parcours (certificat) : il ne se vend pas.
     offert: bool = False
+    # Prix d'achat en euros TTC (accès de 12 mois) ; absent : pas en vente.
+    prix: float | None = Field(default=None, gt=0, le=10000)
     modules: list[ModuleRef] = Field(default_factory=list)
 
     @field_validator("modules")
@@ -171,6 +173,7 @@ class Parcours:
     prerequis: list[str] = field(default_factory=list)
     outils: list[str] = field(default_factory=list)
     offert: bool = False
+    prix: float | None = None
 
 
 def _pydantic_errors(fichier, exc):

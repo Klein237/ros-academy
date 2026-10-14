@@ -14,6 +14,7 @@
   </header>
 
   <section class="encart encart-primaire" aria-labelledby="reserve">
+    {% if not connecte %}
     <div>
       <h2 id="reserve">Cours réservé aux inscrits</h2>
       <p>Connectez-vous pour suivre ce module : le cours, le lab ROS 2 dans votre navigateur{% if module.exercice %}, l'exercice{% endif %} et le QCM.</p>
@@ -22,6 +23,24 @@
       <a class="button amber grand" href="/connexion/inscription?suite={{ suite | urlencode }}">Créer un compte</a>
       <a class="button grand" href="/connexion?suite={{ suite | urlencode }}">Se connecter</a>
     </div>
+    {% else %}
+    {% set offerts = a_acheter | selectattr("offert") | list %}
+    <div>
+      <h2 id="reserve">Ce module fait partie d'un parcours</h2>
+      {% if offerts and offerts | length == a_acheter | length %}
+      <p>« {{ offerts[0].titre }} » est offert aux étudiants qui ont obtenu un certificat sur un autre parcours.</p>
+      {% else %}
+      <p>Achetez le parcours pour suivre ce module : le cours, le lab ROS 2 dans votre navigateur{% if module.exercice %}, l'exercice corrigé{% endif %}, le QCM et le certificat, pendant 12 mois.</p>
+      {% endif %}
+    </div>
+    <div class="actions-reserve">
+      {% for p in a_acheter if p.prix_texte %}
+      <a class="button amber grand" href="/compte/acheter/{{ p.id }}">{{ p.titre }} · {{ p.prix_texte }}</a>
+      {% else %}
+      <a class="button amber grand" href="/tarifs/">Voir les tarifs</a>
+      {% endfor %}
+    </div>
+    {% endif %}
   </section>
 
   {% if sommaire %}

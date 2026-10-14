@@ -126,14 +126,15 @@ def module_stats(all_students, parcours):
     return stats
 
 
-def overview(all_students, labs_en_cours, now):
+def overview(all_students, labs_en_cours, now, avec_acces=frozenset()):
+    """Chiffres clés ; avec_acces : identifiants des comptes qui ont un accès payé ou offert valable."""
     active_since = now - timedelta(days=ACTIVE_DAYS)
     return {
         "inscrits": len(all_students),
         "actifs": sum(1 for s in all_students if s.derniere_activite and s.derniere_activite >= active_since),
         "labs": labs_en_cours,
         "minutes": sum(s.minutes_mois for s in all_students),
-        "pro": sum(1 for s in all_students if s.user.formule == "pro"),
+        "acces": sum(1 for s in all_students if s.user.id in avec_acces),
         "termines": sum(1 for s in all_students if s.finale is not None),
     }
 

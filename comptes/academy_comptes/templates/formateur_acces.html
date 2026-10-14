@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Accès offerts et achats{% endblock %}
+{% block main_class %}page wide{% endblock %}
+{% block content %}
+<div class="trainer-head">
+  <h1>Accès offerts et achats</h1>
+  <a class="button" href="/compte/formateur">← Tableau de bord</a>
+</div>
+{% if not acces_payant %}
+<p class="card notice">L'accès payant n'est pas encore activé (<code>ACCES_PAYANT=0</code>) : tout compte connecté a accès à tout. Offrez d'abord leur accès aux bêta-testeurs, puis activez-le.</p>
+{% endif %}
+<section class="card">
+  <h2>Offrir un accès</h2>
+  {% if erreur %}<p class="form-error" role="alert">{{ erreur }}</p>{% endif %}
+  {% if info %}<p class="verdict ok" role="status">{{ info }}</p>{% endif %}
+  <form method="post" action="/compte/formateur/acces" class="stack">
+    <label>Adresses e-mail des comptes <span class="muted small">(une par ligne)</span>
+      <textarea name="emails" rows="4" placeholder="etudiant@exemple.fr"></textarea></label>
+    <label class="check"><input type="checkbox" name="tous_les_comptes" value="oui"> Tous les comptes existants (bêta-testeurs)</label>
+    <label>Parcours
+      <select name="parcours">
+        <option value="*">Tous les parcours</option>
+        {% for p in parcours %}<option value="{{ p.id }}">{{ p.titre }}</option>{% endfor %}
+      </select></label>
+    <label>Jusqu'au <span class="muted small">(vide : sans date de fin)</span> <input type="date" name="fin"></label>
+    <label>Motif <span class="muted small">(facultatif)</span> <input type="text" name="motif" maxlength="200" placeholder="Bêta-test"></label>
+    <p><button class="button primary" type="submit">Offrir l'accès</button></p>
+  </form>
+</section>
+<section class="card">
+  <h2>Accès enregistrés</h2>
+  <div class="table-scroll">
+  <table class="results">
+    <thead><tr><th>Compte</th><th>Parcours</th><th>Origine</th><th>Depuis</th><th>Jusqu'au</th><th>État</th><th></th></tr></thead>
+    <tbody>
+    {% for l in lignes %}
+      <tr>
+        <td>{{ l.email }}</td>
+        <td>{{ "Tous les parcours" if l.acces.parcours_id == "*" else titres.get(l.acces.parcours_id, l.acces.parcours_id) }}</td>
+        <td>{% if l.acces.origine == "achat" %}achat{% if l.acces.montant_centimes %} ({{ "%.2f" | format(l.acces.montant_centimes / 100) | replace('.', ',') }} €){% endif %}{% else %}offert{% if l.acces.motif %} · {{ l.acces.motif }}{% endif %}{% endif %}</td>
+        <td>{{ l.acces.debut.strftime('%d/%m/%Y') }}</td>
+        <td>{{ l.acces.fin.strftime('%d/%m/%Y') if l.acces.fin else "—" }}</td>
+        <td>{% if l.acces.retire_le %}retiré le {{ l.acces.retire_le.strftime('%d/%m/%Y') }}{% elif l.valable %}valable{% else %}terminé{% endif %}</td>
+        <td>{% if l.acces.origine == "offert" and not l.acces.retire_le %}<form method="post" action="/compte/formateur/acces/{{ l.acces.id }}/retirer"><button class="button small" type="submit">Retirer</button></form>{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" class="muted">Aucun accès enregistré.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="muted small">Un achat ne se retire pas ici : remboursez-le depuis le tableau de bord de Stripe, puis offrez ou retirez l'accès selon le cas.</p>
+</section>
+{% endblock %}

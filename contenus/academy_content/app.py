@@ -42,6 +42,8 @@ INTERNAL_HEADER = "X-Academy-Interne"
 # Posé par Caddy après avoir demandé à Comptes si la session est ouverte (« 1 ») ; Caddy retire
 # celui qu'enverrait le navigateur. Sans lui, le cours est réservé : seuls les titres sont publics.
 STUDENT_HEADER = "X-Academy-Etudiant"
+# Posé avec lui : parcours ouverts au compte, « * » pour tous (bêta, accès offert à tout). Absent : tous.
+ACCESS_HEADER = "X-Academy-Acces"
 
 CSP = ("default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; "
        "connect-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'self'; object-src 'none'")
@@ -71,6 +73,13 @@ def format_minutes(total):
     return f"{h} h {m:02d}" if m else f"{h} h"
 
 
+def format_prix(prix):
+    """30 → « 30 € » ; 29.5 → « 29,50 € »."""
+    cents = round(prix * 100)
+    euros, rest = divmod(cents, 100)
+    return f"{euros} €" if not rest else f"{euros},{rest:02d} €"
+
+
 def _parcours_list(root):
     """Tous les parcours lisibles, dans l'ordre du catalogue (disponibles et annoncés)."""
     out = []
@@ -95,6 +104,7 @@ def _parcours_list(root):
                     "statut": p.statut, "niveau": p.niveau, "niveau_texte": NIVEAUX[p.niveau],
                     "accroche": p.accroche or p.description, "ordre": p.ordre,
                     "objectifs": p.objectifs, "prerequis": p.prerequis, "outils": p.outils, "offert": p.offert,
+                    "prix": p.prix, "prix_texte": format_prix(p.prix) if p.prix and not p.offert else "",
                     "duree_totale": format_minutes(total) if total else ""})
     out.sort(key=lambda p: (p["statut"] != "disponible", p["ordre"], p["titre"]))
     return out
@@ -111,6 +121,21 @@ def _parcours_of(root, module_id):
             i = ids.index(module_id)
             return p, (p["modules"][i - 1] if i > 0 else None), (p["modules"][i + 1] if i + 1 < len(ids) else None), i + 1
     return None, None, None, None
+
+
+def _parcours_containing(root, module_id):
+    return [p for p in _parcours_disponibles(root) if any(m["id"] == module_id for m in p["modules"])]
+
+
+def _opened(request, root, module_id):
+    """Cours d'un module ouvert à l'étudiant : l'un des parcours qui le contiennent lui est ouvert."""
+    if request.headers.get(STUDENT_HEADER) != "1":
+        return False
+    value = request.headers.get(ACCESS_HEADER)
+    if value is None or value.strip() == "*":
+        return True
+    ids = {v.strip() for v in value.split(",") if v.strip()}
+    return any(p["id"] in ids for p in _parcours_containing(root, module_id))
 
 
 def _exercise_or_404(root, module_id):
@@ -235,10 +260,14 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
     def connected(request: Request):
         return request.headers.get(STUDENT_HEADER) == "1"
 
-    def student(request: Request):
-        """Contenu du cours (API) : étudiant connecté, ou le service Comptes."""
-        if not (connected(request) or is_internal(request)):
+    def student(request: Request, module_id: str):
+        """Contenu du cours (API) : étudiant connecté qui a accès au parcours, ou le service Comptes."""
+        if is_internal(request):
+            return
+        if not connected(request):
             raise HTTPException(401, "Connexion requise")
+        if not _opened(request, published(), module_id):
+            raise HTTPException(403, "Ce module fait partie d'un parcours que vous n'avez pas encore acheté")
 
     sessions = Sessions(secret)
     app.mount("/static/contenus", StaticFiles(directory=str(HERE / "static")), name="static")
@@ -298,6 +327,13 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
     def decouvrir(request: Request):
         return page(request, "decouvrir.html", parcours=_parcours_disponibles(published()))
 
+    @app.get("/tarifs/", response_class=HTMLResponse)
+    def tarifs(request: Request):
+        tous = _parcours_list(published())
+        return page(request, "tarifs.html", en_vente=[p for p in tous if p["statut"] == "disponible" and p["prix_texte"]],
+                    offerts=[p for p in tous if p["statut"] == "disponible" and p["offert"]],
+                    bientot=[p for p in tous if p["statut"] != "disponible"])
+
     @app.get("/parcours/{parcours_id}/", response_class=HTMLResponse)
     def parcours_page(request: Request, parcours_id: str):
         for p in _parcours_disponibles(published()):
@@ -310,23 +346,24 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
 
     @app.get("/modules/{module_id}/", response_class=HTMLResponse)
     def module_public(request: Request, module_id: str):
-        if not connected(request):
-            return module_reserve(request, published(), module_id)
+        if not _opened(request, published(), module_id):
+            return module_reserve(request, published(), module_id, connecte=connected(request))
         return module_page(request, published(), module_id)
 
     @app.get("/modules/{module_id}/images/{name}")
     def module_image(request: Request, module_id: str, name: str):
-        """Schémas du cours : réservés aux étudiants connectés, comme le cours."""
-        if not connected(request):
+        """Schémas du cours : réservés, comme le cours, aux étudiants qui ont accès au parcours."""
+        if not _opened(request, published(), module_id):
             raise HTTPException(404, "Image introuvable")  # pas de 401 : il renverrait vers la connexion admin
         return _image_response(published(), module_id, name)
 
-    def module_reserve(request, root, module_id):
-        """Sans connexion : titre, résumé et plan du module, pas le cours."""
+    def module_reserve(request, root, module_id, connecte=False):
+        """Sans connexion, ou sans accès au parcours : titre, résumé et plan du module, pas le cours."""
         module = _module_or_404(root, module_id)
         parcours, prev, nxt, numero = _parcours_of(root, module_id)
         return page(request, "module_reserve.html", module=module, sommaire=cours_sommaire(module.cours),
-                    parcours=parcours, numero=numero, suite=f"/modules/{module.id}/")
+                    parcours=parcours, numero=numero, suite=f"/modules/{module.id}/", connecte=connecte,
+                    a_acheter=_parcours_containing(root, module_id))
 
     # --- API du cours (page du module et Lab UI) : étudiant connecté
 
@@ -576,7 +613,7 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
         unknown = [m.id for m in d.modules if m.id not in store.module_ids()]
         if unknown:
             raise HTTPException(400, f"module inconnu : {', '.join(unknown)}")
-        sha = store_call(store.write_parcours, parcours_id, d.model_dump())
+        sha = store_call(store.write_parcours, parcours_id, d.model_dump(exclude_none=True))
         return {"commit": sha}
 
     @app.post("/admin/api/publication")

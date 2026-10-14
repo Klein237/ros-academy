@@ -88,15 +88,17 @@
 	}
 
 	# Site des formations, API des modules et éditeur d'administration.
-	# Le cours d'un module (page et API) est réservé aux étudiants connectés : Comptes dit si la
-	# session est ouverte, Contenus lit l'en-tête X-Academy-Etudiant (celui du navigateur est retiré).
+	# Le cours d'un module (page et API) est réservé aux étudiants connectés qui ont accès à son
+	# parcours : Comptes dit si la session est ouverte (X-Academy-Etudiant) et quels parcours lui sont
+	# ouverts (X-Academy-Acces) ; ceux qu'enverrait le navigateur sont retirés.
 	@cours path /modules/* /api/contenus/modules/*
 	handle {
 		route {
 			request_header -X-Academy-Etudiant
+			request_header -X-Academy-Acces
 			forward_auth @cours comptes:8300 {
 				uri /api/comptes/interne/session
-				copy_headers X-Academy-Etudiant
+				copy_headers X-Academy-Etudiant X-Academy-Acces
 			}
 			reverse_proxy contenus:8200
 		}

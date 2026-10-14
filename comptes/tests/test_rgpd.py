@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 
 import academy_comptes.app as appmod
-from academy_comptes.db import Certificate, Exercise, LoginToken, QcmAttempt, SessionRow, User
+from academy_comptes.db import Access, Certificate, Exercise, LoginToken, QcmAttempt, SessionRow, User
 from test_app import BASE, ORIGIN, client, db, env, login  # noqa: F401 (fixtures)
 from test_certificats import finish, get_cert
 
@@ -56,23 +56,23 @@ def test_delete_account_erases_everything_and_the_lab(client, env):
     assert client.get("/compte/", follow_redirects=False).status_code == 303  # session effacée
 
 
-def test_delete_refused_while_subscribed_or_when_the_hub_fails(client, env):
+def test_delete_removes_purchases_and_nothing_when_the_hub_fails(client, env):
     login(client, env)
     with db(client) as s:
         u = s.scalar(select(User))
-        u.stripe_subscription_id, u.abonnement_statut, u.formule = "sub_1", "active", "pro"
+        s.add(Access(user_id=u.id, parcours_id="ros2-fondamentaux", origine="achat", montant_centimes=3000,
+                     stripe_session_id="cs_1"))
         s.commit()
-    r = client.post("/compte/supprimer", data={"confirmation": "eleve@exemple.fr"}, headers=ORIGIN)
-    assert r.status_code == 409 and "résiliez-le d" in r.text and count(client, User) == 1
-    with db(client) as s:
-        s.scalar(select(User)).abonnement_resilie = True  # résilié : fin de période, plus de facturation
-        s.commit()
+    export = client.get("/compte/donnees").json()
+    assert [(a["parcours"], a["origine"], a["montant_centimes"]) for a in export["acces"]] == [
+        ("ros2-fondamentaux", "achat", 3000)]
+    assert "parcours achetés" in client.get("/compte/supprimer").text
     env["hub"].fail_delete = True
     r = client.post("/compte/supprimer", data={"confirmation": "eleve@exemple.fr"}, headers=ORIGIN)
-    assert r.status_code == 502 and count(client, User) == 1  # rien n'est supprimé à moitié
+    assert r.status_code == 502 and count(client, User) == 1 and count(client, Access) == 1  # rien à moitié
     env["hub"].fail_delete = False
     r = client.post("/compte/supprimer", data={"confirmation": "eleve@exemple.fr"}, headers=ORIGIN)
-    assert r.status_code == 200 and count(client, User) == 0
+    assert r.status_code == 200 and count(client, User) == 0 and count(client, Access) == 0
 
 
 def test_legal_pages(env):  # noqa: F811

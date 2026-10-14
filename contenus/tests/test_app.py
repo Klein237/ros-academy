@@ -450,3 +450,59 @@ def test_course_images_are_checked(tmp_path, markdown, message):
     with pytest.raises(ContentError) as e:
         load_module(tmp_path, "01-demo")
     assert message in str(e.value)
+
+
+# --- Accès payant : parcours ouverts au compte (en-tête X-Academy-Acces posé par Caddy, venu de Comptes)
+
+def test_course_needs_access_to_one_of_its_parcours(store, anonyme):
+    store.write_parcours("demo", {"titre": "Parcours démo", "prix": 30, "modules": [{"id": "01-demo"}]})
+    store.publish(Runner())
+    for value in ("", "autre", "autre,encore"):
+        headers = {**ETUDIANT, "X-Academy-Acces": value}
+        page = anonyme.get("/modules/01-demo/", headers=headers)
+        assert page.status_code == 200 and "Ce module fait partie d'un parcours" in page.text
+        assert 'href="/compte/acheter/demo"' in page.text and "Parcours démo · 30 €" in page.text
+        assert "print(1)" not in page.text and "Quelle commande" not in page.text
+        for suffix in ("", "/lab", "/cours-fichiers", "/exercice", "/qcm"):
+            r = anonyme.get(f"/api/contenus/modules/01-demo{suffix}", headers=headers)
+            assert r.status_code == 403 and "print(1)" not in r.text, suffix
+    for value in ("demo", "autre,demo", "*", " * "):
+        page = anonyme.get("/modules/01-demo/", headers={**ETUDIANT, "X-Academy-Acces": value}).text
+        assert "print(1)" in page and "Ce module fait partie" not in page, value
+    # sans session : la connexion d'abord, même avec un en-tête d'accès
+    page = anonyme.get("/modules/01-demo/", headers={"X-Academy-Acces": "*"}).text
+    assert "Cours réservé aux inscrits" in page and "print(1)" not in page
+    # le service Comptes lit toujours le cours (secret interne)
+    assert anonyme.get("/api/contenus/modules/01-demo/exercice", headers=INTERNE).status_code == 200
+
+
+def test_offered_parcours_is_not_sold(store, anonyme):
+    store.write_parcours("demo", {"titre": "Docker", "offert": True, "prix": 30, "modules": [{"id": "01-demo"}]})
+    store.publish(Runner())
+    page = anonyme.get("/modules/01-demo/", headers={**ETUDIANT, "X-Academy-Acces": ""}).text
+    assert "offert aux étudiants qui ont obtenu un certificat" in page and "/compte/acheter/" not in page
+    assert anonyme.get("/api/contenus/parcours").json()["parcours"][0]["prix_texte"] == ""
+
+
+def test_prices_on_the_catalogue_parcours_and_pricing_pages(store, client):
+    store.write_parcours("demo", {"titre": "Parcours démo", "prix": 29.5, "modules": [{"id": "01-demo"}]})
+    store.write_parcours("docker", {"titre": "Docker pour la robotique", "offert": True, "modules": [{"id": "01-demo"}]})
+    store.write_parcours("nav", {"titre": "Navigation", "statut": "bientot"})
+    store.publish(Runner())
+    assert "Disponible · 29,50 €" in client.get("/catalogue/").text
+    page = client.get("/parcours/demo/").text
+    assert "29,50 €" in page and 'href="/compte/acheter/demo"' in page
+    page = client.get("/tarifs/").text
+    assert "29,50 €" in page and 'href="/compte/acheter/demo"' in page and "12 mois" in page
+    assert "Docker pour la robotique" in page and "/compte/acheter/docker" not in page
+    assert "Navigation" in page and 'href="/decouvrir/"' in page and 'href="/tarifs/"' in page
+    assert "gratuit" not in client.get("/").text.lower().replace("gratuit, sans compte", "")
+
+
+def test_parcours_price_is_validated_and_editable(admin, store):
+    r = admin.put("/admin/api/parcours/demo", headers=ORIGIN, json={"prix": -5})
+    assert r.status_code == 400
+    assert admin.put("/admin/api/parcours/demo", headers=ORIGIN, json={"prix": 30}).status_code == 200
+    assert "prix: 30" in (store.draft_dir / "parcours/demo/parcours.yaml").read_text()
+    assert admin.put("/admin/api/parcours/demo", headers=ORIGIN, json={"prix": None}).status_code == 200
+    assert "prix" not in (store.draft_dir / "parcours/demo/parcours.yaml").read_text()

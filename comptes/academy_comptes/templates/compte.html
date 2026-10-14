@@ -3,8 +3,9 @@
 <h1>Mon compte</h1>
 <section class="card">
   <p><strong>{{ user.nom or user.email }}</strong>{% if user.nom %} <span class="muted">· {{ user.email }}</span>{% endif %}</p>
-  <p>Formule : <strong>{{ {"free": "Gratuite", "pro": "Pro"}.get(user.formule, user.formule) }}</strong>{% if billing %} · <a href="/compte/abonnement">{{ "Mon abonnement" if user.stripe_subscription_id else "Passer en pro" }}</a>{% endif %}</p>
-  {% if restantes is none %}
+  {% if formule == "aucune" %}
+  <p>Lab : inclus avec l'achat d'un parcours.</p>
+  {% elif restantes is none %}
   <p>Lab : sans limite ({{ utilisees }} min utilisées ce mois-ci).</p>
   {% else %}
   <p>Lab : <strong>{{ restantes }} min</strong> restantes ce mois-ci ({{ utilisees }} min utilisées).</p>
@@ -12,6 +13,21 @@
   {% endif %}
   <p class="row"><a class="button primary" href="/compte/lab">Ouvrir le lab</a> <a class="button" href="/compte/apprentissage">Mon apprentissage</a> <a class="button" href="/compte/resultats">Mes résultats</a>{% if admin %} <a class="button" href="/compte/formateur">Tableau de bord formateur</a> <a class="button" href="/compte/admin">Éditer les formations</a>{% endif %}</p>
   <form method="post" action="/deconnexion"><button class="button" type="submit">Se déconnecter</button></form>
+</section>
+<section class="card" id="acces">
+  <h2>Mes parcours</h2>
+  {% set valables = acces | selectattr("valable") | list %}
+  {% if valables %}
+  <ul>
+    {% for r in valables %}<li><strong>{{ r.titre }}</strong> · {% if r.acces.fin %}jusqu'au {{ r.acces.fin.strftime('%d/%m/%Y') }}{% else %}sans date de fin{% endif %}{% if r.acces.origine == "offert" %} <span class="muted">(accès offert)</span>{% endif %}</li>{% endfor %}
+  </ul>
+  {% elif not acces_payant %}
+  <p>Pendant la bêta, tous les parcours vous sont ouverts.</p>
+  {% else %}
+  <p>Vous n'avez pas encore de parcours. « Découvrir ROS 2 » reste ouvert à tous.</p>
+  {% endif %}
+  {% if certificat and acces_payant %}<p class="muted small">Votre certificat vous ouvre aussi les parcours offerts (Docker pour la robotique).</p>{% endif %}
+  <p><a class="button" href="/tarifs/">Voir les tarifs</a></p>
 </section>
 <section class="card" id="mot-de-passe">
   <h2>Mot de passe</h2>

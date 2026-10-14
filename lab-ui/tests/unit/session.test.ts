@@ -182,13 +182,13 @@ it("demande de démarrage perdue (aucun serveur) → redemandée", async () => {
   expect(s.state.kind).toBe("ready");
 });
 
-function fakeAccount(opts: { minutes?: (number | null)[]; queue?: { position: number; a_vous: boolean }[] } = {}) {
+function fakeAccount(opts: { minutes?: (number | null)[]; queue?: { position: number; a_vous: boolean }[]; formule?: string } = {}) {
   const minutes = [...(opts.minutes ?? [null])];
   const queue = [...(opts.queue ?? [])];
   const next = () => ({ ticket: "t1", ...(queue.length > 1 ? queue.shift()! : queue[0] ?? { position: 1, a_vous: true }) });
   return {
     me: vi.fn(async () => ({
-      nom: "", email: "e@x.fr", formule: "free", hub: "u1", minutes_utilisees: 0,
+      nom: "", email: "e@x.fr", formule: opts.formule ?? "free", hub: "u1", minutes_utilisees: 0,
       minutes_restantes: minutes.length > 1 ? minutes.shift()! : minutes[0]!,
     })),
     joinQueue: vi.fn(async () => next()),
@@ -202,6 +202,14 @@ it("quota épuisé → état quota, sans demander de démarrage au Hub", async (
   const s = new Session(hub as never, { account: fakeAccount({ minutes: [0] }) });
   await s.open();
   expect(s.state.kind).toBe("quota");
+  expect(hub.start).not.toHaveBeenCalled();
+});
+
+it("aucun parcours ouvert au compte → état quota « sans parcours », sans démarrage", async () => {
+  const hub = fakeHub({});
+  const s = new Session(hub as never, { account: fakeAccount({ minutes: [0], formule: "aucune" }) });
+  await s.open();
+  expect(s.state).toEqual({ kind: "quota", sansParcours: true });
   expect(hub.start).not.toHaveBeenCalled();
 });
 
