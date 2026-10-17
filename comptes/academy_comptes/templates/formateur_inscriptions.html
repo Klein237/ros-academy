@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Inscriptions{% endblock %}
+{% block main_class %}page wide{% endblock %}
+{% set libelles = {"actif": "actif", "en_attente": "en attente", "desinscrit": "désinscrit", "nouveau": "adresse à confirmer"} %}
+{% block content %}
+<div class="trainer-head">
+  <h1>Inscriptions</h1>
+  <a class="button" href="/compte/formateur">← Tableau de bord</a>
+</div>
+{% if erreur %}<p class="form-error" role="alert">{{ erreur }}</p>{% endif %}
+{% if info %}<p class="verdict ok" role="status">{{ info }}</p>{% endif %}
+
+<section class="tiles" aria-label="État des places">
+  <div class="tile"><span class="tile-value">{{ places if places is not none else "∞" }}</span><span class="tile-label">places au total</span></div>
+  <div class="tile"><span class="tile-value">{{ occupees }}</span><span class="tile-label">comptes actifs</span></div>
+  <div class="tile"><span class="tile-value">{{ libres if libres is not none else "∞" }}</span><span class="tile-label">places libres</span></div>
+  <div class="tile"><span class="tile-value">{{ nombre.en_attente }}</span><span class="tile-label">en attente</span></div>
+</section>
+
+<div class="grid-2">
+<section class="card">
+  <h2>Nombre de places</h2>
+  <p class="muted small">Au-delà, les nouvelles inscriptions vont sur la liste d'attente (après confirmation de l'adresse). Vide : sans limite. Les administrateurs et les formateurs ne prennent pas de place.</p>
+  <form method="post" action="/compte/formateur/inscriptions/places" class="row">
+    <label class="inline">Places <input type="number" name="places" min="0" max="100000" value="{{ places if places is not none else '' }}" placeholder="sans limite"></label>
+    <button class="button" type="submit">Enregistrer</button>
+  </form>
+</section>
+<section class="card">
+  <h2>Ouvrir une vague</h2>
+  <p class="muted small">Ajoute des places, puis invite les premiers de la liste d'attente sur toutes les places libres : leur compte est activé et ils reçoivent un e-mail. 0 : invite seulement sur les places libérées.</p>
+  <form method="post" action="/compte/formateur/inscriptions/vague" class="row">
+    <label class="inline">Places en plus <input type="number" name="places" min="0" max="100000" value="10"></label>
+    <button class="button primary" type="submit">Ouvrir la vague</button>
+  </form>
+</section>
+</div>
+
+<section class="card">
+  <h2>Comptes</h2>
+  <nav class="row small" aria-label="Filtrer par statut">
+    <a href="/compte/formateur/inscriptions"{% if not statut %} aria-current="page"{% endif %}>Tous</a>
+    {% for s in ("en_attente", "actif", "desinscrit", "nouveau") %}
+    · <a href="/compte/formateur/inscriptions?statut={{ s }}"{% if statut == s %} aria-current="page"{% endif %}>{{ libelles[s] }} ({{ nombre[s] }})</a>
+    {% endfor %}
+  </nav>
+  <div class="table-scroll">
+  <table class="results">
+    <thead><tr><th>Compte</th><th>Nom</th><th>Inscrit le</th><th>Statut</th><th></th></tr></thead>
+    <tbody>
+    {% for u in comptes %}
+      <tr>
+        <td>{{ u.email }}</td>
+        <td>{{ u.nom }}</td>
+        <td>{{ u.cree_le.strftime('%d/%m/%Y') }}</td>
+        <td>{% if u.statut == "en_attente" %}en attente · n° {{ rangs[u.id] }}{% else %}{{ libelles.get(u.statut, u.statut) }}{% endif %}</td>
+        <td><div class="row">
+          {% if u.statut == "en_attente" %}<form method="post" action="/compte/formateur/inscriptions/{{ u.id }}/activer"><button class="button small primary" type="submit">Inviter</button></form>
+          {% elif u.statut == "desinscrit" %}<form method="post" action="/compte/formateur/inscriptions/{{ u.id }}/activer"><button class="button small" type="submit">Réactiver</button></form>{% endif %}
+          {% if u.statut != "desinscrit" %}<form method="post" action="/compte/formateur/inscriptions/{{ u.id }}/desinscrire"><button class="button small" type="submit">Désinscrire</button></form>{% endif %}
+        </div></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="muted">Aucun compte.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="muted small">Désinscrire ferme les sessions du compte et arrête son lab ; ses résultats restent visibles ici et sur le tableau de bord. « Réactiver » ou « Inviter » rouvre le compte, même au-delà du nombre de places, et prévient l'étudiant par e-mail.</p>
+</section>
+{% endblock %}

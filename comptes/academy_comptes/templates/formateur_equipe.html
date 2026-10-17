@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Équipe des formateurs{% endblock %}
+{% block main_class %}page wide{% endblock %}
+{% block content %}
+<div class="trainer-head">
+  <h1>Équipe des formateurs</h1>
+  <a class="button" href="/compte/formateur">← Tableau de bord</a>
+</div>
+<section class="card">
+  <h2>Ajouter un formateur</h2>
+  <p class="muted small">Un formateur voit le tableau de bord et les résultats des étudiants, gère les inscriptions et la liste d'attente, offre ou retire des accès et révoque des certificats. Il ne gère pas l'équipe et n'édite pas les formations. Il reçoit un e-mail ; sans compte, il le crée avec cette adresse (sans passer par la liste d'attente).</p>
+  {% if erreur %}<p class="form-error" role="alert">{{ erreur }}</p>{% endif %}
+  {% if info %}<p class="verdict ok" role="status">{{ info }}</p>{% endif %}
+  <form method="post" action="/compte/formateur/equipe" class="row">
+    <label class="inline">Adresse e-mail <input type="email" name="email" required placeholder="collegue@exemple.fr"></label>
+    <button class="button primary" type="submit">Ajouter</button>
+  </form>
+</section>
+<section class="card">
+  <h2>Équipe</h2>
+  <div class="table-scroll">
+  <table class="results">
+    <thead><tr><th>Adresse</th><th>Rôle</th><th>Ajouté le</th><th></th></tr></thead>
+    <tbody>
+    {% for email in admins %}
+      <tr><td>{{ email }}</td><td>administrateur</td><td class="muted">ADMIN_EMAILS</td><td></td></tr>
+    {% endfor %}
+    {% for f in formateurs %}
+      <tr>
+        <td>{{ f.email }}</td><td>formateur</td>
+        <td>{{ f.ajoute_le.strftime('%d/%m/%Y') }}{% if f.ajoute_par %} <span class="muted small">par {{ f.ajoute_par }}</span>{% endif %}</td>
+        <td><form method="post" action="/compte/formateur/equipe/retirer"><input type="hidden" name="email" value="{{ f.email }}"><button class="button small" type="submit">Retirer</button></form></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="muted small">Les administrateurs se règlent dans la variable ADMIN_EMAILS du serveur. Un formateur retiré garde son compte, qui redevient un compte étudiant.</p>
+</section>
+{% endblock %}

@@ -22,6 +22,7 @@ def export_data(db, user):
             "email": user.email,
             "nom": user.nom,
             "formule": user.formule,
+            "statut": user.statut,
             "cree_le": _iso(user.cree_le),
             "connexions": sorted(i.fournisseur for i in db.scalars(select(Identity).where(Identity.user_id == user.id))),
         },
