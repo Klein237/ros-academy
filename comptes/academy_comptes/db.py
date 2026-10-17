@@ -42,6 +42,9 @@ class User(Base):
     abonnement_statut: Mapped[str | None] = mapped_column(String(40), nullable=True)
     abonnement_fin: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     abonnement_resilie: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Inscriptions par vagues (inscriptions.py) : nouveau, actif, en_attente, desinscrit
+    statut: Mapped[str] = mapped_column(String(20), default="nouveau", server_default="actif")
+    attente_depuis: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     @property
     def hub_name(self):
@@ -125,6 +128,23 @@ class Access(Base):
     motif: Mapped[str] = mapped_column(String(200), default="")
     montant_centimes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     stripe_session_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
+
+
+class Trainer(Base):
+    """Formateur ajouté par un administrateur : tableau de bord, inscriptions, accès offerts."""
+
+    __tablename__ = "trainers"
+    email: Mapped[str] = mapped_column(String(320), primary_key=True)
+    ajoute_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    ajoute_par: Mapped[str] = mapped_column(String(320), default="")
+
+
+class Reglage(Base):
+    """Réglage modifiable depuis le tableau de bord (nombre de places des inscriptions)."""
+
+    __tablename__ = "reglages"
+    cle: Mapped[str] = mapped_column(String(64), primary_key=True)
+    valeur: Mapped[str] = mapped_column(String(200), default="")
 
 
 class StripeEvent(Base):

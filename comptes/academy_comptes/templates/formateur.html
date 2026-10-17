@@ -9,7 +9,11 @@
 {% block content %}
 <div class="trainer-head">
   <h1>Tableau de bord formateur</h1>
-  <a class="button" href="/compte/formateur/acces">Accès offerts et achats</a>
+  <span class="row">
+    <a class="button" href="/compte/formateur/inscriptions">Inscriptions{% if en_attente %} ({{ en_attente }} en attente){% endif %}</a>
+    <a class="button" href="/compte/formateur/acces">Accès offerts et achats</a>
+    {% if admin %}<a class="button" href="/compte/formateur/equipe">Équipe</a>{% endif %}
+  </span>
   {% if all_parcours | length > 1 %}
   <form method="get" class="row">
     <label class="inline">Parcours

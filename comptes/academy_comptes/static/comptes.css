@@ -50,3 +50,10 @@ select { font: inherit; color: var(--text); background: var(--bg); border: 1px s
 textarea { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; resize: vertical; }
 label.check { flex-direction: row; align-items: flex-start; gap: 10px; }
 label.check input { margin-top: 4px; flex: none; }
+/* Inscriptions et équipe (formateurs) */
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.button.small { padding: 4px 10px; font-size: 0.875rem; }
+td .row form { margin: 0; }
+nav.row a[aria-current] { font-weight: 600; }
+.login details { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--line); }
+.login summary { cursor: pointer; color: var(--muted); }

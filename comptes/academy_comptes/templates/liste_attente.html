@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ "Liste d'attente" if compte.statut == "en_attente" else "Inscription close" }}{% endblock %}
+{% block content %}
+<section class="card login">
+  {% if compte.statut == "en_attente" %}
+  <h1>Vous êtes sur la liste d'attente</h1>
+  <p>RoboForge est en phase de test et les places de la vague en cours sont toutes prises. Votre inscription est bien enregistrée{% if rang %} : vous êtes <strong>n° {{ rang }}</strong> sur la liste d'attente{% endif %}.</p>
+  <p>Nous vous écrirons à <strong>{{ compte.email }}</strong> dès qu'une place s'ouvre pour vous. Vous pourrez alors vous connecter avec votre adresse et votre mot de passe.</p>
+  <p class="row"><a class="button primary" href="/">Découvrir le site en attendant</a></p>
+  {% else %}
+  <h1>Inscription close</h1>
+  <p>Votre participation à la phase de test de RoboForge est terminée : ce compte ne peut plus se connecter.{% if contact %} Pour toute question : {{ contact }}.{% endif %}</p>
+  {% endif %}
+  <details class="small">
+    <summary>{{ "Quitter la liste d'attente" if compte.statut == "en_attente" else "Effacer mon compte" }}</summary>
+    <p class="muted">Votre compte et votre adresse sont effacés, définitivement{% if compte.statut != "en_attente" %}, avec vos résultats et vos certificats{% endif %}.</p>
+    <form method="post" action="/connexion/quitter">
+      <input type="hidden" name="jeton" value="{{ jeton }}">
+      <button class="button danger" type="submit">{{ "Quitter la liste d'attente" if compte.statut == "en_attente" else "Effacer mon compte" }}</button>
+    </form>
+  </details>
+</section>
+{% endblock %}

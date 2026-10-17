@@ -1,4 +1,4 @@
-"""E-mails du compte (confirmation de l'adresse, mot de passe). Sans SMTP configuré, le lien est écrit
+"""E-mails du compte (confirmation de l'adresse, mot de passe, liste d'attente, équipe). Sans SMTP configuré, le lien est écrit
 dans les journaux.
 
 Tester la configuration SMTP : docker compose exec comptes python -m academy_comptes.mail vous@exemple.fr
@@ -41,6 +41,25 @@ MAILS = {
         "un. Connectez-vous avec votre mot de passe ; si vous l'avez oublié ou n'en avez jamais choisi, ouvrez ce "
         "lien (valable 30 minutes, une seule fois) :",
         "Si vous n'avez rien demandé, ignorez ce message.",
+    ),
+    "attente": (
+        "liste d'attente", "Vous êtes sur la liste d'attente — RoboForge",
+        "Bonjour,\n\nMerci pour votre inscription ! RoboForge est en phase de test et les places de la vague "
+        "en cours sont toutes prises : vous êtes inscrit sur la liste d'attente. Nous vous écrirons dès "
+        "qu'une place s'ouvre pour vous.\n\nEn attendant, le site reste consultable :",
+        "Pour quitter la liste d'attente, connectez-vous : la page qui s'affiche vous le propose.",
+    ),
+    "activation": (
+        "invitation", "Votre place est ouverte — RoboForge",
+        "Bonjour,\n\nBonne nouvelle : une place s'est ouverte pour vous dans la phase de test de RoboForge. "
+        "Votre compte est activé ; connectez-vous avec votre adresse et votre mot de passe :",
+        "Bonne découverte, et n'hésitez pas à nous faire part de vos remarques.",
+    ),
+    "formateur": (
+        "ajout à l'équipe", "Vous rejoignez l'équipe des formateurs — RoboForge",
+        "Bonjour,\n\nVous avez été ajouté à l'équipe des formateurs de RoboForge : tableau de bord des "
+        "étudiants, inscriptions et accès offerts. Connectez-vous (ou créez votre compte avec cette adresse) :",
+        "Si vous ne vous attendiez pas à ce message, ignorez-le.",
     ),
 }
 

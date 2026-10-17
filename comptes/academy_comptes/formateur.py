@@ -10,6 +10,7 @@ from sqlalchemy import func, select
 
 from . import grading
 from .db import Exercise, QcmAttempt, SessionRow, UsageTick, User
+from .inscriptions import ACTIF, DESINSCRIT
 from .quotas import month_start
 
 STUCK_AFTER = 3  # vérifications ratées à partir desquelles un étudiant est « bloqué »
@@ -67,9 +68,11 @@ def _mean(values):
     return round(sum(values) / len(values), 1) if values else None
 
 
-def students(db, parcours, admin_emails, now):
-    """Tous les étudiants (administrateurs exclus), avec leur progression sur le parcours."""
-    users = [u for u in db.scalars(select(User).order_by(User.id)) if u.email not in admin_emails]
+def students(db, parcours, staff_emails, now):
+    """Les étudiants inscrits (actifs ou désinscrits ; administrateurs, formateurs et liste d'attente
+    exclus), avec leur progression sur le parcours."""
+    users = [u for u in db.scalars(select(User).where(User.statut.in_((ACTIF, DESINSCRIT))).order_by(User.id))
+             if u.email not in staff_emails]
     ids = [u.id for u in users]
     if not ids:
         return []

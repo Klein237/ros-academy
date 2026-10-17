@@ -14,6 +14,7 @@ from urllib.parse import quote, urlsplit
 
 import httpx
 import jwt
+from itsdangerous import BadSignature as BadToken, SignatureExpired, URLSafeTimedSerializer
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -21,7 +22,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from sqlalchemy import select
 
-from . import acces, certificats, formateur, grading, rgpd
+from . import acces, certificats, formateur, grading, inscriptions, rgpd
 from .billing import BadSignature, StripeClient, StripeError, format_amount, price_cents, verify_signature
 from .auth import (
     OAUTH_COOKIE,
@@ -52,6 +53,7 @@ from .db import (
     QueueTicket,
     SessionRow,
     StripeEvent,
+    Trainer,
     User,
     make_engine,
     make_sessionmaker,
@@ -154,7 +156,9 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
             yield db
 
     def current_user(request: Request, db=Depends(get_db)):
-        return sessions.user(db, request.cookies.get(SESSION_COOKIE))
+        """Compte de la session ; un compte en attente ou désinscrit n'en a pas (voir enter)."""
+        user = sessions.user(db, request.cookies.get(SESSION_COOKIE))
+        return user if user and user.statut == inscriptions.ACTIF else None
 
     def require_user(user=Depends(current_user)):
         if not user:
@@ -178,6 +182,32 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
                             httponly=True, secure=settings.cookie_secure, samesite="lax")
         response.delete_cookie(OAUTH_COOKIE, path="/connexion")
         return response
+
+    # --- Inscriptions par vagues : un compte sans place attend, sans session
+
+    quitting = URLSafeTimedSerializer(settings.jwt_secret, salt="academy-quitter")
+
+    def notify(email, sorte, link):
+        """E-mail d'information (liste d'attente, invitation, équipe) ; un échec d'envoi est journalisé."""
+        try:
+            send_account_mail(settings, email, sorte, link)
+            return True
+        except Exception:  # noqa: BLE001 - serveur SMTP
+            log.exception("Envoi de l'e-mail (%s) à %s impossible", sorte, email)
+            return False
+
+    def waiting_page(request, db, user, status=200):
+        return page(request, "liste_attente.html", status, compte=user, rang=inscriptions.position(db, user),
+                    jeton=quitting.dumps(user.id), contact=settings.editeur_contact)
+
+    def enter(request, db, user, suite):
+        """Adresse confirmée : ouvre la session, ou affiche la liste d'attente (ou l'inscription close)."""
+        if inscriptions.admit(db, settings, user):
+            log.info("u%s sur la liste d'attente", user.id)
+            notify(user.email, "attente", f"{settings.public_url}/")
+        if user.statut == inscriptions.ACTIF:
+            return open_session(db, user, suite)
+        return waiting_page(request, db, user)
 
     def check_module(module):
         if not MODULE_ID_RE.fullmatch(module):
@@ -265,13 +295,13 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
             return send_confirmation(request, db, user, suite, "Confirmez d'abord votre adresse",
                                      f"Votre compte n'est pas encore activé. Ouvrez le lien envoyé à {user.email} "
                                      "pour le confirmer.")
-        return open_session(db, user, suite)
+        return enter(request, db, user, suite)
 
     @app.get("/connexion/inscription", response_class=HTMLResponse)
-    def inscription(request: Request, suite: str = "/", user=Depends(current_user)):
+    def inscription(request: Request, suite: str = "/", user=Depends(current_user), db=Depends(get_db)):
         if user:
             return RedirectResponse(safe_next(suite), status_code=303)
-        return page(request, "inscription.html", suite=safe_next(suite))
+        return page(request, "inscription.html", suite=safe_next(suite), complet=inscriptions.free(db, settings) == 0)
 
     @app.post("/connexion/inscription", response_class=HTMLResponse)
     def inscription_post(request: Request, nom: str = Form(""), email: str = Form(...), mot_de_passe: str = Form(...),
@@ -282,9 +312,13 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
             check_new_password(mot_de_passe)
         except AuthError as exc:
             return page(request, "inscription.html", 400, suite=safe_next(suite), erreur=str(exc), nom=nom,
-                        email=email[:320])
+                        email=email[:320], complet=inscriptions.free(db, settings) == 0)
         titre = "Vérifiez votre boîte de réception"
         message = f"Nous avons envoyé un e-mail à {email}. Ouvrez le lien qu'il contient pour activer votre compte."
+        if inscriptions.free(db, settings) == 0:
+            message = (f"Nous avons envoyé un e-mail à {email}. Les places de la phase de test sont toutes prises : "
+                       "ouvrez le lien qu'il contient pour confirmer votre adresse et prendre rang sur la liste "
+                       "d'attente.")
         user = db.scalar(select(User).where(User.email == email))
         if user and user.email_verifie_le is not None:
             # Adresse déjà inscrite : même réponse, et un e-mail qui propose de choisir un nouveau mot de passe
@@ -330,7 +364,30 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         if user.email_verifie_le is None:
             user.email_verifie_le = utcnow()
             db.commit()
-        return open_session(db, user, suite)
+        return enter(request, db, user, suite)
+
+    @app.post("/connexion/quitter", response_class=HTMLResponse)
+    def quitter(request: Request, jeton: str = Form(""), db=Depends(get_db), _=Depends(same_origin)):
+        """Quitter la liste d'attente (ou effacer une inscription close) : supprime le compte. Le jeton
+        vient de la page affichée après la connexion, valable 15 minutes."""
+        try:
+            user = db.get(User, int(quitting.loads(jeton, max_age=900)))
+        except (BadToken, SignatureExpired, ValueError, TypeError):
+            user = None
+        if not user or user.statut == inscriptions.ACTIF:
+            return page(request, "message.html", 400, titre="Lien expiré",
+                        message="Reconnectez-vous pour quitter la liste d'attente.", lien="/connexion",
+                        lien_texte="Se connecter")
+        try:
+            rgpd.delete_account(db, user, hub)
+        except (UpstreamError, httpx.HTTPError):
+            log.exception("Suppression de l'inscription %s : Hub injoignable", user.id)
+            return page(request, "message.html", 502, titre="Suppression impossible",
+                        message="Réessayez dans un moment.", lien="/connexion", lien_texte="Se connecter")
+        log.info("Inscription %s supprimée (liste d'attente quittée)", user.id)
+        return page(request, "message.html", titre="Inscription supprimée",
+                    message="Vous avez quitté la liste d'attente : votre compte et votre adresse ont été effacés.",
+                    lien="/", lien_texte="Retour à l'accueil")
 
     @app.get("/connexion/oubli", response_class=HTMLResponse)
     def oubli(request: Request, suite: str = "/"):
@@ -386,7 +443,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         db.commit()
         revoke_sessions(db, user)  # les autres appareils doivent se reconnecter
         log.info("Mot de passe changé pour u%s", user.id)
-        return open_session(db, user, suite)
+        return enter(request, db, user, suite)
 
     def oauth_start(provider, suite):
         enabled = settings.github_enabled if provider == "github" else settings.google_enabled
@@ -405,7 +462,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         except AuthError as exc:
             return page(request, "message.html", 400, titre="Connexion impossible", message=str(exc),
                         lien="/connexion", lien_texte="Réessayer")
-        return open_session(db, user_for_email(db, email, nom, provider, sujet), suite)
+        return enter(request, db, user_for_email(db, email, nom, provider, sujet), suite)
 
     @app.get("/connexion/github")
     def github(suite: str = "/"):
@@ -442,7 +499,8 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
 
     def account_ctx(db, user):
         return {"user": user, "utilisees": minutes_used(db, user), "restantes": minutes_left(db, user, settings),
-                "admin": user.email in settings.admin_emails, "acces": access_rows(db, user),
+                "admin": inscriptions.is_admin(settings, user.email),
+                "formateur": inscriptions.is_staff(db, settings, user.email), "acces": access_rows(db, user),
                 "acces_payant": settings.acces_payant, "certificat": acces.has_certificate(db, user),
                 "formule": lab_plan(db, user)}
 
@@ -630,11 +688,15 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         log.debug("Événement Stripe %s reçu", event_id)
         return {"recu": True}
 
-    # --- Tableau de bord formateur (adresses ADMIN_EMAILS)
+    # --- Tableau de bord formateur (administrateurs ADMIN_EMAILS et formateurs de l'équipe)
 
-    def require_trainer(user):
-        if user.email not in settings.admin_emails:
+    def require_trainer(db, user):
+        if not inscriptions.is_staff(db, settings, user.email):
             raise HTTPException(403, "Le tableau de bord est réservé aux formateurs")
+
+    def require_admin(user):
+        if not inscriptions.is_admin(settings, user.email):
+            raise HTTPException(403, "Réservé aux administrateurs")
 
     def trainer_data(db, parcours_id):
         try:
@@ -642,7 +704,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         except Exception:  # noqa: BLE001
             raise HTTPException(503, "Les parcours sont momentanément indisponibles") from None
         parcours = next((p for p in all_parcours if p["id"] == parcours_id), all_parcours[0] if all_parcours else None)
-        return all_parcours, parcours, formateur.students(db, parcours, settings.admin_emails, utcnow())
+        return all_parcours, parcours, formateur.students(db, parcours, inscriptions.staff_emails(db, settings), utcnow())
 
     def users_with_access(db):
         now = utcnow()
@@ -653,7 +715,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
     def trainer(request: Request, parcours: str = "", q: str = "", user=Depends(current_user), db=Depends(get_db)):
         if not user:
             return login_redirect("/compte/formateur")
-        require_trainer(user)
+        require_trainer(db, user)
         all_parcours, current, students = trainer_data(db, parcours)
         try:
             labs = sum(1 for name in hub.running_servers() if HUB_NAME_RE.fullmatch(name))
@@ -664,7 +726,8 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
                     modules=formateur.module_stats(students, current),
                     students=sorted((st for st in students if formateur.matches(st, q)),
                                     key=lambda st: st.derniere_activite or datetime.min, reverse=True),
-                    total=len(students),
+                    total=len(students), en_attente=inscriptions.waiting_count(db),
+                    admin=inscriptions.is_admin(settings, user.email),
                     stuck_after=formateur.STUCK_AFTER)
 
     @app.get("/compte/formateur/etudiants/{student_id}", response_class=HTMLResponse)
@@ -672,7 +735,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
                         db=Depends(get_db)):
         if not user:
             return login_redirect(f"/compte/formateur/etudiants/{student_id}")
-        require_trainer(user)
+        require_trainer(db, user)
         _, current, students = trainer_data(db, parcours)
         student = next((st for st in students if st.user.id == student_id), None)
         if not student:
@@ -686,7 +749,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
     def trainer_csv(parcours: str = "", user=Depends(current_user), db=Depends(get_db)):
         if not user:
             return login_redirect("/compte/formateur")
-        require_trainer(user)
+        require_trainer(db, user)
         _, current, students = trainer_data(db, parcours)
         name = f"etudiants-{current['id'] if current else 'parcours'}-{utcnow():%Y-%m-%d}.csv"
         return Response(formateur.to_csv(students, current), media_type="text/csv; charset=utf-8",
@@ -709,14 +772,14 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
     def offered(request: Request, user=Depends(current_user), db=Depends(get_db)):
         if not user:
             return login_redirect("/compte/formateur/acces")
-        require_trainer(user)
+        require_trainer(db, user)
         return offered_page(request, user, db)
 
     @app.post("/compte/formateur/acces", response_class=HTMLResponse)
     def offer(request: Request, emails: str = Form(""), tous_les_comptes: str = Form(""), parcours: str = Form("*"),
               fin: str = Form(""), motif: str = Form(""), user=Depends(require_user), db=Depends(get_db),
               _=Depends(same_origin)):
-        require_trainer(user)
+        require_trainer(db, user)
         if parcours != acces.TOUS and parcours not in {p["id"] for p in catalogue()}:
             return offered_page(request, user, db, 400, erreur="Parcours inconnu.")
         try:
@@ -754,7 +817,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
 
     @app.post("/compte/formateur/acces/{access_id}/retirer")
     def offer_remove(access_id: int, user=Depends(require_user), db=Depends(get_db), _=Depends(same_origin)):
-        require_trainer(user)
+        require_trainer(db, user)
         row = db.get(Access, access_id)
         if not row:
             raise HTTPException(404, "Accès introuvable")
@@ -765,6 +828,141 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
             db.commit()
             log.info("Accès %s (u%s, %s) retiré par %s", row.id, row.user_id, row.parcours_id, user.email)
         return RedirectResponse("/compte/formateur/acces", status_code=303)
+
+    # --- Inscriptions (places, liste d'attente, vagues) : formateurs
+
+    STATUT_ORDRE = {inscriptions.ATTENTE: 0, inscriptions.ACTIF: 1, inscriptions.NOUVEAU: 2, inscriptions.DESINSCRIT: 3}
+
+    def signups_page(request, user, db, status=200, statut="", **ctx):
+        staff = inscriptions.staff_emails(db, settings)
+        rangs = {u.id: i for i, u in enumerate(inscriptions.waiting(db), 1)}
+        comptes = [u for u in db.scalars(select(User).order_by(User.cree_le.desc())) if u.email not in staff]
+        comptes.sort(key=lambda u: (STATUT_ORDRE.get(u.statut, 9), rangs.get(u.id, 0)))
+        compte = {s: sum(1 for u in comptes if u.statut == s) for s in STATUT_ORDRE}
+        if statut in STATUT_ORDRE:
+            comptes = [u for u in comptes if u.statut == statut]
+        return page(request, "formateur_inscriptions.html", status, user=user, comptes=comptes, rangs=rangs,
+                    nombre=compte, statut=statut, places=inscriptions.places(db),
+                    occupees=inscriptions.occupied(db, settings), libres=inscriptions.free(db, settings), **ctx)
+
+    def signup_target(db, user_id):
+        target = db.get(User, user_id)
+        if not target or inscriptions.is_staff(db, settings, target.email):
+            raise HTTPException(404, "Compte introuvable")
+        return target
+
+    def invite(users):
+        """Prévient par e-mail les comptes activés ; renvoie le nombre d'envois échoués."""
+        return sum(0 if notify(u.email, "activation", f"{settings.public_url}/connexion") else 1 for u in users)
+
+    def invited_info(users, echecs):
+        if not users:
+            return "Personne n'était en attente sur les places libres."
+        info = f"{len(users)} compte{'s' if len(users) > 1 else ''} activé{'s' if len(users) > 1 else ''} et prévenu{'s' if len(users) > 1 else ''} par e-mail."
+        if echecs:
+            info += f" {echecs} e-mail{'s' if echecs > 1 else ''} n'{'ont' if echecs > 1 else 'a'} pas pu partir (voir les journaux)."
+        return info
+
+    @app.get("/compte/formateur/inscriptions", response_class=HTMLResponse)
+    def signups(request: Request, statut: str = "", user=Depends(current_user), db=Depends(get_db)):
+        if not user:
+            return login_redirect("/compte/formateur/inscriptions")
+        require_trainer(db, user)
+        return signups_page(request, user, db, statut=statut)
+
+    @app.post("/compte/formateur/inscriptions/places", response_class=HTMLResponse)
+    def signups_places(request: Request, places: str = Form(""), user=Depends(require_user), db=Depends(get_db),
+                       _=Depends(same_origin)):
+        require_trainer(db, user)
+        value = places.strip()
+        if value and (not value.isdigit() or int(value) > inscriptions.PLACES_MAX):
+            return signups_page(request, user, db, 400, erreur="Nombre de places invalide (un entier, ou vide).")
+        n = int(value) if value else None
+        inscriptions.set_places(db, n)
+        log.info("Places des inscriptions : %s (par %s)", n if n is not None else "sans limite", user.email)
+        return signups_page(request, user, db, info="Inscriptions sans limite." if n is None else
+                            f"{n} place{'s' if n > 1 else ''} au total. Les comptes déjà actifs le restent.")
+
+    @app.post("/compte/formateur/inscriptions/vague", response_class=HTMLResponse)
+    def signups_wave(request: Request, places: str = Form("0"), user=Depends(require_user), db=Depends(get_db),
+                     _=Depends(same_origin)):
+        require_trainer(db, user)
+        value = places.strip() or "0"
+        if not value.isdigit() or int(value) > inscriptions.PLACES_MAX:
+            return signups_page(request, user, db, 400, erreur="Nombre de places invalide.")
+        invited = inscriptions.open_wave(db, settings, int(value))
+        log.info("Vague ouverte par %s : +%s places, %d compte(s) invité(s)", user.email, value, len(invited))
+        return signups_page(request, user, db, info=invited_info(invited, invite(invited)))
+
+    @app.post("/compte/formateur/inscriptions/{user_id}/activer", response_class=HTMLResponse)
+    def signup_activate(request: Request, user_id: int, user=Depends(require_user), db=Depends(get_db),
+                        _=Depends(same_origin)):
+        require_trainer(db, user)
+        target = signup_target(db, user_id)
+        if target.statut != inscriptions.ACTIF:
+            inscriptions.activate(db, target)
+            log.info("u%s activé par %s", target.id, user.email)
+            if target.email_verifie_le:  # adresse pas encore confirmée : le lien de confirmation suffit
+                return signups_page(request, user, db, info=invited_info([target], invite([target])))
+        return RedirectResponse("/compte/formateur/inscriptions", status_code=303)
+
+    @app.post("/compte/formateur/inscriptions/{user_id}/desinscrire")
+    def signup_remove(user_id: int, user=Depends(require_user), db=Depends(get_db), _=Depends(same_origin)):
+        require_trainer(db, user)
+        target = signup_target(db, user_id)
+        if target.statut != inscriptions.DESINSCRIT:
+            inscriptions.unsubscribe(db, target)
+            revoke_sessions(db, target)
+            try:
+                hub.stop(target.hub_name)
+            except Exception:  # noqa: BLE001 - Hub injoignable : le lab s'arrêtera faute de session
+                log.warning("Arrêt du lab de u%s impossible", target.id)
+            log.info("u%s désinscrit par %s", target.id, user.email)
+        return RedirectResponse("/compte/formateur/inscriptions", status_code=303)
+
+    # --- Équipe des formateurs : administrateurs seulement
+
+    def team_page(request, user, db, status=200, **ctx):
+        return page(request, "formateur_equipe.html", status, user=user, admins=sorted(settings.admin_emails),
+                    formateurs=list(db.scalars(select(Trainer).order_by(Trainer.ajoute_le))), **ctx)
+
+    @app.get("/compte/formateur/equipe", response_class=HTMLResponse)
+    def team(request: Request, user=Depends(current_user), db=Depends(get_db)):
+        if not user:
+            return login_redirect("/compte/formateur/equipe")
+        require_admin(user)
+        return team_page(request, user, db)
+
+    @app.post("/compte/formateur/equipe", response_class=HTMLResponse)
+    def team_add(request: Request, email: str = Form(""), user=Depends(require_user), db=Depends(get_db),
+                 _=Depends(same_origin)):
+        require_admin(user)
+        try:
+            email = normalize_email(email)
+        except AuthError as exc:
+            return team_page(request, user, db, 400, erreur=str(exc))
+        if inscriptions.is_staff(db, settings, email):
+            return team_page(request, user, db, 400, erreur=f"{email} fait déjà partie de l'équipe.")
+        db.add(Trainer(email=email, ajoute_par=user.email))
+        account = db.scalar(select(User).where(User.email == email))
+        if account and account.statut != inscriptions.ACTIF:
+            account.statut, account.attente_depuis = inscriptions.ACTIF, None  # un formateur n'attend pas
+        db.commit()
+        log.info("Formateur %s ajouté par %s", email, user.email)
+        sent = notify(email, "formateur", f"{settings.public_url}/connexion?suite=/compte/formateur")
+        return team_page(request, user, db, info=f"{email} a rejoint l'équipe" + (
+            " et a été prévenu par e-mail." if sent else " (l'e-mail n'a pas pu partir : prévenez-le vous-même)."))
+
+    @app.post("/compte/formateur/equipe/retirer")
+    def team_remove(email: str = Form(""), user=Depends(require_user), db=Depends(get_db), _=Depends(same_origin)):
+        require_admin(user)
+        row = db.get(Trainer, email.strip().lower())
+        if not row:
+            raise HTTPException(404, "Formateur introuvable")
+        db.delete(row)
+        db.commit()
+        log.info("Formateur %s retiré par %s", row.email, user.email)
+        return RedirectResponse("/compte/formateur/equipe", status_code=303)
 
     # --- Résultats
 
@@ -899,7 +1097,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
     @app.post("/compte/formateur/certificats/{code}/revoquer")
     def certificate_revoke(code: str, motif: str = Form(""), user=Depends(require_user), db=Depends(get_db),
                            _=Depends(same_origin)):
-        require_trainer(user)
+        require_trainer(db, user)
         cert = certificate_or_404(db, code)
         if not cert.revoque_le:
             cert.revoque_le, cert.revoque_motif = utcnow(), " ".join(motif.split())[:200]
@@ -1038,7 +1236,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         user = db.get(User, int(m.group(1))) if m else None
         if not user:
             raise HTTPException(404, "Compte inconnu")
-        return {"autorise": minutes_left(db, user, settings) != 0}
+        return {"autorise": user.statut == inscriptions.ACTIF and minutes_left(db, user, settings) != 0}
 
     # --- File d'attente
 

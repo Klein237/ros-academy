@@ -37,7 +37,7 @@ En ligne : <https://robotforge.cloud>
 |---|---|
 | `content/` | Les formations : `modules/<NN-id>/` (cours `index.md`, `qcm.yaml`, `lab/`, `exercice/`) et `parcours/<id>/parcours.yaml`. |
 | `contenus/` | Service Contenus (FastAPI, Jinja) : site public, cours, éditeur d'administration avec historique git, publication après tests des modules. |
-| `comptes/` | Service Comptes (FastAPI, SQLAlchemy, Postgres, migrations Alembic) : inscription, connexion (mot de passe, GitHub, Google), accès aux parcours, paiement Stripe, quotas de lab, QCM, exercices, notes, certificats, tableau de bord formateur, RGPD. |
+| `comptes/` | Service Comptes (FastAPI, SQLAlchemy, Postgres, migrations Alembic) : inscription, connexion (mot de passe, GitHub, Google), accès aux parcours, paiement Stripe, quotas de lab, QCM, exercices, notes, certificats, tableau de bord formateur, inscriptions par vagues et liste d'attente, équipe des formateurs, RGPD. |
 | `hub/` | JupyterHub et son spawner : un conteneur par étudiant, limites CPU / mémoire / disque, réseau isolé. |
 | `lab-ui/` | Interface du lab (Vite, TypeScript) : terminaux xterm, éditeur Monaco, Vue 3D (three.js, urdf-loader), bureau noVNC. |
 | `images/ros-lab/` | Image du conteneur étudiant (ROS 2 Jazzy, Gazebo, rosbridge, outils). |

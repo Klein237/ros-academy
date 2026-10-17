@@ -4,6 +4,7 @@
 <section class="card login">
   <h1>Créer un compte</h1>
   <p class="muted">Votre compte enregistre vos exercices, vos QCM et vos notes. Les parcours s'achètent ensuite, un par un : chacun ouvre ses cours, le lab ROS 2 et son certificat.</p>
+  {% if complet %}<p class="card notice" role="status">Les places de la phase de test sont toutes prises. Inscrivez-vous quand même : vous prendrez rang sur la liste d'attente, et nous vous écrirons dès qu'une place s'ouvre.</p>{% endif %}
   {% if erreur %}<p class="form-error" role="alert">{{ erreur }}</p>{% endif %}
   <form method="post" action="/connexion/inscription" class="stack">
     <input type="hidden" name="suite" value="{{ suite }}">
@@ -11,7 +12,7 @@
     <label>Adresse e-mail <input type="email" name="email" required autocomplete="email" value="{{ email or '' }}" placeholder="vous@exemple.fr"></label>
     <label>Mot de passe <span class="muted small">(10 caractères au moins)</span>
       <input type="password" name="mot_de_passe" required minlength="10" maxlength="200" autocomplete="new-password"></label>
-    <button class="button primary" type="submit">Créer mon compte</button>
+    <button class="button primary" type="submit">{{ "Rejoindre la liste d'attente" if complet else "Créer mon compte" }}</button>
   </form>
   <p class="muted small">Nous vous envoyons un e-mail pour confirmer votre adresse avant la première connexion.</p>
   <p class="login-switch">Déjà un compte ? <a href="/connexion?suite={{ suite | urlencode }}">Se connecter</a></p>

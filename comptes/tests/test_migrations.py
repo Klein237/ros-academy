@@ -28,6 +28,7 @@ def test_upgrade_keeps_existing_accounts(tmp_path):
     command.upgrade(config(url), "head")
     with engine.connect() as conn:
         assert conn.execute(text("SELECT abonnement_resilie, stripe_customer_id FROM users")).one() == (0, None)
+        assert conn.execute(text("SELECT statut FROM users")).scalar() == "actif"  # pas de liste d'attente
     engine.dispose()
 
 
