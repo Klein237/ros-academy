@@ -22,7 +22,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from sqlalchemy import select
 
-from . import acces, avis, certificats, formateur, grading, inscriptions, rgpd
+from . import acces, avis, certificats, formateur, grading, inscriptions, questions, rgpd
 from .billing import BadSignature, StripeClient, StripeError, format_amount, price_cents, verify_signature
 from .auth import (
     OAUTH_COOKIE,
@@ -46,11 +46,13 @@ from .auth import (
 from .clients import INTERNAL_HEADER, ContenusClient, HubClient, UpstreamError, comptes_token
 from .db import (
     Access,
+    Answer,
     Base,
     Certificate,
     Exercise,
     ModuleFeedback,
     QcmAttempt,
+    Question,
     QueueTicket,
     SessionRow,
     StripeEvent,
@@ -77,6 +79,23 @@ def csp(form_targets=()):
 
 class QcmBody(BaseModel):
     reponses: dict[str, list[int]] = {}
+
+
+class QuestionBody(BaseModel):
+    titre: str
+    texte: str
+    prive: bool = False
+    solution: bool = False
+    joindre_verification: bool = False
+
+
+class AnswerBody(BaseModel):
+    texte: str
+    solution: bool = False
+
+
+class FlagBody(BaseModel):
+    valeur: bool = True
 
 
 class FeedbackBody(BaseModel):
@@ -129,6 +148,24 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         for name in stopped:
             log.info("Quota épuisé : serveur de %s arrêté", name)
 
+    def questions_digest(now=None):
+        """Au plus une fois par heure : prévient l'équipe s'il y a de nouvelles questions."""
+        with SessionLocal() as db:
+            if not questions.digest_due(db, now or utcnow()):
+                return 0
+            staff = sorted(inscriptions.staff_emails(db, settings))
+        for email in staff:
+            notify(email, "questions", f"{settings.public_url}/compte/formateur/questions")
+        return len(staff)
+
+    async def digest_loop():
+        while True:
+            await asyncio.sleep(60)
+            try:
+                await asyncio.to_thread(questions_digest)
+            except Exception as exc:  # noqa: BLE001 - base ou SMTP indisponibles un moment
+                log.warning("Récapitulatif des questions impossible : %s", exc)
+
     async def loop():
         while True:
             try:
@@ -140,13 +177,16 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
     @asynccontextmanager
     async def lifespan(_app):
         task = asyncio.create_task(loop()) if background and settings.hub_admin_token else None
+        digest = asyncio.create_task(digest_loop()) if background else None
         yield
-        if task:
-            task.cancel()
+        for t in (task, digest):
+            if t:
+                t.cancel()
 
     app = FastAPI(title="Comptes RoboForge", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
     app.state.session_factory = SessionLocal
     app.state.tick = tick
+    app.state.questions_digest = questions_digest
     app.mount("/static/comptes", StaticFiles(directory=str(HERE / "static")), name="static")
 
     @app.middleware("http")
@@ -736,6 +776,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
                     students=sorted((st for st in students if formateur.matches(st, q)),
                                     key=lambda st: st.derniere_activite or datetime.min, reverse=True),
                     total=len(students), en_attente=inscriptions.waiting_count(db),
+                    sans_reponse=len(questions.unanswered(db, inscriptions.staff_emails(db, settings))),
                     admin=inscriptions.is_admin(settings, user.email),
                     stuck_after=formateur.STUCK_AFTER)
 
@@ -837,6 +878,21 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
             db.commit()
             log.info("Accès %s (u%s, %s) retiré par %s", row.id, row.user_id, row.parcours_id, user.email)
         return RedirectResponse("/compte/formateur/acces", status_code=303)
+
+    # --- Questions des étudiants : formateurs
+
+    @app.get("/compte/formateur/questions", response_class=HTMLResponse)
+    def trainer_questions(request: Request, user=Depends(current_user), db=Depends(get_db)):
+        if not user:
+            return login_redirect("/compte/formateur/questions")
+        require_trainer(db, user)
+        now = utcnow()
+        attente = [{"q": q, "u": u, "attente": now - q.cree_le, "alerte": now - q.cree_le > questions.ATTENTE_ALERTE}
+                   for q, u in questions.unanswered(db, inscriptions.staff_emails(db, settings))]
+        signales_q, signales_r = questions.reported(db)
+        return page(request, "formateur_questions.html", user=user, attente=attente, titres=module_titles(),
+                    signales_q=signales_q, signales_r=signales_r,
+                    questions_de={a.id: db.get(Question, a.question_id) for a in signales_r})
 
     # --- Avis des étudiants : formateurs
 
@@ -1190,6 +1246,119 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         return {**result, "tentative": len(notes), "restantes": grading.MAX_QCM_ATTEMPTS - len(notes),
                 "meilleure": max(notes)}
 
+    # --- Questions et réponses sur les modules
+
+    def question_or_404(db, user, question_id):
+        q = db.get(Question, question_id)
+        staff = inscriptions.is_staff(db, settings, user.email)
+        if not q or not questions.can_see(q, user, staff):
+            raise HTTPException(404, "Question introuvable")
+        require_module_access(db, user, q.module)
+        return q, staff
+
+    def require_staff(db, user):
+        if not inscriptions.is_staff(db, settings, user.email):
+            raise HTTPException(403, "Réservé à l'équipe des formateurs")
+
+    def one_question(db, q, user, staff):
+        return questions.as_json(db, [q], user, staff)[0]
+
+    @app.get("/api/comptes/questions/{module}")
+    def questions_list(module: str, user=Depends(require_user), db=Depends(get_db)):
+        known_module(module)
+        require_module_access(db, user, module)
+        staff = inscriptions.is_staff(db, settings, user.email)
+        return {"equipe": staff,
+                "questions": questions.as_json(db, questions.listing(db, module, user, staff), user, staff)}
+
+    @app.post("/api/comptes/questions/{module}")
+    def question_ask(module: str, body: QuestionBody, user=Depends(require_user), db=Depends(get_db),
+                     _=Depends(same_origin)):
+        known_module(module)
+        require_module_access(db, user, module)
+        try:
+            q = questions.ask(db, user, module, body.titre, body.texte, body.prive, body.solution,
+                              body.joindre_verification)
+        except questions.InvalidPost as exc:
+            raise HTTPException(400, str(exc)) from None
+        log.info("Question %s posée par u%s sur %s", q.id, user.id, module)
+        return {"question": one_question(db, q, user, inscriptions.is_staff(db, settings, user.email))}
+
+    @app.post("/api/comptes/questions/{question_id}/reponses")
+    def question_answer(question_id: int, body: AnswerBody, user=Depends(require_user), db=Depends(get_db),
+                        _=Depends(same_origin)):
+        q, staff = question_or_404(db, user, question_id)
+        try:
+            questions.answer(db, user, q, body.texte, body.solution, staff)
+        except questions.InvalidPost as exc:
+            raise HTTPException(400, str(exc)) from None
+        author = db.get(User, q.user_id)
+        if author and author.id != user.id:
+            notify(author.email, "nouvelle_reponse", f"{settings.public_url}/modules/{q.module}/#question-{q.id}")
+        return {"question": one_question(db, q, user, staff)}
+
+    @app.post("/api/comptes/questions/{question_id}/resolue")
+    def question_resolved(question_id: int, body: FlagBody, user=Depends(require_user), db=Depends(get_db),
+                          _=Depends(same_origin)):
+        q, staff = question_or_404(db, user, question_id)
+        if q.user_id != user.id and not staff:
+            raise HTTPException(403, "Seul l'auteur ou l'équipe peut marquer la question comme résolue")
+        q.resolue_le = utcnow() if body.valeur else None
+        db.commit()
+        return {"question": one_question(db, q, user, staff)}
+
+    @app.post("/api/comptes/questions/{question_id}/masquer")
+    def question_hide(question_id: int, body: FlagBody, user=Depends(require_user), db=Depends(get_db),
+                      _=Depends(same_origin)):
+        require_staff(db, user)
+        q, staff = question_or_404(db, user, question_id)
+        q.masquee_le = utcnow() if body.valeur else None
+        db.commit()
+        log.info("Question %s %s par %s", q.id, "masquée" if body.valeur else "rétablie", user.email)
+        return {"question": one_question(db, q, user, staff)}
+
+    @app.post("/api/comptes/questions/{question_id}/signaler")
+    def question_report(question_id: int, user=Depends(require_user), db=Depends(get_db), _=Depends(same_origin)):
+        q, _staff = question_or_404(db, user, question_id)
+        q.signalements += 1
+        db.commit()
+        return {"signale": True}
+
+    def answer_or_404(db, user, answer_id):
+        a = db.get(Answer, answer_id)
+        if not a:
+            raise HTTPException(404, "Réponse introuvable")
+        q, staff = question_or_404(db, user, a.question_id)
+        if a.masquee_le is not None and not staff:
+            raise HTTPException(404, "Réponse introuvable")
+        return a, q, staff
+
+    @app.post("/api/comptes/reponses/{answer_id}/valider")
+    def answer_validate(answer_id: int, body: FlagBody, user=Depends(require_user), db=Depends(get_db),
+                        _=Depends(same_origin)):
+        require_staff(db, user)
+        a, q, staff = answer_or_404(db, user, answer_id)
+        a.validee = body.valeur
+        db.commit()
+        return {"question": one_question(db, q, user, staff)}
+
+    @app.post("/api/comptes/reponses/{answer_id}/masquer")
+    def answer_hide(answer_id: int, body: FlagBody, user=Depends(require_user), db=Depends(get_db),
+                    _=Depends(same_origin)):
+        require_staff(db, user)
+        a, q, staff = answer_or_404(db, user, answer_id)
+        a.masquee_le = utcnow() if body.valeur else None
+        db.commit()
+        log.info("Réponse %s %s par %s", a.id, "masquée" if body.valeur else "rétablie", user.email)
+        return {"question": one_question(db, q, user, staff)}
+
+    @app.post("/api/comptes/reponses/{answer_id}/signaler")
+    def answer_report(answer_id: int, user=Depends(require_user), db=Depends(get_db), _=Depends(same_origin)):
+        a, _q, _staff = answer_or_404(db, user, answer_id)
+        a.signalements += 1
+        db.commit()
+        return {"signale": True}
+
     # --- Avis sur les modules (phase de test)
 
     def known_module(module):
@@ -1265,6 +1434,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
                 verifying.discard(user.id)
         ex = exercise_row(db, user, module)
         ex.verifications = (ex.verifications or 0) + 1
+        ex.dernier_journal = str(result.get("journal", ""))[-4000:]
         if result.get("ok") is True and not ex.reussi_le:
             ex.reussi_le = utcnow()
         db.commit()

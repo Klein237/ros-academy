@@ -55,6 +55,18 @@ MAILS = {
         "Votre compte est activé ; connectez-vous avec votre adresse et votre mot de passe :",
         "Bonne découverte, et n'hésitez pas à nous faire part de vos remarques.",
     ),
+    "nouvelle_reponse": (
+        "réponse à une question", "On a répondu à votre question — RoboForge",
+        "Bonjour,\n\nVotre question sur RoboForge a reçu une réponse. Pour la lire (et la marquer comme "
+        "résolue si elle vous a débloqué) :",
+        "Bonne continuation !",
+    ),
+    "questions": (
+        "nouvelles questions", "Des étudiants attendent une réponse — RoboForge",
+        "Bonjour,\n\nDe nouvelles questions ont été posées sur les modules. Les questions sans réponse de "
+        "l'équipe, de la plus ancienne à la plus récente :",
+        "Vous recevez au plus un message par heure, seulement quand de nouvelles questions arrivent.",
+    ),
     "formateur": (
         "ajout à l'équipe", "Vous rejoignez l'équipe des formateurs — RoboForge",
         "Bonjour,\n\nVous avez été ajouté à l'équipe des formateurs de RoboForge : tableau de bord des "

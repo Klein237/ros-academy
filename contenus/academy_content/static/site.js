@@ -386,6 +386,199 @@ function setupCatalogue() {
   form.hidden = false;
 }
 
+// --- Questions et réponses du module : l'étudiant bloqué demande, l'équipe et les autres étudiants
+// répondent (API de Comptes). Le texte n'est jamais interprété comme du HTML : textContent seulement ;
+// un bloc entre deux lignes ``` devient du code.
+function el(tag, attrs = {}, ...children) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v === false || v == null) continue;
+    if (k === "class") e.className = v;
+    else if (k === "text") e.textContent = v;
+    else e.setAttribute(k, v === true ? "" : v);
+  }
+  e.append(...children.filter((c) => c != null && c !== false));
+  return e;
+}
+
+function texteRiche(texte) {
+  const bloc = el("div", { class: "fil-texte" });
+  texte.split(/^```[^\n]*$/m).forEach((part, i) => {
+    const t = part.replace(/^\n|\n$/g, "");
+    if (!t) return;
+    bloc.append(i % 2 ? el("pre", {}, el("code", { text: t })) : el("p", { text: t }));
+  });
+  return bloc;
+}
+
+function repliable(contenu, solution) {
+  if (!solution) return contenu;
+  return el("details", { class: "fil-solution" }, el("summary", { text: "Contient une partie de la solution : afficher quand même" }), contenu);
+}
+
+const dateFr = (iso) => new Date(iso).toLocaleDateString("fr-FR");
+
+function setupQuestions() {
+  const section = document.getElementById("questions");
+  if (!section) return;
+  const module = section.dataset.module;
+  const liste = section.querySelector(".questions-liste");
+  const form = section.querySelector(".question-form");
+  const status = form.querySelector(".question-status");
+  const base = "/api/comptes";
+  let equipe = false;
+
+  const envoyer = async (url, body = {}) => {
+    const r = await fetch(base + url, {
+      method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.erreur || "L'envoi a échoué, réessayez dans un instant.");
+    return data;
+  };
+
+  const badge = (texte, kind) => el("span", { class: `fil-badge ${kind}`, text: texte });
+
+  function reponse(q, a) {
+    const actions = el("div", { class: "fil-actions" });
+    if (equipe && !a.equipe) {
+      actions.append(el("button", { type: "button", class: "lien", text: a.validee ? "Retirer la validation" : "Valider cette réponse" }));
+      actions.lastChild.addEventListener("click", () => agir(`/reponses/${a.id}/valider`, { valeur: !a.validee }));
+    }
+    if (equipe) {
+      actions.append(el("button", { type: "button", class: "lien", text: a.masquee ? "Rétablir" : "Masquer" }));
+      actions.lastChild.addEventListener("click", () => agir(`/reponses/${a.id}/masquer`, { valeur: !a.masquee }));
+    } else if (!a.moi) {
+      actions.append(signaler(`/reponses/${a.id}/signaler`));
+    }
+    return el("li", { class: `fil-reponse${a.equipe ? " equipe" : ""}${a.validee ? " validee" : ""}${a.masquee ? " masquee" : ""}` },
+      el("p", { class: "fil-meta" }, el("strong", { text: a.auteur }),
+        a.equipe ? badge("Réponse de l'équipe", "equipe") : null,
+        a.validee ? badge("Validée par l'équipe", "ok") : null,
+        a.masquee ? badge(`Masquée${a.signalements ? ` · ${a.signalements} signalement(s)` : ""}`, "ko") : null,
+        el("span", { class: "muted", text: ` · ${dateFr(a.cree_le)}` })),
+      repliable(texteRiche(a.texte), a.solution), actions);
+  }
+
+  function signaler(url) {
+    const b = el("button", { type: "button", class: "lien muted", text: "Signaler" });
+    b.addEventListener("click", async () => {
+      if (!confirm("Signaler ce message à l'équipe (contenu déplacé ou erroné) ?")) return;
+      try { await envoyer(url); b.replaceWith(el("span", { class: "muted small", text: "Signalé, merci." })); } catch (e) { alert(e.message); }
+    });
+    return b;
+  }
+
+  function fil(q, ouvert) {
+    const reponses = el("ol", { class: "fil-reponses" }, ...q.reponses.map((a) => reponse(q, a)));
+    const repondre = el("form", { class: "fil-repondre" },
+      el("label", {}, "Votre réponse", el("textarea", { name: "texte", rows: "3", maxlength: "5000", required: true })),
+      el("label", { class: "check" }, el("input", { type: "checkbox", name: "solution" }), " Ma réponse montre une partie de la solution"),
+      el("p", { class: "row" }, el("button", { type: "submit", class: "button", text: equipe ? "Répondre (équipe)" : "Répondre" })));
+    repondre.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const bouton = repondre.querySelector("button");
+      bouton.disabled = true;
+      try {
+        const d = await envoyer(`/questions/${q.id}/reponses`, { texte: repondre.texte.value, solution: repondre.solution.checked });
+        remplacer(d.question, true);
+      } catch (e) { alert(e.message); bouton.disabled = false; }
+    });
+    const actions = el("div", { class: "fil-actions" });
+    if (q.moi || equipe) {
+      actions.append(el("button", { type: "button", class: "lien", text: q.resolue ? "Rouvrir la question" : "Marquer comme résolue" }));
+      actions.lastChild.addEventListener("click", () => agir(`/questions/${q.id}/resolue`, { valeur: !q.resolue }));
+    }
+    if (equipe) {
+      actions.append(el("button", { type: "button", class: "lien", text: q.masquee ? "Rétablir la question" : "Masquer la question" }));
+      actions.lastChild.addEventListener("click", () => agir(`/questions/${q.id}/masquer`, { valeur: !q.masquee }));
+    } else if (!q.moi) {
+      actions.append(signaler(`/questions/${q.id}/signaler`));
+    }
+    const nb = q.reponses.length;
+    return el("details", { class: `fil${q.resolue ? " resolue" : ""}${q.masquee ? " masquee" : ""}`, id: `question-${q.id}`, open: ouvert },
+      el("summary", {},
+        el("span", { class: "fil-titre", text: q.titre }),
+        q.resolue ? badge("Résolue", "ok") : null,
+        q.reponse_equipe ? badge("Réponse de l'équipe", "equipe") : null,
+        q.prive ? badge("Privée", "") : null,
+        q.masquee ? badge(`Masquée${q.signalements ? ` · ${q.signalements} signalement(s)` : ""}`, "ko") : null,
+        el("span", { class: "fil-compte muted small", text: `${nb} réponse${nb > 1 ? "s" : ""}` })),
+      el("p", { class: "fil-meta" }, el("strong", { text: q.auteur }), el("span", { class: "muted", text: ` · ${dateFr(q.cree_le)}` })),
+      repliable(texteRiche(q.texte), q.solution),
+      equipe && q.journal ? el("details", { class: "fil-journal" }, el("summary", { text: "Dernière vérification jointe (équipe seulement)" }), el("pre", {}, el("code", { text: q.journal }))) : null,
+      reponses, actions, repondre);
+  }
+
+  let questions = [];
+  function afficher(ouvrir) {
+    if (!questions.length) {
+      liste.replaceChildren(el("p", { class: "muted", text: "Aucune question pour l'instant : soyez le premier à demander, d'autres se posent sûrement la même." }));
+      return;
+    }
+    liste.replaceChildren(...questions.map((q) => fil(q, q.id === ouvrir)));
+  }
+  function remplacer(q, ouvrir) {
+    const i = questions.findIndex((x) => x.id === q.id);
+    if (i >= 0) questions[i] = q; else questions.unshift(q);
+    afficher(ouvrir ? q.id : null);
+  }
+  async function agir(url, body) {
+    try { remplacer((await envoyer(url, body)).question, true); } catch (e) { alert(e.message); }
+  }
+
+  const ouvrirFormulaire = (bloque) => {
+    form.hidden = false;
+    if (bloque && form.joindre_verification) form.joindre_verification.checked = true;
+    form.titre.focus();
+  };
+  section.querySelector('[data-questions="poser"]').addEventListener("click", () => ouvrirFormulaire(false));
+  form.querySelector('[data-questions="annuler"]').addEventListener("click", () => { form.hidden = true; });
+  form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const bouton = form.querySelector("button[type=submit]");
+    bouton.disabled = true;
+    status.hidden = true;
+    try {
+      const d = await envoyer(`/questions/${encodeURIComponent(module)}`, {
+        titre: form.titre.value, texte: form.texte.value, prive: form.prive.checked, solution: form.solution.checked,
+        joindre_verification: Boolean(form.joindre_verification?.checked),
+      });
+      form.reset();
+      form.hidden = true;
+      remplacer(d.question, true);
+      document.getElementById(`question-${d.question.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e) {
+      status.textContent = e.message;
+      status.hidden = false;
+    } finally {
+      bouton.disabled = false;
+    }
+  });
+
+  fetch(`${base}/questions/${encodeURIComponent(module)}`, { credentials: "same-origin" })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((d) => {
+      if (!d) return; // sans session (ou sans accès) : pas de rubrique
+      equipe = d.equipe;
+      questions = d.questions;
+      section.hidden = false;
+      for (const l of document.querySelectorAll(".questions-lien")) l.hidden = false;
+      const cible = /^#question-(\d+)$/.exec(location.hash);
+      afficher(cible ? Number(cible[1]) : null);
+      if (cible) document.getElementById(`question-${cible[1]}`)?.scrollIntoView({ block: "start" });
+      // « Je suis bloqué » dans le lab : le formulaire s'ouvre, avec la dernière vérification jointe
+      if (new URLSearchParams(location.search).has("bloque")) {
+        section.scrollIntoView({ block: "start" });
+        ouvrirFormulaire(true);
+      } else if (location.hash === "#questions") {
+        section.scrollIntoView({ block: "start" });
+      }
+    })
+    .catch(() => {});
+}
+
 // --- Avis sur le module (phase de test) : demandé à l'étudiant connecté, jamais bloquant.
 // Sans avis, « Module suivant » propose d'abord de le donner ; « Plus tard » vaut pour la session.
 const NOTES_TEXTE = { 1: "Pas utile", 2: "Peu utile", 3: "Utile", 4: "Très utile", 5: "Indispensable" };
@@ -490,5 +683,6 @@ setupCatalogue();
 setupModule();
 setupProgression();
 setupQcm();
+setupQuestions();
 setupAvis();
 setupSideBySide();
