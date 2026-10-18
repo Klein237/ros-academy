@@ -549,3 +549,21 @@ def test_lab_folders_are_grouped_by_parcours(tmp_path):
     assert "~/ws/robot/01-demo-exercice/src" in ex["enonce_html"]
     q = c.get("/api/contenus/modules/01-demo/qcm", headers=student).json()["questions"][0]
     assert "/home/etudiant/ws/robot/01-demo/a" in q["question"] and "dans $HOME/ws/robot/01-demo-exercice" in q["choix"]
+
+
+def test_lab_image_health_for_the_monitor(store):
+    """Veille : 503 avec une alerte lisible quand l'image des labs manque ; relevé gardé 60 s."""
+    state = {"present": False, "calls": 0}
+
+    def lab_image():
+        state["calls"] += 1
+        return state["present"], "ros-lab:0.1.0"
+
+    c = TestClient(create_app(store, Runner(), SECRET, cookie_secure=False, lab_image=lab_image))
+    r = c.get("/api/contenus/sante/image-lab")
+    assert r.status_code == 503 and "ros-lab:0.1.0 est absente" in r.json()["alerte"]
+    assert "docker build -t ros-lab:0.1.0 images/ros-lab" in r.json()["alerte"]
+    state["present"] = True
+    assert c.get("/api/contenus/sante/image-lab").status_code == 503 and state["calls"] == 1  # en cache
+    no_docker = TestClient(create_app(store, Runner(), SECRET, cookie_secure=False))
+    assert no_docker.get("/api/contenus/sante/image-lab").json() == {"verifiee": False}

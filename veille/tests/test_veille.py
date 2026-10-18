@@ -143,3 +143,41 @@ def test_settings_from_env():
     assert s.services == {"hub": "http://hub:8000/hub/api", "comptes": "http://comptes:8300/connexion"}
     assert s.admins == ("a@x.fr", "b@x.fr") and s.disk == 1.0 and s.smtp_port == 587
     assert s.smtp_from == "RoboForge <no-reply@academy.example>"
+
+
+def test_service_can_explain_its_failure(proc):
+    """Contenus répond 503 avec {"alerte": …} quand l'image des labs manque : le message est repris tel quel."""
+    import json
+    import threading
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    from veille import check_http
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802
+            body = json.dumps({"alerte": "L'image des labs ros-lab:0.1.0 est absente du serveur."}).encode()
+            code = 503 if self.path == "/absente" else 500
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(body if code == 503 else b"pas du json")
+
+        def log_message(self, *args):
+            pass
+
+    server = HTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        base = f"http://127.0.0.1:{server.server_port}"
+        assert check_http(f"{base}/absente") == (False, "L'image des labs ros-lab:0.1.0 est absente du serveur.", True)
+        assert check_http(f"{base}/autre") == (False, "HTTP 500")
+    finally:
+        server.shutdown()
+
+    d, _ = proc
+    w, mails = make(d, Clock(), services={"image-du-lab": "http://contenus:8200/api/contenus/sante/image-lab"},
+                    http=lambda url: (False, "L'image des labs ros-lab:0.1.0 est absente du serveur.", True), disk=101)
+    for _ in range(3):
+        w.tick()
+    assert mails[-1][0] == "[RoboForge] Alerte : image-du-lab : L'image des labs ros-lab:0.1.0 est absente du serveur."
+    assert "absente du serveur" in mails[-1][1]

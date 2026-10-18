@@ -21,7 +21,7 @@
       <tr>
         <td>{% if l.alerte %}<strong class="warn">{{ duree(l.attente) }}</strong>{% else %}{{ duree(l.attente) }}{% endif %}</td>
         <td>{{ titres.get(l.q.module, l.q.module) }}</td>
-        <td><a href="/modules/{{ l.q.module }}/#question-{{ l.q.id }}">{{ l.q.titre }}</a>{% if l.q.prive %} <span class="muted small">(privée)</span>{% endif %}{% if l.q.journal %} <span class="muted small">· vérification jointe</span>{% endif %}</td>
+        <td><a href="/modules/{{ l.q.module }}/#question-{{ l.q.id }}">{{ l.q.titre }}</a>{% if l.q.prive %} <span class="muted small">(privée)</span>{% endif %}{% if l.q.journal %} <span class="muted small">· vérification jointe</span>{% endif %}{% if l.meme %} <strong class="small">· {{ l.meme }} étudiant{{ 's' if l.meme > 1 }} de plus {{ 'ont' if l.meme > 1 else 'a' }} la même question</strong>{% endif %}</td>
         <td><a href="/compte/formateur/etudiants/{{ l.u.id }}">{{ l.u.nom or l.u.email }}</a></td>
         <td><a class="button small primary" href="/modules/{{ l.q.module }}/#question-{{ l.q.id }}">Répondre</a></td>
       </tr>

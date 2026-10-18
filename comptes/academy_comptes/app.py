@@ -887,8 +887,10 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
             return login_redirect("/compte/formateur/questions")
         require_trainer(db, user)
         now = utcnow()
-        attente = [{"q": q, "u": u, "attente": now - q.cree_le, "alerte": now - q.cree_le > questions.ATTENTE_ALERTE}
-                   for q, u in questions.unanswered(db, inscriptions.staff_emails(db, settings))]
+        rows = questions.unanswered(db, inscriptions.staff_emails(db, settings))
+        votes, _ = questions.votes_of(db, [q.id for q, _u in rows])
+        attente = [{"q": q, "u": u, "attente": now - q.cree_le, "alerte": now - q.cree_le > questions.ATTENTE_ALERTE,
+                    "meme": votes.get(q.id, 0)} for q, u in rows]
         signales_q, signales_r = questions.reported(db)
         return page(request, "formateur_questions.html", user=user, attente=attente, titres=module_titles(),
                     signales_q=signales_q, signales_r=signales_r,
@@ -1292,9 +1294,24 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
             questions.answer(db, user, q, body.texte, body.solution, staff)
         except questions.InvalidPost as exc:
             raise HTTPException(400, str(exc)) from None
+        link = f"{settings.public_url}/modules/{q.module}/#question-{q.id}"
         author = db.get(User, q.user_id)
         if author and author.id != user.id:
-            notify(author.email, "nouvelle_reponse", f"{settings.public_url}/modules/{q.module}/#question-{q.id}")
+            notify(author.email, "nouvelle_reponse", link)
+        if staff:  # réponse de l'équipe : ceux qui ont la même question sont prévenus aussi
+            for follower in questions.followers(db, q):
+                if follower.id != user.id:
+                    notify(follower.email, "meme_question", link)
+        return {"question": one_question(db, q, user, staff)}
+
+    @app.post("/api/comptes/questions/{question_id}/meme")
+    def question_same(question_id: int, body: FlagBody, user=Depends(require_user), db=Depends(get_db),
+                      _=Depends(same_origin)):
+        q, staff = question_or_404(db, user, question_id)
+        try:
+            questions.same_question(db, user, q, body.valeur)
+        except questions.InvalidPost as exc:
+            raise HTTPException(400, str(exc)) from None
         return {"question": one_question(db, q, user, staff)}
 
     @app.post("/api/comptes/questions/{question_id}/resolue")

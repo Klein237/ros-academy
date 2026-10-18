@@ -9,6 +9,7 @@ Bibliothèque standard seulement. Configuration par l'environnement :
 - ADMIN_EMAILS, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM, DOMAIN.
 """
 
+import json
 import logging
 import os
 import smtplib
@@ -55,10 +56,17 @@ def read_disk_percent(path):
 
 
 def check_http(url, timeout=5):
+    """(réponse correcte, détail). Un service peut expliquer son échec : JSON {"alerte": "…"} (le détail)."""
     try:
         with urllib.request.urlopen(urllib.request.Request(url, method="GET"), timeout=timeout) as r:
             return 200 <= r.status < 400, f"HTTP {r.status}"
     except urllib.error.HTTPError as exc:
+        try:
+            message = json.loads(exc.read(4096) or b"{}").get("alerte")
+        except (ValueError, AttributeError, OSError):
+            message = None
+        if isinstance(message, str) and message.strip():
+            return exc.code < 400, message.strip()[:500], True
         return exc.code < 400, f"HTTP {exc.code}"
     except Exception as exc:  # noqa: BLE001 - refus de connexion, délai, DNS
         return False, exc.__class__.__name__
@@ -205,7 +213,7 @@ class Watch:
             self._notify(f"[RoboForge] Toujours en alerte : {alarm.detail}",
                          self._body(f"{alarm.detail}, depuis {self._duration(now - alarm.since)}."))
 
-    def _service(self, name, ok, detail):
+    def _service(self, name, ok, detail, explained=False):
         alarm = self.alarms.setdefault(f"service:{name}", Alarm(name))
         now = self.clock()
         if ok:
@@ -217,7 +225,7 @@ class Watch:
             alarm.active, alarm.failures = False, 0
             return
         alarm.failures += 1
-        alarm.detail = f"service {name} injoignable ({detail})"
+        alarm.detail = f"{name} : {detail}" if explained else f"service {name} injoignable ({detail})"
         if not alarm.active and alarm.failures >= SERVICE_FAILURES:
             alarm.active, alarm.since, alarm.last_sent = True, now, now
             log.warning("ALERTE %s", alarm.detail)

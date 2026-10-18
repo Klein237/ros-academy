@@ -274,7 +274,9 @@ class RestoreBody(BaseModel):
     sha: str
 
 
-def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tests_enabled=True, verifier=None):
+def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tests_enabled=True, verifier=None,
+               lab_image=None):
+    """lab_image : () -> (présente, nom de l'image), pour la veille (None : pas de Docker, non vérifié)."""
     app = FastAPI(title="Contenus RoboForge", docs_url=None, redoc_url=None, openapi_url=None)
     templates = Jinja2Templates(directory=str(HERE / "templates"))
     templates.env.globals["lab_link"] = lab_link
@@ -422,6 +424,25 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
         hidden = ("solution/", "explication.md", "indices.md")
         files = [f for f in _text_files(base) if not f["path"].startswith(hidden)]
         return {"enonce_html": render_markdown(m.exercice.enonce), "files": files, "indices": len(m.exercice.indices)}
+
+    # --- Santé, pour la veille : l'image des labs est-elle sur le serveur ? (relevé gardé 60 s)
+
+    image_state = {"lu": 0.0, "resultat": None}
+
+    @app.get("/api/contenus/sante/image-lab")
+    def health_lab_image():
+        if lab_image is None:
+            return {"verifiee": False}
+        if time.time() - image_state["lu"] > 60:
+            image_state["resultat"], image_state["lu"] = lab_image(), time.time()
+        present, name = image_state["resultat"]
+        if not present:
+            return JSONResponse(status_code=503, content={
+                "verifiee": True, "presente": False, "image": name,
+                "alerte": f"L'image des labs {name} est absente du serveur : aucun lab ne peut démarrer et « Vérifier » "
+                          f"échoue. Reconstruisez-la depuis le dossier du projet : docker build -t {name} images/ros-lab "
+                          "(ou relancez scripts/installer-serveur.sh)."})
+        return {"verifiee": True, "presente": True, "image": name}
 
     @app.get("/api/contenus/parcours")
     def api_parcours():
@@ -717,5 +738,17 @@ def app_from_env():
         return verify_exercise(module_dir, module_id, student, image=image, slots=slots, homes_dir=homes_dir,
                                workspace=workspace)
 
+    def lab_image():
+        import docker
+
+        try:
+            docker.from_env().images.get(image)
+            return True, image
+        except docker.errors.ImageNotFound:
+            return False, image
+        except Exception as exc:  # noqa: BLE001 - démon Docker injoignable : signalé aussi
+            log.warning("Image %s non vérifiable : %s", image, exc)
+            return False, image
+
     return create_app(store, runner, secret, cookie_secure=os.environ.get("COOKIE_SECURE", "1") != "0",
-                      tests_enabled=tests_enabled, verifier=verifier)
+                      tests_enabled=tests_enabled, verifier=verifier, lab_image=lab_image)

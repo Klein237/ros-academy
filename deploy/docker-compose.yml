@@ -161,7 +161,8 @@ services:
       VEILLE_SEUIL_CPU: ${VEILLE_SEUIL_CPU:-80}
       VEILLE_SEUIL_MEMOIRE: ${VEILLE_SEUIL_MEMOIRE:-80}
       VEILLE_SEUIL_DISQUE: ${VEILLE_SEUIL_DISQUE:-80}
-      VEILLE_SERVICES: hub=http://hub:8000/hub/api,comptes=http://comptes:8300/connexion,contenus=http://contenus:8200/,loki=http://loki:3100/ready
+      # image-du-lab : l'image ros-lab des labs est présente sur le serveur (vérifié par Contenus, qui a accès à Docker)
+      VEILLE_SERVICES: hub=http://hub:8000/hub/api,comptes=http://comptes:8300/connexion,contenus=http://contenus:8200/,loki=http://loki:3100/ready,image-du-lab=http://contenus:8200/api/contenus/sante/image-lab
     volumes:
       - /proc:/host/proc:ro   # CPU et mémoire de l'hôte
       - /:/host/root:ro       # occupation du disque de l'hôte
