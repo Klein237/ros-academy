@@ -179,6 +179,8 @@ class Exercise(Base):
     indices: Mapped[int] = mapped_column(Integer, default=0)
     verifications: Mapped[int] = mapped_column(Integer, default=0)  # « Vérifier » lancés (tableau formateur)
     reussi_le: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Journal de la dernière vérification, joint à une question « Je suis bloqué » (formateurs seulement)
+    dernier_journal: Mapped[str] = mapped_column(Text, default="", server_default="")
 
 
 class ModuleFeedback(Base):
@@ -192,6 +194,42 @@ class ModuleFeedback(Base):
     commentaire: Mapped[str] = mapped_column(Text, default="")
     cree_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     modifie_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class Question(Base):
+    """Question d'un étudiant sur un module, à laquelle répondent les formateurs (et les étudiants)."""
+
+    __tablename__ = "questions"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    module: Mapped[str] = mapped_column(String(64), index=True)
+    titre: Mapped[str] = mapped_column(String(150))
+    texte: Mapped[str] = mapped_column(Text)
+    prive: Mapped[bool] = mapped_column(Boolean, default=False)  # visible par son auteur et l'équipe seulement
+    solution: Mapped[bool] = mapped_column(Boolean, default=False)  # contient une partie de la solution : replié
+    journal: Mapped[str] = mapped_column(Text, default="")  # dernière vérification jointe, pour l'équipe
+    resolue_le: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    masquee_le: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    signalements: Mapped[int] = mapped_column(Integer, default=0)
+    cree_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+    activite_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class Answer(Base):
+    """Réponse à une question ; celle d'un formateur est mise en avant, celle d'un étudiant peut être validée."""
+
+    __tablename__ = "answers"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    question_id: Mapped[int] = mapped_column(ForeignKey("questions.id", ondelete="CASCADE"), index=True)
+    # compte supprimé : la réponse reste (elle sert aux autres), sans auteur
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    texte: Mapped[str] = mapped_column(Text)
+    solution: Mapped[bool] = mapped_column(Boolean, default=False)
+    equipe: Mapped[bool] = mapped_column(Boolean, default=False)  # écrite par un formateur (figé à l'envoi)
+    validee: Mapped[bool] = mapped_column(Boolean, default=False)
+    masquee_le: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    signalements: Mapped[int] = mapped_column(Integer, default=0)
+    cree_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class QueueTicket(Base):

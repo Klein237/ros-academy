@@ -141,6 +141,8 @@ test("module Nœud : l'exercice se fait entièrement dans le lab @ros", async ({
   const panel = page.locator(".module-panel");
   await expect(panel).toContainText("Écrire un nœud");
   await expect(panel.locator(".enonce")).toContainText("Le robot reste immobile");
+  // « Je suis bloqué » : question à l'équipe sur la page du cours, dernière vérification jointe
+  await expect(panel.getByRole("link", { name: /Je suis bloqué/ })).toHaveAttribute("href", "/modules/05-noeud/?bloque=1#questions");
   // ouvert par « Ouvrir l'exercice dans le lab » : l'exercice s'installe tout seul (~/ws/ros2-fondamentaux/05-noeud-exercice)
   await expect(panel.locator(".exercise-status")).toContainText("Exercice prêt", { timeout: 180_000 });
   await expect(page.locator('.tree-row[data-path="ws/ros2-fondamentaux/05-noeud-exercice"]')).toBeVisible();

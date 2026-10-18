@@ -7,7 +7,8 @@ from collections import Counter
 from sqlalchemy import delete, select
 
 from . import certificats
-from .db import Access, Certificate, Exercise, Identity, LoginToken, ModuleFeedback, QcmAttempt, UsageTick, User
+from .db import (Access, Answer, Certificate, Exercise, Identity, LoginToken, ModuleFeedback, QcmAttempt, Question,
+                 UsageTick, User)
 
 def _iso(d):
     return d.isoformat(timespec="seconds") + "Z" if d else None
@@ -39,6 +40,10 @@ def export_data(db, user):
                   "le": _iso(a.modifie_le)}
                  for a in db.scalars(select(ModuleFeedback).where(ModuleFeedback.user_id == user.id)
                                      .order_by(ModuleFeedback.module))],
+        "questions": [{"module": q.module, "titre": q.titre, "texte": q.texte, "privee": q.prive, "le": _iso(q.cree_le)}
+                      for q in db.scalars(select(Question).where(Question.user_id == user.id).order_by(Question.cree_le))],
+        "reponses": [{"question": a.question_id, "texte": a.texte, "le": _iso(a.cree_le)}
+                     for a in db.scalars(select(Answer).where(Answer.user_id == user.id).order_by(Answer.cree_le))],
         "certificats": [{"numero": certificats.format_code(c.code), "parcours": c.parcours_titre, "nom": c.nom,
                          "note": c.note, "mention": c.mention, "emis_le": _iso(c.emis_le),
                          "revoque": c.revoque_le is not None}

@@ -81,6 +81,9 @@ def test_public_pages(client):
     # avis du module (phase de test) : affiché par site.js pour un étudiant connecté
     assert '<section id="avis" class="card avis" data-module="01-demo" hidden>' in page
     assert 'class="avis-rappel"' in page
+    # questions et réponses : rubrique affichée par site.js, case de la vérification pour un module à exercice
+    assert '<section id="questions" class="card questions" data-module="01-demo" hidden>' in page
+    assert 'name="joindre_verification"' in page
     assert 'aria-label="Étapes du module"' in page and 'href="/parcours/demo/"' in page
     assert page.count("<h1>") == 1  # plus de titre en double
 

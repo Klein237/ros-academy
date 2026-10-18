@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Questions des étudiants{% endblock %}
+{% block main_class %}page wide{% endblock %}
+{% macro duree(d) -%}
+{%- set h = (d.total_seconds() // 3600) | int -%}
+{%- if h >= 48 %}{{ h // 24 }} jours{% elif h >= 1 %}{{ h }} h{% else %}{{ (d.total_seconds() // 60) | int }} min{% endif -%}
+{%- endmacro %}
+{% block content %}
+<div class="trainer-head">
+  <h1>Questions des étudiants</h1>
+  <a class="button" href="/compte/formateur">← Tableau de bord</a>
+</div>
+<section class="card">
+  <h2>Sans réponse de l'équipe</h2>
+  <p class="muted small">De la plus ancienne à la plus récente. Répondez depuis la page du module : votre réponse y est mise en avant et l'étudiant est prévenu par e-mail. En rouge : plus de 24 h d'attente.</p>
+  <div class="table-scroll">
+  <table class="results">
+    <thead><tr><th>Attente</th><th>Module</th><th>Question</th><th>Étudiant</th><th></th></tr></thead>
+    <tbody>
+    {% for l in attente %}
+      <tr>
+        <td>{% if l.alerte %}<strong class="warn">{{ duree(l.attente) }}</strong>{% else %}{{ duree(l.attente) }}{% endif %}</td>
+        <td>{{ titres.get(l.q.module, l.q.module) }}</td>
+        <td><a href="/modules/{{ l.q.module }}/#question-{{ l.q.id }}">{{ l.q.titre }}</a>{% if l.q.prive %} <span class="muted small">(privée)</span>{% endif %}{% if l.q.journal %} <span class="muted small">· vérification jointe</span>{% endif %}</td>
+        <td><a href="/compte/formateur/etudiants/{{ l.u.id }}">{{ l.u.nom or l.u.email }}</a></td>
+        <td><a class="button small primary" href="/modules/{{ l.q.module }}/#question-{{ l.q.id }}">Répondre</a></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="muted">Aucune question en attente.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% if signales_q or signales_r %}
+<section class="card">
+  <h2>Messages signalés</h2>
+  <p class="muted small">Signalés par des étudiants. Depuis la page du module, « Masquer » les retire de la vue des étudiants.</p>
+  <ul>
+    {% for q in signales_q %}<li><a href="/modules/{{ q.module }}/#question-{{ q.id }}">Question « {{ q.titre }} »</a> — {{ q.signalements }} signalement{{ 's' if q.signalements > 1 }}</li>{% endfor %}
+    {% for a in signales_r %}{% set q = questions_de[a.id] %}<li><a href="/modules/{{ q.module }}/#question-{{ q.id }}">Réponse à « {{ q.titre }} »</a> — {{ a.signalements }} signalement{{ 's' if a.signalements > 1 }}</li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

@@ -10,6 +10,7 @@
 <div class="trainer-head">
   <h1>Tableau de bord formateur</h1>
   <span class="row">
+    <a class="button{% if sans_reponse %} primary{% endif %}" href="/compte/formateur/questions">Questions{% if sans_reponse %} ({{ sans_reponse }} sans réponse){% endif %}</a>
     <a class="button" href="/compte/formateur/avis">Avis des étudiants</a>
     <a class="button" href="/compte/formateur/inscriptions">Inscriptions{% if en_attente %} ({{ en_attente }} en attente){% endif %}</a>
     <a class="button" href="/compte/formateur/acces">Accès offerts et achats</a>

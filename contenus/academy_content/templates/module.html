@@ -10,6 +10,7 @@
     {% for s in sommaire %}<li><a href="#{{ s.id }}" data-section="{{ s.id }}">{{ s.titre }}</a></li>{% endfor %}
     {% if module.exercice %}<li class="etape-lien"><a href="#exercice" data-section="exercice">Exercice : situation réelle</a></li>{% endif %}
     <li class="etape-lien"><a href="#qcm" data-section="qcm">QCM</a></li>
+    <li class="etape-lien questions-lien" hidden><a href="#questions" data-section="questions">Questions</a></li>
     <li class="etape-lien avis-lien" hidden><a href="#avis" data-section="avis">Votre avis</a></li>
   </ol>
 {% endmacro %}
@@ -89,6 +90,26 @@
         <p class="qcm-result" role="status" hidden></p>
       </form>
       <noscript><p class="muted">Le QCM a besoin de JavaScript.</p></noscript>
+    </section>
+
+    {# Questions et réponses : affichées par site.js pour un étudiant connecté #}
+    <section id="questions" class="card questions" data-module="{{ module.id }}" hidden>
+      <div class="questions-tete">
+        <h2>Questions sur ce module</h2>
+        <button type="button" class="button primary" data-questions="poser">Poser une question</button>
+      </div>
+      <p class="muted small">Bloqué ? Posez votre question : l'équipe des formateurs répond en général sous 24 h, et les autres étudiants peuvent vous aider. Les réponses restent ici pour ceux qui suivent.</p>
+      <form class="question-form" hidden>
+        <label>Titre <input name="titre" maxlength="150" required placeholder="En une phrase : ce qui bloque"></label>
+        <label>Votre question
+          <textarea name="texte" rows="6" maxlength="5000" required placeholder="Ce que vous avez fait, ce que vous attendiez, ce qui se passe (message d'erreur…). Le code placé entre deux lignes ``` est mis en forme."></textarea></label>
+        {% if module.exercice %}<label class="check"><input type="checkbox" name="joindre_verification"> Joindre le résultat de ma dernière vérification <span class="muted small">(visible par l'équipe seulement)</span></label>{% endif %}
+        <label class="check"><input type="checkbox" name="solution"> Ma question montre une partie de la solution <span class="muted small">(elle sera repliée pour les autres)</span></label>
+        <label class="check"><input type="checkbox" name="prive"> Question privée <span class="muted small">(seule l'équipe la verra : utile si vous collez tout votre code)</span></label>
+        <p class="row"><button type="submit" class="button primary">Envoyer ma question</button> <button type="button" class="button" data-questions="annuler">Annuler</button></p>
+        <p class="question-status" role="status" hidden></p>
+      </form>
+      <div class="questions-liste"></div>
     </section>
 
     {# Phase de test : l'avis de l'étudiant connecté (site.js), avant de passer au module suivant #}

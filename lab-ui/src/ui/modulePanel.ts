@@ -88,6 +88,10 @@ export class ModulePanel {
         h("div", { class: "hint-row" }, this.hintButton,
           h("span", { class: "muted small", text: "chaque indice retire 15 % de la note de l'exercice" })),
         this.hints,
+        // « Je suis bloqué » : question à l'équipe sur la page du cours, dernière vérification jointe
+        h("p", { class: "help-row small" }, "Bloqué ? ",
+          h("a", { text: "Je suis bloqué : poser une question à l'équipe", attrs: {
+            href: `/modules/${encodeURIComponent(id)}/?bloque=1#questions`, target: "_blank", rel: "noopener" } })),
       ),
     );
     this.hintButton.disabled = this.hintCount === 0;
@@ -122,6 +126,9 @@ export class ModulePanel {
         h("p", { class: "module-title", text: titre }),
         h("p", { class: "muted small" }, "Lab guidé : ", h("code", { text: `~/${labDir(id)}` })),
         h("p", { class: "muted small", text: "Ce module de cours n'a pas d'exercice : il est noté sur son QCM, en bas de la page du cours." }),
+        h("p", { class: "help-row small" }, "Une question ? ",
+          h("a", { text: "Poser une question à l'équipe", attrs: {
+            href: `/modules/${encodeURIComponent(id)}/#questions`, target: "_blank", rel: "noopener" } })),
       ),
     );
   }
