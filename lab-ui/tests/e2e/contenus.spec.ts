@@ -200,7 +200,7 @@ test("Cours + lab : le lab à côté du cours lance les commandes et ouvre les f
   const rows = (await term.locator(".xterm-rows").innerText()).split("\n");
   const cdRows = rows.filter((row) => row.includes("cd ~/ws/ros2-fondamentaux/05-noeud/src"));
   expect(cdRows).toHaveLength(1);
-  expect(cdRows[0]).toMatch(/\$ cd ~\/ws\/05-noeud\/src/);
+  expect(cdRows[0]).toMatch(/\$ cd ~\/ws\/ros2-fondamentaux\/05-noeud\/src/);
   // « Ouvrir dans le lab » : le fichier du cours s'ouvre dans l'éditeur du panneau, la page ne change pas
   await page.locator('a.code-open[data-open$="diff_drive_node.py"]').first().click();
   await expect(page).toHaveURL(/\/modules\/05-noeud\/$/);
