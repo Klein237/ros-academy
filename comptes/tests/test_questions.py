@@ -118,3 +118,30 @@ def test_trainer_page_digest_and_rgpd(client, env):
     export = json.loads(alice.get("/compte/donnees").text)
     assert len(export["questions"]) == 2 and export["reponses"] == []
     assert re.search(r"Aucune question en attente|Autre question", prof.get("/compte/formateur/questions").text)
+
+
+def test_same_question_counts_and_notifies_on_team_answer(client, env):
+    alice = browser(client, env, "alice@exemple.fr", nom="Alice")
+    bob = browser(client, env, "bob@exemple.fr", nom="Bob")
+    chloe = browser(client, env, "chloe@exemple.fr", nom="Chloé")
+    prof = browser(client, env, "admin@exemple.fr", nom="Prof")
+    qid = post(alice, "/api/comptes/questions/01-a", Q).json()["question"]["id"]
+    assert post(alice, f"/api/comptes/questions/{qid}/meme", {"valeur": True}).status_code == 400  # la sienne
+    r = post(bob, f"/api/comptes/questions/{qid}/meme", {"valeur": True})
+    assert r.json()["question"]["meme"] == 1 and r.json()["question"]["moi_meme"]
+    post(bob, f"/api/comptes/questions/{qid}/meme", {"valeur": True})  # deux fois : compté une fois
+    post(chloe, f"/api/comptes/questions/{qid}/meme", {"valeur": True})
+    seen = alice.get("/api/comptes/questions/01-a").json()["questions"][0]
+    assert seen["meme"] == 2 and not seen["moi_meme"]
+    assert "2 étudiants de plus ont la même question" in prof.get("/compte/formateur/questions").text
+    post(chloe, f"/api/comptes/questions/{qid}/meme", {"valeur": False})
+    assert alice.get("/api/comptes/questions/01-a").json()["questions"][0]["meme"] == 1
+    # réponse d'un étudiant : seul l'auteur est prévenu ; réponse de l'équipe : ceux qui suivent aussi
+    env["sent"].clear()
+    post(chloe, f"/api/comptes/questions/{qid}/reponses", {"texte": "Moi aussi, aucune idée."})
+    assert [(e, s) for e, _, s in env["sent"]] == [("alice@exemple.fr", "nouvelle_reponse")]
+    env["sent"].clear()
+    post(prof, f"/api/comptes/questions/{qid}/reponses", {"texte": "Vérifiez le nom du topic."})
+    assert sorted((e, s) for e, _, s in env["sent"]) == [("alice@exemple.fr", "nouvelle_reponse"),
+                                                          ("bob@exemple.fr", "meme_question")]
+    assert json.loads(bob.get("/compte/donnees").text)["meme_question"] == [qid]

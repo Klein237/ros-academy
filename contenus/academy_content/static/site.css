@@ -604,3 +604,8 @@ dialog.avis-rappel h2 { margin-top: 0; font-size: 1.2rem; }
 .fil-actions { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; }
 button.lien { background: none; border: 0; padding: 0; font: inherit; font-size: 0.88rem; color: var(--accent); cursor: pointer; text-decoration: underline; }
 button.lien.muted { color: var(--muted); }
+.question-similaires { border: 1px solid var(--accent); background: var(--accent-soft); border-radius: 8px; padding: 8px 12px; }
+.question-similaires p { margin: 0 0 4px; color: var(--accent-soft-ink); }
+.question-similaires ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.question-similaires li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+button.lien.actif { font-weight: 600; text-decoration: none; }

@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 
 from sqlalchemy import func, select
 
-from .db import Answer, Exercise, Question, Reglage, User, utcnow
+from .db import Answer, Exercise, Question, QuestionVote, Reglage, User, utcnow
 
 TITRE_MAX = 150
 TEXTE_MAX = 5000
@@ -96,6 +96,7 @@ def as_json(db, questions, viewer, staff):
     for a in db.scalars(select(Answer).where(Answer.question_id.in_(ids)).order_by(Answer.cree_le)) if ids else []:
         if staff or a.masquee_le is None:
             answers.setdefault(a.question_id, []).append(a)
+    votes, mine = votes_of(db, ids, viewer)
     user_ids = {q.user_id for q in questions} | {a.user_id for lst in answers.values() for a in lst if a.user_id}
     users = {u.id: u for u in db.scalars(select(User).where(User.id.in_(user_ids)))} if user_ids else {}
     out = []
@@ -106,6 +107,7 @@ def as_json(db, questions, viewer, staff):
             "moi": q.user_id == viewer.id, "prive": q.prive, "solution": q.solution,
             "resolue": q.resolue_le is not None, "cree_le": _iso(q.cree_le),
             "reponse_equipe": any(a.equipe for a in lst),
+            "meme": votes.get(q.id, 0), "moi_meme": q.id in mine,
             "reponses": [{
                 "id": a.id, "texte": a.texte, "auteur": first_name(users.get(a.user_id)), "equipe": a.equipe,
                 "validee": a.validee, "solution": a.solution, "moi": a.user_id == viewer.id,
@@ -117,6 +119,35 @@ def as_json(db, questions, viewer, staff):
             item.update(journal=q.journal, masquee=q.masquee_le is not None, signalements=q.signalements)
         out.append(item)
     return out
+
+
+def votes_of(db, question_ids, viewer=None):
+    """{question: nombre de « J'ai la même question »}, et les questions où ce compte l'a dit."""
+    if not question_ids:
+        return {}, set()
+    counts = dict(db.execute(select(QuestionVote.question_id, func.count()).where(
+        QuestionVote.question_id.in_(question_ids)).group_by(QuestionVote.question_id)).all())
+    mine = set(db.scalars(select(QuestionVote.question_id).where(
+        QuestionVote.question_id.in_(question_ids), QuestionVote.user_id == viewer.id))) if viewer else set()
+    return counts, mine
+
+
+def same_question(db, user, question, valeur):
+    """« J'ai la même question » (ou le retirer). Pas sur sa propre question."""
+    if question.user_id == user.id:
+        raise InvalidPost("C'est votre propre question.")
+    row = db.get(QuestionVote, (user.id, question.id))
+    if valeur and row is None:
+        db.add(QuestionVote(user_id=user.id, question_id=question.id))
+    elif not valeur and row is not None:
+        db.delete(row)
+    db.commit()
+
+
+def followers(db, question):
+    """Comptes à prévenir d'une réponse de l'équipe : ceux qui ont la même question."""
+    return list(db.scalars(select(User).join(QuestionVote, QuestionVote.user_id == User.id)
+                           .where(QuestionVote.question_id == question.id)))
 
 
 def unanswered(db, staff_emails):

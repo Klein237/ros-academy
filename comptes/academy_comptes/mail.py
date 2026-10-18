@@ -61,6 +61,12 @@ MAILS = {
         "résolue si elle vous a débloqué) :",
         "Bonne continuation !",
     ),
+    "meme_question": (
+        "réponse à une question suivie", "L'équipe a répondu à une question que vous aviez aussi — RoboForge",
+        "Bonjour,\n\nL'équipe des formateurs a répondu à une question que vous aviez aussi (« J'ai la même "
+        "question ») :",
+        "Bonne continuation !",
+    ),
     "questions": (
         "nouvelles questions", "Des étudiants attendent une réponse — RoboForge",
         "Bonjour,\n\nDe nouvelles questions ont été posées sur les modules. Les questions sans réponse de "

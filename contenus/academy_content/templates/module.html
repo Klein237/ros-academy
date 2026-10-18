@@ -101,6 +101,7 @@
       <p class="muted small">Bloqué ? Posez votre question : l'équipe des formateurs répond en général sous 24 h, et les autres étudiants peuvent vous aider. Les réponses restent ici pour ceux qui suivent.</p>
       <form class="question-form" hidden>
         <label>Titre <input name="titre" maxlength="150" required placeholder="En une phrase : ce qui bloque"></label>
+        <div class="question-similaires" aria-live="polite" hidden></div>
         <label>Votre question
           <textarea name="texte" rows="6" maxlength="5000" required placeholder="Ce que vous avez fait, ce que vous attendiez, ce qui se passe (message d'erreur…). Le code placé entre deux lignes ``` est mis en forme."></textarea></label>
         {% if module.exercice %}<label class="check"><input type="checkbox" name="joindre_verification"> Joindre le résultat de ma dernière vérification <span class="muted small">(visible par l'équipe seulement)</span></label>{% endif %}

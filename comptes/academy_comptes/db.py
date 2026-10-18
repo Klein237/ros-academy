@@ -215,6 +215,16 @@ class Question(Base):
     activite_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
+class QuestionVote(Base):
+    """« J'ai la même question » : fait remonter la question ; le compte est prévenu de la réponse de l'équipe."""
+
+    __tablename__ = "question_votes"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    question_id: Mapped[int] = mapped_column(ForeignKey("questions.id", ondelete="CASCADE"), primary_key=True,
+                                             index=True)
+    cree_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
 class Answer(Base):
     """Réponse à une question ; celle d'un formateur est mise en avant, celle d'un étudiant peut être validée."""
 

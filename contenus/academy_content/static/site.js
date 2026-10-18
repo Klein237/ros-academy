@@ -418,6 +418,31 @@ function repliable(contenu, solution) {
 
 const dateFr = (iso) => new Date(iso).toLocaleDateString("fr-FR");
 
+// Questions qui ressemblent à celle qu'on écrit : mots en commun (sans accents ni mots outils),
+// ceux du titre comptent double.
+const MOTS_OUTILS = new Set(("les des une pour dans par sur avec pas que qui quoi est sont mais ont ici fait faire "
+  + "mon mes ton tes son ses cette ces leur aux elle ils nous vous comment pourquoi quand quel quelle "
+  + "plus moins tout tous rien bien aussi encore alors donc car comme the and").split(" "));
+function mots(texte) {
+  return new Set((texte || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .split(/[^a-z0-9_]+/).filter((m) => m.length >= 3 && !MOTS_OUTILS.has(m)));
+}
+function ressemblantes(questions, titre, texte, max = 3) {
+  const cherches = new Set([...mots(titre), ...mots(texte)]);
+  if (!cherches.size) return [];
+  return questions
+    .map((q) => {
+      const t = mots(q.titre), c = mots(q.texte);
+      let score = 0;
+      for (const m of cherches) score += t.has(m) ? 2 : c.has(m) ? 1 : 0;
+      return { q, score };
+    })
+    .filter((x) => x.score >= 2)
+    .sort((a, b) => b.score - a.score || b.q.meme - a.q.meme)
+    .slice(0, max)
+    .map((x) => x.q);
+}
+
 function setupQuestions() {
   const section = document.getElementById("questions");
   if (!section) return;
@@ -486,6 +511,11 @@ function setupQuestions() {
       } catch (e) { alert(e.message); bouton.disabled = false; }
     });
     const actions = el("div", { class: "fil-actions" });
+    if (!q.moi) {
+      actions.append(el("button", { type: "button", class: `lien${q.moi_meme ? " actif" : ""}`, "aria-pressed": String(q.moi_meme),
+        text: q.moi_meme ? "J'ai la même question ✓ (retirer)" : "J'ai la même question" }));
+      actions.lastChild.addEventListener("click", () => agir(`/questions/${q.id}/meme`, { valeur: !q.moi_meme }));
+    }
     if (q.moi || equipe) {
       actions.append(el("button", { type: "button", class: "lien", text: q.resolue ? "Rouvrir la question" : "Marquer comme résolue" }));
       actions.lastChild.addEventListener("click", () => agir(`/questions/${q.id}/resolue`, { valeur: !q.resolue }));
@@ -503,6 +533,7 @@ function setupQuestions() {
         q.resolue ? badge("Résolue", "ok") : null,
         q.reponse_equipe ? badge("Réponse de l'équipe", "equipe") : null,
         q.prive ? badge("Privée", "") : null,
+        q.meme ? badge(`${q.meme} ${q.meme > 1 ? "ont" : "a"} la même question`, "") : null,
         q.masquee ? badge(`Masquée${q.signalements ? ` · ${q.signalements} signalement(s)` : ""}`, "ko") : null,
         el("span", { class: "fil-compte muted small", text: `${nb} réponse${nb > 1 ? "s" : ""}` })),
       el("p", { class: "fil-meta" }, el("strong", { text: q.auteur }), el("span", { class: "muted", text: ` · ${dateFr(q.cree_le)}` })),
@@ -533,6 +564,26 @@ function setupQuestions() {
     if (bloque && form.joindre_verification) form.joindre_verification.checked = true;
     form.titre.focus();
   };
+  const similaires = form.querySelector(".question-similaires");
+  let attente = null;
+  const suggerer = () => {
+    const trouvees = ressemblantes(questions.filter((q) => !q.moi), form.titre.value, form.texte.value);
+    if (!trouvees.length) { similaires.hidden = true; return; }
+    similaires.replaceChildren(
+      el("p", { class: "small", text: "Ces questions ressemblent à la vôtre : la réponse y est peut-être déjà." }),
+      el("ul", {}, ...trouvees.map((q) => {
+        const b = el("button", { type: "button", class: "lien", text: q.titre });
+        b.addEventListener("click", () => {
+          const d = document.getElementById(`question-${q.id}`);
+          if (d) { d.open = true; d.scrollIntoView({ behavior: "smooth", block: "start" }); }
+        });
+        return el("li", {}, b, q.resolue ? badge("Résolue", "ok") : null, q.reponse_equipe ? badge("Réponse de l'équipe", "equipe") : null);
+      })));
+    similaires.hidden = false;
+  };
+  for (const champ of [form.titre, form.texte]) {
+    champ.addEventListener("input", () => { clearTimeout(attente); attente = setTimeout(suggerer, 250); });
+  }
   section.querySelector('[data-questions="poser"]').addEventListener("click", () => ouvrirFormulaire(false));
   form.querySelector('[data-questions="annuler"]').addEventListener("click", () => { form.hidden = true; });
   form.addEventListener("submit", async (ev) => {
@@ -547,6 +598,7 @@ function setupQuestions() {
       });
       form.reset();
       form.hidden = true;
+      similaires.hidden = true;
       remplacer(d.question, true);
       document.getElementById(`question-${d.question.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (e) {
