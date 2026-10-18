@@ -386,10 +386,109 @@ function setupCatalogue() {
   form.hidden = false;
 }
 
+// --- Avis sur le module (phase de test) : demandé à l'étudiant connecté, jamais bloquant.
+// Sans avis, « Module suivant » propose d'abord de le donner ; « Plus tard » vaut pour la session.
+const NOTES_TEXTE = { 1: "Pas utile", 2: "Peu utile", 3: "Utile", 4: "Très utile", 5: "Indispensable" };
+
+function setupAvis() {
+  const section = document.getElementById("avis");
+  if (!section) return;
+  const form = section.querySelector("form");
+  const status = section.querySelector(".avis-status");
+  const button = form.querySelector("button[type=submit]");
+  const texte = section.querySelector(".avis-note-texte");
+  const dialog = document.querySelector("dialog.avis-rappel");
+  const url = `/api/comptes/avis/${encodeURIComponent(section.dataset.module)}`;
+  const plusTardCle = `rosacademy.avisPlusTard.${section.dataset.module}`;
+  let actif = false;
+  let donne = false;
+  let destination = "";
+
+  const dire = (message, kind = "") => {
+    status.textContent = message;
+    status.className = `avis-status ${kind}`;
+    status.hidden = false;
+  };
+  const remplir = (a) => {
+    for (const input of form.querySelectorAll("input[type=radio]")) {
+      input.checked = (input.name === "note" && Number(input.value) === a.note) ||
+        (input.name === "difficulte" && input.value === a.difficulte);
+    }
+    form.commentaire.value = a.commentaire || "";
+    texte.textContent = NOTES_TEXTE[a.note] || "";
+    const le = new Date(a.modifie_le).toLocaleDateString("fr-FR");
+    dire(`Merci ! Votre avis du ${le} est enregistré. Vous pouvez le modifier à tout moment.`, "ok");
+    button.textContent = "Modifier mon avis";
+    donne = true;
+  };
+
+  form.addEventListener("change", (ev) => {
+    if (ev.target.name === "note") texte.textContent = NOTES_TEXTE[ev.target.value] || "";
+  });
+  fetch(url, { credentials: "same-origin" })
+    .then((r) => {
+      if (!r.ok) return null; // sans session : pas d'encart
+      actif = true;
+      section.hidden = false;
+      for (const l of document.querySelectorAll(".avis-lien")) l.hidden = false;
+      return r.json().then((d) => d.avis && remplir(d.avis));
+    })
+    .catch(() => {});
+
+  form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const note = form.querySelector("input[name=note]:checked");
+    const difficulte = form.querySelector("input[name=difficulte]:checked");
+    if (!note || !difficulte) return dire("Choisissez une note et une difficulté.", "ko");
+    button.disabled = true;
+    try {
+      const r = await fetch(url, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note: Number(note.value), difficulte: difficulte.value, commentaire: form.commentaire.value }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) return dire(data.erreur || "Votre avis n'a pas pu être enregistré, réessayez dans un instant.", "ko");
+      remplir(data.avis);
+      if (destination) location.href = destination; // envoyé depuis le rappel : on continue vers la suite
+    } catch {
+      dire("Votre avis n'a pas pu être enregistré, réessayez dans un instant.", "ko");
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  const plusTard = {
+    lire: () => { try { return sessionStorage.getItem(plusTardCle); } catch { return null; } },
+    ecrire: () => { try { sessionStorage.setItem(plusTardCle, "1"); } catch { /* navigation privée */ } },
+  };
+  for (const a of document.querySelectorAll(".prev-next .suivant, [data-suivante]")) {
+    a.addEventListener("click", (ev) => {
+      const href = a.getAttribute("href") || "";
+      if (!actif || donne || !href.startsWith("/modules/") || plusTard.lire() || !dialog?.showModal) return;
+      ev.preventDefault();
+      destination = href;
+      dialog.showModal();
+    });
+  }
+  dialog?.querySelector('[data-avis="donner"]').addEventListener("click", () => {
+    dialog.close();
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+    (form.querySelector("input[name=note]:checked") || form.querySelector("#avis-note-5"))?.focus({ preventScroll: true });
+  });
+  dialog?.querySelector('[data-avis="plus-tard"]').addEventListener("click", () => {
+    plusTard.ecrire();
+    dialog.close();
+    location.href = destination;
+  });
+}
+
 setupTabs();
 setupCopy();
 setupCatalogue();
 setupModule();
 setupProgression();
 setupQcm();
+setupAvis();
 setupSideBySide();

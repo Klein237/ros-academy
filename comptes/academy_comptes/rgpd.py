@@ -7,7 +7,7 @@ from collections import Counter
 from sqlalchemy import delete, select
 
 from . import certificats
-from .db import Access, Certificate, Exercise, Identity, LoginToken, QcmAttempt, UsageTick, User
+from .db import Access, Certificate, Exercise, Identity, LoginToken, ModuleFeedback, QcmAttempt, UsageTick, User
 
 def _iso(d):
     return d.isoformat(timespec="seconds") + "Z" if d else None
@@ -35,6 +35,10 @@ def export_data(db, user):
         "exercices": [{"module": e.module, "indices": e.indices, "verifications": e.verifications,
                        "reussi_le": _iso(e.reussi_le)}
                       for e in db.scalars(select(Exercise).where(Exercise.user_id == user.id).order_by(Exercise.module))],
+        "avis": [{"module": a.module, "note": a.note, "difficulte": a.difficulte, "commentaire": a.commentaire,
+                  "le": _iso(a.modifie_le)}
+                 for a in db.scalars(select(ModuleFeedback).where(ModuleFeedback.user_id == user.id)
+                                     .order_by(ModuleFeedback.module))],
         "certificats": [{"numero": certificats.format_code(c.code), "parcours": c.parcours_titre, "nom": c.nom,
                          "note": c.note, "mention": c.mention, "emis_le": _iso(c.emis_le),
                          "revoque": c.revoque_le is not None}

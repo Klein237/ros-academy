@@ -72,10 +72,10 @@ def test_overview_and_module_stats(client, env):
     cells = [re.sub(r"<[^>]+>", "", c).strip() for c in re.findall(r"<td>(.*?)</td>", row_a, re.S)]
     # commencé 2 (alice, bob) ; réussi 1/2 ; bloqués 1 ; 1 vérification avant réussite ; indices 1/0/0 ;
     # QCM moyen (20 + 10) / 2 = 15 ; note moyenne des modules terminés : 20
-    assert cells == ["2", "1 / 2 · 50 %", "1", "1,0", "1 / 0 / 0", "15,0 / 20", "20,00 / 20"]
+    assert cells == ["2", "1 / 2 · 50 %", "1", "1,0", "1 / 0 / 0", "15,0 / 20", "20,00 / 20", "—"]  # pas encore d'avis
     row_b = re.search(r'href="/modules/02-b/".*?</tr>', html, re.S).group(0)
     cells = [re.sub(r"<[^>]+>", "", c).strip() for c in re.findall(r"<td>(.*?)</td>", row_b, re.S)]
-    assert cells == ["1", "1 / 1 · 100 %", "0", "2,0", "1 / 1 / 0", "20,0 / 20", "17,00 / 20"]
+    assert cells == ["1", "1 / 1 · 100 %", "0", "2,0", "1 / 1 / 0", "20,0 / 20", "17,00 / 20", "—"]
     assert "admin@exemple.fr" not in html  # le formateur n'est pas compté parmi les étudiants
     assert "bloqué sur Module A" in html
 

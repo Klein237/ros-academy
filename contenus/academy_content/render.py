@@ -135,7 +135,7 @@ def cours_sommaire(markdown):
     return _prepare(_md(), markdown)[1]
 
 
-def render_cours(markdown, module_id, images_base=None):
+def render_cours(markdown, module_id, images_base=None, workspace=None):
     """images_base : préfixe des schémas (images/…) ; par défaut, ceux du module publié."""
     md = _md()
     base = images_base if images_base is not None else f"/modules/{module_id}/"
@@ -161,9 +161,10 @@ def render_cours(markdown, module_id, images_base=None):
         head = [f'<span class="code-lang">{html.escape(label)}</span>']
         if path:
             head.append(f'<code class="code-file">{html.escape(path)}</code>')
-            href = lab_link(module_id, open=f"ws/{module_id}/{path}")
+            target = f"{workspace or f'ws/{module_id}'}/{path}"
+            href = lab_link(module_id, open=target)
             head.append(f'<a class="code-open" href="{html.escape(href)}" '
-                        f'data-open="{html.escape(f"ws/{module_id}/{path}")}">Ouvrir dans le lab</a>')
+                        f'data-open="{html.escape(target)}">Ouvrir dans le lab</a>')
         elif lang in COMMAND_LANGS:
             head.append('<button type="button" class="code-run" hidden>Lancer dans le lab</button>')
         head.append('<button type="button" class="code-copy">Copier</button>')

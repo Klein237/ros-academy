@@ -10,6 +10,7 @@
 <div class="trainer-head">
   <h1>Tableau de bord formateur</h1>
   <span class="row">
+    <a class="button" href="/compte/formateur/avis">Avis des étudiants</a>
     <a class="button" href="/compte/formateur/inscriptions">Inscriptions{% if en_attente %} ({{ en_attente }} en attente){% endif %}</a>
     <a class="button" href="/compte/formateur/acces">Accès offerts et achats</a>
     {% if admin %}<a class="button" href="/compte/formateur/equipe">Équipe</a>{% endif %}
@@ -38,7 +39,7 @@
   <h2>Modules</h2>
   <div class="table-scroll">
   <table class="results trainer-modules">
-    <thead><tr><th>Module</th><th>Commencé</th><th>Exercice réussi</th><th>Bloqués</th><th>Vérifications avant réussite</th><th>Indices 1 / 2 / 3</th><th>QCM moyen</th><th>Note moyenne</th></tr></thead>
+    <thead><tr><th>Module</th><th>Commencé</th><th>Exercice réussi</th><th>Bloqués</th><th>Vérifications avant réussite</th><th>Indices 1 / 2 / 3</th><th>QCM moyen</th><th>Note moyenne</th><th>Avis</th></tr></thead>
     <tbody>
     {% for m in modules %}
       <tr>
@@ -51,9 +52,11 @@
         <td>{{ m.indices | join(' / ') }}</td>{% endif %}
         <td>{{ fr(m.qcm_moyen) }}{% if m.qcm_moyen is not none %} <span class="muted small">/ 20</span>{% endif %}</td>
         <td>{{ fr(m.note_moyenne, 2) }}{% if m.note_moyenne is not none %} <span class="muted small">/ 20</span>{% endif %}</td>
+        {% set a = avis.get(m.module.id) %}
+        <td>{% if a and a.nombre %}<a href="/compte/formateur/avis?module={{ m.module.id | urlencode }}">{{ fr(a.moyenne) }} / 5</a> <span class="muted small">({{ a.nombre }} avis{% if a.difficultes.trop_difficile %}, {{ a.difficultes.trop_difficile }} trop difficile{% endif %})</span>{% else %}<span class="muted">—</span>{% endif %}</td>
       </tr>
     {% else %}
-      <tr><td colspan="8" class="muted">Aucun module publié.</td></tr>
+      <tr><td colspan="9" class="muted">Aucun module publié.</td></tr>
     {% endfor %}
     </tbody>
   </table>

@@ -549,3 +549,24 @@ li[data-etat="en_cours"] .etat-module { background: var(--amber-soft); color: va
 .carte-tarif h3 a:hover { text-decoration: underline; }
 .carte-tarif .button { margin-top: auto; text-align: center; }
 .tarif-prix { font-family: var(--font-titre); font-size: 2rem; font-weight: 700; margin: 4px 0 0; }
+
+/* Avis sur le module (phase de test) */
+.avis fieldset { border: 1px solid var(--line); border-radius: var(--radius); margin: 0 0 16px; padding: 12px 16px; }
+.avis legend { font-weight: 600; padding: 0 4px; }
+.avis-note { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+.etoiles-choix { position: relative; display: inline-flex; flex-direction: row-reverse; gap: 2px; }
+.etoiles-choix input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.etoiles-choix label { cursor: pointer; font-size: 1.9rem; line-height: 1; color: var(--line-strong); padding: 2px; border-radius: 6px; }
+.etoiles-choix label::before { content: "★"; }
+.etoiles-choix input:checked ~ label, .etoiles-choix label:hover, .etoiles-choix label:hover ~ label { color: var(--accent); }
+.etoiles-choix input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+.avis-difficulte { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.avis-difficulte legend { width: 100%; }
+.avis-difficulte label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.avis-commentaire { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.avis-commentaire textarea { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; padding: 8px 10px; resize: vertical; }
+.avis-status.ok { color: var(--ok, var(--accent)); }
+.avis-status.ko { color: var(--ko, #b42318); }
+dialog.avis-rappel { max-width: 440px; width: calc(100% - 32px); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 24px; color: var(--text); background: var(--surface); }
+dialog.avis-rappel::backdrop { background: rgb(0 0 0 / 0.35); }
+dialog.avis-rappel h2 { margin-top: 0; font-size: 1.2rem; }

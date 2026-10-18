@@ -181,6 +181,19 @@ class Exercise(Base):
     reussi_le: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
+class ModuleFeedback(Base):
+    """Avis d'un étudiant sur un module (phase de test) : note, difficulté ressentie, commentaire."""
+
+    __tablename__ = "module_feedback"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    module: Mapped[str] = mapped_column(String(64), primary_key=True)
+    note: Mapped[int] = mapped_column(Integer)  # 1 à 5
+    difficulte: Mapped[str] = mapped_column(String(20))  # trop_facile, adaptee, trop_difficile
+    commentaire: Mapped[str] = mapped_column(Text, default="")
+    cree_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    modifie_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
 class QueueTicket(Base):
     __tablename__ = "queue"
     ticket: Mapped[str] = mapped_column(String(43), primary_key=True)

@@ -7,8 +7,37 @@ import { joinPath, normalizePath } from "./paths";
 
 type Contents = Pick<ContentsClient, "exists" | "mkdirp" | "writeFile" | "rename">;
 
-export const labDir = (id: string) => `ws/${id}`;
-export const exerciseDir = (id: string) => `ws/${id}-exercice`;
+/**
+ * Dossier du lab guidé, annoncé par le service Contenus : ws/<parcours>/<module>, pour que les
+ * modules de plusieurs parcours ne se mélangent pas dans ~/ws. Par défaut : ws/<module>.
+ */
+const workspaces = new Map<string, string>();
+const WORKSPACE_RE = /^ws\/(?:[a-z0-9][a-z0-9-]{0,63}\/)?[0-9]{2}-[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+export function setWorkspace(id: string, dir: string | undefined): void {
+  if (dir && WORKSPACE_RE.test(dir) && dir.endsWith(`/${id}`)) workspaces.set(id, dir);
+}
+
+export const legacyLabDir = (id: string) => `ws/${id}`;
+export const labDir = (id: string) => workspaces.get(id) ?? legacyLabDir(id);
+export const exerciseDir = (id: string) => `${labDir(id)}-exercice`;
+
+/**
+ * Avant le rangement par parcours, les dossiers étaient ~/ws/<module> et ~/ws/<module>-exercice :
+ * déplacés vers le dossier du parcours s'il n'existe pas encore (rien n'est écrasé ni supprimé).
+ * Renvoie les dossiers déplacés.
+ */
+export async function migrateLegacy(contents: Contents, id: string): Promise<string[]> {
+  if (labDir(id) === legacyLabDir(id)) return [];
+  const moved: string[] = [];
+  for (const [from, to] of [[legacyLabDir(id), labDir(id)], [`${legacyLabDir(id)}-exercice`, exerciseDir(id)]]) {
+    if (!(await contents.exists(from)) || (await contents.exists(to))) continue;
+    await contents.mkdirp(to.slice(0, to.lastIndexOf("/")));
+    await contents.rename(from, to);
+    moved.push(to);
+  }
+  return moved;
+}
 export const academyDir = (id: string) => `.academy/${id}`;
 
 /**

@@ -4,13 +4,17 @@ import { readConfig } from "../../src/config";
 import {
   cleanOutput,
   ensureCourseFile,
+  exerciseDir,
   findExitCode,
   installExerciseFiles,
   installLab,
   installLabWithRetry,
   isTransient,
+  labDir,
+  migrateLegacy,
   resetLab,
   scriptCommand,
+  setWorkspace,
 } from "../../src/module";
 
 /** Système de fichiers en mémoire, avec l'interface de ContentsClient utilisée par module.ts. */
@@ -211,4 +215,36 @@ it("lit ?module et ?exercice, et refuse les identifiants invalides", () => {
   expect(readConfig("?module=../etc").moduleId).toBeNull();
   expect(readConfig("?module=02_noeud").moduleId).toBeNull();
   expect(readConfig("").exercice).toBe(false);
+});
+
+describe("dossiers rangés par parcours", () => {
+  it("utilise le dossier annoncé par Contenus, s'il est valide", () => {
+    expect(labDir("05-zz")).toBe("ws/05-zz");
+    setWorkspace("05-zz", "ws/ros2/05-zz");
+    expect(labDir("05-zz")).toBe("ws/ros2/05-zz");
+    expect(exerciseDir("05-zz")).toBe("ws/ros2/05-zz-exercice");
+    expect(scriptCommand("05-zz", "check.sh", "n")).toContain('WS="$HOME/ws/ros2/05-zz-exercice"');
+    for (const bad of ["ws/../x/06-yy", "/etc/06-yy", "ws/ros2/07-autre", "ws/a b/06-yy"]) setWorkspace("06-yy", bad);
+    expect(labDir("06-yy")).toBe("ws/06-yy");
+  });
+
+  it("déplace les anciens dossiers sans rien écraser", async () => {
+    const fs = new FakeContents();
+    await fs.writeFile("ws/08-mv/src/a.py", "lab");
+    await fs.writeFile("ws/08-mv-exercice/src/b.py", "exo");
+    setWorkspace("08-mv", "ws/robot/08-mv");
+    expect(await migrateLegacy(fs, "08-mv")).toEqual(["ws/robot/08-mv", "ws/robot/08-mv-exercice"]);
+    expect(fs.files.get("ws/robot/08-mv/src/a.py")).toBe("lab");
+    expect(fs.files.get("ws/robot/08-mv-exercice/src/b.py")).toBe("exo");
+    expect(await fs.exists("ws/08-mv")).toBe(false);
+    // le nouveau dossier existe déjà : l'ancien reste où il est
+    await fs.writeFile("ws/09-garde/x", "ancien");
+    await fs.writeFile("ws/robot/09-garde/x", "nouveau");
+    setWorkspace("09-garde", "ws/robot/09-garde");
+    expect(await migrateLegacy(fs, "09-garde")).toEqual([]);
+    expect(fs.files.get("ws/09-garde/x")).toBe("ancien");
+    expect(fs.files.get("ws/robot/09-garde/x")).toBe("nouveau");
+    // module sans parcours : rien à faire
+    expect(await migrateLegacy(fs, "10-seul")).toEqual([]);
+  });
 });

@@ -22,7 +22,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from sqlalchemy import select
 
-from . import acces, certificats, formateur, grading, inscriptions, rgpd
+from . import acces, avis, certificats, formateur, grading, inscriptions, rgpd
 from .billing import BadSignature, StripeClient, StripeError, format_amount, price_cents, verify_signature
 from .auth import (
     OAUTH_COOKIE,
@@ -49,6 +49,7 @@ from .db import (
     Base,
     Certificate,
     Exercise,
+    ModuleFeedback,
     QcmAttempt,
     QueueTicket,
     SessionRow,
@@ -76,6 +77,12 @@ def csp(form_targets=()):
 
 class QcmBody(BaseModel):
     reponses: dict[str, list[int]] = {}
+
+
+class FeedbackBody(BaseModel):
+    note: int
+    difficulte: str
+    commentaire: str = ""
 
 
 def mint_lab_token(secret, user, plan):
@@ -724,6 +731,8 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         return page(request, "formateur.html", user=user, all_parcours=all_parcours, parcours=current, q=q,
                     resume=formateur.overview(students, labs, utcnow(), users_with_access(db)),
                     modules=formateur.module_stats(students, current),
+                    avis=avis.summaries(db, [m["id"] for m in current["modules"]] if current else [],
+                                        inscriptions.staff_emails(db, settings)),
                     students=sorted((st for st in students if formateur.matches(st, q)),
                                     key=lambda st: st.derniere_activite or datetime.min, reverse=True),
                     total=len(students), en_attente=inscriptions.waiting_count(db),
@@ -828,6 +837,31 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
             db.commit()
             log.info("Accès %s (u%s, %s) retiré par %s", row.id, row.user_id, row.parcours_id, user.email)
         return RedirectResponse("/compte/formateur/acces", status_code=303)
+
+    # --- Avis des étudiants : formateurs
+
+    def module_titles():
+        return {m["id"]: m["titre"] for p in catalogue() for m in p["modules"]}
+
+    @app.get("/compte/formateur/avis", response_class=HTMLResponse)
+    def trainer_feedback(request: Request, module: str = "", user=Depends(current_user), db=Depends(get_db)):
+        if not user:
+            return login_redirect("/compte/formateur/avis")
+        require_trainer(db, user)
+        titres = module_titles()
+        module = module if module in titres else ""
+        rows = avis.listing(db, module or None, inscriptions.staff_emails(db, settings))
+        return page(request, "formateur_avis.html", user=user, lignes=rows, titres=titres, module=module,
+                    parcours=catalogue(), difficultes=avis.DIFFICULTES)
+
+    @app.get("/compte/formateur/avis.csv")
+    def trainer_feedback_csv(user=Depends(current_user), db=Depends(get_db)):
+        if not user:
+            return login_redirect("/compte/formateur/avis")
+        require_trainer(db, user)
+        rows = avis.listing(db, None, inscriptions.staff_emails(db, settings), limit=100000)
+        return Response(avis.to_csv(rows, module_titles()), media_type="text/csv; charset=utf-8",
+                        headers={"Content-Disposition": f'attachment; filename="avis-{utcnow():%Y-%m-%d}.csv"'})
 
     # --- Inscriptions (places, liste d'attente, vagues) : formateurs
 
@@ -1155,6 +1189,30 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         notes.append(float(result["note"]))
         return {**result, "tentative": len(notes), "restantes": grading.MAX_QCM_ATTEMPTS - len(notes),
                 "meilleure": max(notes)}
+
+    # --- Avis sur les modules (phase de test)
+
+    def known_module(module):
+        check_module(module)
+        ids = {m["id"] for p in catalogue() for m in p["modules"]}
+        if ids and module not in ids:
+            raise HTTPException(404, "Module introuvable")
+
+    @app.get("/api/comptes/avis/{module}")
+    def feedback_state(module: str, user=Depends(require_user), db=Depends(get_db)):
+        known_module(module)
+        return {"avis": avis.as_json(db.get(ModuleFeedback, (user.id, module)))}
+
+    @app.post("/api/comptes/avis/{module}")
+    def feedback_save(module: str, body: FeedbackBody, user=Depends(require_user), db=Depends(get_db),
+                      _=Depends(same_origin)):
+        known_module(module)
+        require_module_access(db, user, module)
+        try:
+            row = avis.save(db, user, module, body.note, body.difficulte, body.commentaire)
+        except avis.InvalidFeedback as exc:
+            raise HTTPException(400, str(exc)) from None
+        return {"avis": avis.as_json(row)}
 
     def exercise_row(db, user, module):
         ex = db.get(Exercise, (user.id, module))

@@ -10,6 +10,7 @@
     {% for s in sommaire %}<li><a href="#{{ s.id }}" data-section="{{ s.id }}">{{ s.titre }}</a></li>{% endfor %}
     {% if module.exercice %}<li class="etape-lien"><a href="#exercice" data-section="exercice">Exercice : situation réelle</a></li>{% endif %}
     <li class="etape-lien"><a href="#qcm" data-section="qcm">QCM</a></li>
+    <li class="etape-lien avis-lien" hidden><a href="#avis" data-section="avis">Votre avis</a></li>
   </ol>
 {% endmacro %}
 <div class="module-barre">
@@ -89,6 +90,37 @@
       </form>
       <noscript><p class="muted">Le QCM a besoin de JavaScript.</p></noscript>
     </section>
+
+    {# Phase de test : l'avis de l'étudiant connecté (site.js), avant de passer au module suivant #}
+    <section id="avis" class="card avis" data-module="{{ module.id }}" hidden>
+      <h2>Votre avis sur ce module</h2>
+      <p class="muted small">RoboForge est en phase de test : votre retour, lu par l'équipe des formateurs, nous aide à améliorer chaque module. Deux clics suffisent ; le commentaire est facultatif.</p>
+      <form class="avis-form">
+        <fieldset class="avis-note">
+          <legend>Ce module vous a-t-il été utile ?</legend>
+          <div class="etoiles-choix">
+            {% for n in [5, 4, 3, 2, 1] %}<input type="radio" name="note" value="{{ n }}" id="avis-note-{{ n }}" required><label for="avis-note-{{ n }}" title="{{ n }} sur 5"><span class="sr-only">{{ n }} sur 5</span></label>{% endfor %}
+          </div>
+          <span class="avis-note-texte muted small" aria-hidden="true"></span>
+        </fieldset>
+        <fieldset class="avis-difficulte">
+          <legend>Sa difficulté</legend>
+          <label><input type="radio" name="difficulte" value="trop_facile" required> Trop facile</label>
+          <label><input type="radio" name="difficulte" value="adaptee"> Adaptée</label>
+          <label><input type="radio" name="difficulte" value="trop_difficile"> Trop difficile</label>
+        </fieldset>
+        <label class="avis-commentaire">Un commentaire ? <span class="muted small">(facultatif : ce qui était clair, ce qui vous a bloqué, ce qui manque)</span>
+          <textarea name="commentaire" rows="3" maxlength="2000"></textarea></label>
+        <p class="row"><button type="submit" class="button primary">Envoyer mon avis</button></p>
+        <p class="avis-status" role="status" hidden></p>
+      </form>
+    </section>
+
+    <dialog class="avis-rappel" aria-labelledby="avis-rappel-titre">
+      <h2 id="avis-rappel-titre">Avant de passer à la suite</h2>
+      <p>Votre avis sur « {{ module.en_tete.titre }} » ? Il ne prend que quelques secondes et nous aide à améliorer le module.</p>
+      <p class="row"><button type="button" class="button primary" data-avis="donner">Donner mon avis</button> <button type="button" class="button" data-avis="plus-tard">Plus tard</button></p>
+    </dialog>
 
     <nav class="prev-next" aria-label="Modules voisins">
       {% if prev %}<a class="precedent" href="/modules/{{ prev.id }}/"><span>Module précédent</span>← {{ prev.titre }}</a>{% else %}<span></span>{% endif %}

@@ -98,13 +98,13 @@ test("module Linux : l'exercice se corrige dans le terminal et le serveur le vé
   const panel = page.locator(".module-panel");
   await expect(panel.locator(".exercise-status")).toContainText("Exercice prêt", { timeout: 180_000 });
   // le lab guidé du module (fichiers d'entraînement) est installé
-  await expect(page.locator('.tree-row[data-path="ws/02-linux"]')).toBeVisible();
+  await expect(page.locator('.tree-row[data-path="ws/ros2-fondamentaux/02-linux"]')).toBeVisible();
   await panel.getByRole("button", { name: "Vérifier" }).click();
   await expect(panel.locator(".exercise-status")).toContainText("Pas encore", { timeout: 180_000 });
   await expect(panel.locator(".exercise-status")).toContainText("Permission denied");
   await page.locator(".terminals .tab").first().click();
   await expect(activeTerminal(page)).toHaveAttribute("data-status", "open");
-  await run(page, "cd ~/ws/02-linux-exercice && chmod +x demarrer_robot.sh && ./demarrer_robot.sh", "robot.env introuvable");
+  await run(page, "cd ~/ws/ros2-fondamentaux/02-linux-exercice && chmod +x demarrer_robot.sh && ./demarrer_robot.sh", "robot.env introuvable");
   await run(page, `cp config/robot.env.exemple config/robot.env && sed -i 's/a-changer/livreur-01/' config/robot.env && ./demarrer_robot.sh`,
     "Robot livreur-01 prêt");
   await panel.getByRole("button", { name: "Vérifier" }).click();
@@ -115,13 +115,13 @@ test("module Linux : l'exercice se corrige dans le terminal et le serveur le vé
 test("module Nœud : « Ouvrir dans le lab » crée le fichier du cours sans jamais l'écraser", async ({ page }) => {
   // le cours est réservé aux étudiants connectés : le lab passe par la session de Comptes
   students.push(await loginStudent(page, newEmail()));
-  const file = "ws/05-noeud/src/my_pkg/my_pkg/diff_drive_node.py";
+  const file = "ws/ros2-fondamentaux/05-noeud/src/my_pkg/my_pkg/diff_drive_node.py";
   await openLabViaAccount(page, `?module=05-noeud&open=${encodeURIComponent(file)}`);
   await expect(page.locator(".editor .tab.active")).toContainText("diff_drive_node.py");
   await expect(page.locator(".monaco-editor")).toContainText("class DiffDriveNode");
   // lab seul ouvert depuis un module : retour au cours visible, dans le même onglet
   await expect(page.getByRole("link", { name: "← Retour au cours" })).toHaveAttribute("href", "/modules/05-noeud/");
-  await expect(page.locator('.tree-row[data-path="ws/05-noeud/src"]')).toBeVisible(); // lab/ installé et déplié
+  await expect(page.locator('.tree-row[data-path="ws/ros2-fondamentaux/05-noeud/src"]')).toBeVisible(); // lab/ installé et déplié
   // en tête de fichier : Monaco n'affiche que les lignes visibles
   await run(page, `sed -i '1i # ma modification' ~/${file} && echo ok-""modifie`, "ok-modifie");
   await page.reload();
@@ -141,9 +141,9 @@ test("module Nœud : l'exercice se fait entièrement dans le lab @ros", async ({
   const panel = page.locator(".module-panel");
   await expect(panel).toContainText("Écrire un nœud");
   await expect(panel.locator(".enonce")).toContainText("Le robot reste immobile");
-  // ouvert par « Ouvrir l'exercice dans le lab » : l'exercice s'installe tout seul (~/ws/05-noeud-exercice)
+  // ouvert par « Ouvrir l'exercice dans le lab » : l'exercice s'installe tout seul (~/ws/ros2-fondamentaux/05-noeud-exercice)
   await expect(panel.locator(".exercise-status")).toContainText("Exercice prêt", { timeout: 180_000 });
-  await expect(page.locator('.tree-row[data-path="ws/05-noeud-exercice"]')).toBeVisible();
+  await expect(page.locator('.tree-row[data-path="ws/ros2-fondamentaux/05-noeud-exercice"]')).toBeVisible();
 
   await panel.getByRole("button", { name: "Vérifier" }).click();
   await expect(panel.locator(".exercise-status")).toContainText("Pas encore", { timeout: 180_000 });
@@ -163,7 +163,7 @@ test("module Nœud : l'exercice se fait entièrement dans le lab @ros", async ({
   // la correction, comme un étudiant la ferait dans un terminal
   await page.locator(".terminals .tab").first().click();
   await expect(activeTerminal(page)).toHaveAttribute("data-status", "open");
-  await run(page, `sed -i 's/cmd_vell/cmd_vel/' ~/ws/05-noeud-exercice/src/my_pkg/my_pkg/diff_drive_node.py && echo corrige-""ok`, "corrige-ok");
+  await run(page, `sed -i 's/cmd_vell/cmd_vel/' ~/ws/ros2-fondamentaux/05-noeud-exercice/src/my_pkg/my_pkg/diff_drive_node.py && echo corrige-""ok`, "corrige-ok");
   await panel.getByRole("button", { name: "Vérifier" }).click();
   await expect(panel.locator(".exercise-status")).toContainText("Exercice réussi", { timeout: 180_000 });
   await expect(panel.locator(".explication")).toContainText("cmd_vell");
@@ -195,10 +195,10 @@ test("Cours + lab : le lab à côté du cours lance les commandes et ouvre les f
   await page.locator(".code-run").first().click();
   await expect(term.locator(".xterm-rows")).toContainText("ros2 pkg create my_pkg_cpp", { timeout: 30_000 });
   // exécuté ligne par ligne : le « cd » a changé de dossier (les paquets existent déjà : lab guidé installé)
-  await expect(term.locator(".xterm-rows")).toContainText("/ws/05-noeud/src$", { timeout: 60_000 });
+  await expect(term.locator(".xterm-rows")).toContainText("/ws/ros2-fondamentaux/05-noeud/src$", { timeout: 60_000 });
   // envoyée après l'invite : la commande n'est pas affichée une première fois avant elle
   const rows = (await term.locator(".xterm-rows").innerText()).split("\n");
-  const cdRows = rows.filter((row) => row.includes("cd ~/ws/05-noeud/src"));
+  const cdRows = rows.filter((row) => row.includes("cd ~/ws/ros2-fondamentaux/05-noeud/src"));
   expect(cdRows).toHaveLength(1);
   expect(cdRows[0]).toMatch(/\$ cd ~\/ws\/05-noeud\/src/);
   // « Ouvrir dans le lab » : le fichier du cours s'ouvre dans l'éditeur du panneau, la page ne change pas
