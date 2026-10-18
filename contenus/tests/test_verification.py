@@ -198,8 +198,8 @@ def test_route_requires_secret_and_calls_the_verifier(store):
 
     calls = []
 
-    def verifier(module_dir, module_id, student):
-        calls.append((module_dir.name, module_id, student))
+    def verifier(module_dir, module_id, student, workspace):
+        calls.append((module_dir.name, module_id, student, workspace))
         if student == "busy":
             raise Busy()
         volume_name(student)
@@ -210,7 +210,7 @@ def test_route_requires_secret_and_calls_the_verifier(store):
     secret = {"X-Academy-Interne": hmac.new(SECRET.encode(), b"contenus-interne", hashlib.sha256).hexdigest()}
     assert client.post(url, json={"etudiant": "u1"}).status_code == 403
     assert client.post(url, json={"etudiant": "u1"}, headers=secret).json() == {"ok": True, "code": 0, "journal": "ok"}
-    assert calls == [("01-demo", "01-demo", "u1")]
+    assert calls == [("01-demo", "01-demo", "u1", "ws/demo/01-demo")]
     assert client.post(url, json={"etudiant": "../etc"}, headers=secret).status_code == 400
     assert client.post(url, json={"etudiant": "busy"}, headers=secret).status_code == 429
     assert client.post("/api/contenus/modules/99-absent/verifier", json={"etudiant": "u1"}, headers=secret).status_code == 404

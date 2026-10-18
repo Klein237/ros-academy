@@ -73,11 +73,14 @@ def test_public_pages(client):
         assert "default-src 'self'" in r.headers["Content-Security-Policy"]
     page = client.get("/modules/01-demo/").text
     assert "Ouvrir dans le lab" in page
-    assert "/compte/lab?suite=/lab/%3Fmodule%3D01-demo%26open%3Dws/01-demo/src/p/p/n.py" in page
+    assert "/compte/lab?suite=/lab/%3Fmodule%3D01-demo%26open%3Dws/demo/01-demo/src/p/p/n.py" in page
     assert 'href="/compte/lab?suite=/lab/%3Fmodule%3D01-demo%26exercice%3D1"' in page
     assert 'href="/connexion"' in page and 'href="/compte/apprentissage"' in page  # en-tête : connexion, « Mon apprentissage »
     assert 'class="code-tabs"' in page  # python + cpp consécutifs
     assert "Quelle commande compile un workspace ?" in page
+    # avis du module (phase de test) : affiché par site.js pour un étudiant connecté
+    assert '<section id="avis" class="card avis" data-module="01-demo" hidden>' in page
+    assert 'class="avis-rappel"' in page
     assert 'aria-label="Étapes du module"' in page and 'href="/parcours/demo/"' in page
     assert page.count("<h1>") == 1  # plus de titre en double
 
@@ -506,3 +509,40 @@ def test_parcours_price_is_validated_and_editable(admin, store):
     assert "prix: 30" in (store.draft_dir / "parcours/demo/parcours.yaml").read_text()
     assert admin.put("/admin/api/parcours/demo", headers=ORIGIN, json={"prix": None}).status_code == 200
     assert "prix" not in (store.draft_dir / "parcours/demo/parcours.yaml").read_text()
+
+
+# --- Dossiers du lab rangés par parcours
+
+def test_lab_folders_are_grouped_by_parcours(tmp_path):
+    """Les cours écrivent ~/ws/<module> : le site et le lab utilisent ~/ws/<parcours>/<module>."""
+    from academy_content.app import localize, workspace_of
+
+    root = tmp_path / "c"
+    qcm = (
+        "questions:\n  - id: q1\n    question: Vous êtes dans ~/ws/01-demo. Où est /home/etudiant/ws/01-demo/a ?\n"
+        "    choix:\n      - texte: dans $HOME/ws/01-demo-exercice\n        correct: true\n      - texte: ailleurs\n"
+        "    explication: cd ~/ws/01-demo\n")
+    make_module(root, **{"index.md": "---\ntitre: Démo\n---\n# Cours\n\nAllez dans `~/ws/01-demo` puis "
+                                     "~/ws/01-demo-exercice ; pas dans ~/ws/01-demox ni ~/ws/projet.\n\n"
+                                     "```python fichier=src/a.py\nprint(1)\n```\n",
+                         "qcm.yaml": qcm,
+                         "exercice/enonce.md": "Corrigez ~/ws/01-demo-exercice/src.\n"})
+    make_module(root, "02-seul")
+    make_parcours(root, "robot", modules=("01-demo",))
+    assert workspace_of(root, "01-demo") == "ws/robot/01-demo"
+    assert workspace_of(root, "02-seul") == "ws/02-seul"  # hors parcours : inchangé
+    assert localize("~/ws/01-demox", "01-demo", "ws/robot/01-demo") == "~/ws/01-demox"
+
+    store = ContentStore(tmp_path / "store", seed=root)
+    store.publish(lambda d: Rapport(module=d.name, ok=True, journal=""))
+    c = TestClient(create_app(store, Runner(), SECRET, cookie_secure=False))
+    student = ETUDIANT
+    page = c.get("/modules/01-demo/", headers=student).text
+    assert "~/ws/robot/01-demo</code>" in page and "~/ws/robot/01-demo-exercice" in page
+    assert "~/ws/01-demox" in page and "~/ws/projet" in page
+    assert 'data-open="ws/robot/01-demo/src/a.py"' in page and "Vous êtes dans ~/ws/robot/01-demo" in page
+    assert c.get("/api/contenus/modules/01-demo", headers=student).json()["workspace"] == "ws/robot/01-demo"
+    ex = c.get("/api/contenus/modules/01-demo/exercice", headers=student).json()
+    assert "~/ws/robot/01-demo-exercice/src" in ex["enonce_html"]
+    q = c.get("/api/contenus/modules/01-demo/qcm", headers=student).json()["questions"][0]
+    assert "/home/etudiant/ws/robot/01-demo/a" in q["question"] and "dans $HOME/ws/robot/01-demo-exercice" in q["choix"]

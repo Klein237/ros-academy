@@ -8,7 +8,7 @@ Une **formation** (parcours) est une suite ordonnée de **modules**. Chaque modu
 |---|---|
 | `index.md` | Le cours. Commence par un en-tête `titre`, `resume`, `duree` entre deux lignes `---`. |
 | `qcm.yaml` | Le QCM (1 à 20 questions, 2 à 6 choix, au moins une bonne réponse). Le formulaire « QCM » l'édite pour vous. |
-| `lab/` | Facultatif. Le workspace de départ du lab guidé, copié dans `~/ws/<module>` la première fois que l'étudiant ouvre le module. Jamais écrasé ensuite. |
+| `lab/` | Facultatif. Le workspace de départ du lab guidé, copié dans `~/ws/<parcours>/<module>` la première fois que l'étudiant ouvre le module. Jamais écrasé ensuite. |
 | `exercice/` | Facultatif : sans ce dossier, le module est un cours, noté sur son QCM. S'il existe, tous les fichiers ci-dessous sont obligatoires. |
 | `exercice/enonce.md` | La situation réelle : ce que l'étudiant observe, la commande qui échoue. |
 | `exercice/depart/` | Le workspace de l'exercice, **avec le bug**. |
@@ -52,7 +52,9 @@ Les schémas des cours livrés avec la plateforme sont générés par `scripts/s
 Les scripts reçoivent deux variables :
 
 - `$EXERCICE` : le dossier `exercice/` du module, copié dans le conteneur (sans `solution/` ni `explication.md`) ;
-- `$WS` : le workspace de l'exercice, `~/ws/<module>-exercice`.
+- `$WS` : le workspace de l'exercice, `~/ws/<parcours>/<module>-exercice`.
+
+Dans le cours, l'énoncé, les indices et le QCM, écrivez simplement `~/ws/<module>` (ou `~/ws/<module>-exercice`) : le site le remplace par le dossier du parcours, `~/ws/<parcours>/<module>`, pour que les modules de plusieurs parcours ne se mélangent pas.
 
 Conseils, tirés des modules existants :
 

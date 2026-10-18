@@ -11,6 +11,8 @@ export interface ModuleInfo {
   titre: string;
   resume: string;
   duree: string;
+  /** Dossier du lab guidé, relatif au dossier personnel (ws/<parcours>/<module>). */
+  workspace?: string;
 }
 
 export interface ExerciseInfo {

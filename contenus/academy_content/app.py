@@ -1,7 +1,9 @@
 """Service Contenus : site étudiant, API publique des modules, espace d'administration."""
 
+import dataclasses
 import hashlib
 import hmac
+import json
 import logging
 import os
 import random
@@ -22,6 +24,7 @@ from .model import (
     MODULE_ID_RE,
     NIVEAUX,
     ContentError,
+    Exercice,
     ParcoursDef,
     Qcm,
     list_module_ids,
@@ -52,10 +55,38 @@ CSP = ("default-src 'self'; img-src 'self' data:; style-src 'self'; script-src '
 # --- Contenu (lecture) ---------------------------------------------------------------
 
 def _module_or_404(root, module_id):
+    """Module publié, avec les chemins du lab rangés dans le dossier de son parcours (voir localize)."""
     try:
-        return load_module(root, module_id)
+        module = load_module(root, module_id)
     except ContentError:
         raise HTTPException(404, "Module introuvable") from None
+    return localize_module(module, workspace_of(root, module.id))
+
+
+def workspace_of(root, module_id):
+    """Dossier du lab guidé, relatif au dossier personnel : ws/<parcours>/<module>, pour que les
+    modules de plusieurs parcours ne se mélangent pas dans ~/ws. Sans parcours : ws/<module>."""
+    parcours, *_ = _parcours_of(root, module_id)
+    return f"ws/{parcours['id']}/{module_id}" if parcours else f"ws/{module_id}"
+
+
+def localize(text, module_id, workspace):
+    """Les cours écrivent ~/ws/<module> (ou -exercice) : chemin réécrit vers le dossier du parcours."""
+    if workspace == f"ws/{module_id}" or not text:
+        return text
+    pattern = rf"(~|\$HOME|/home/etudiant)/ws/{re.escape(module_id)}(?![A-Za-z0-9_])"
+    return re.sub(pattern, lambda m: f"{m.group(1)}/{workspace}", text)
+
+
+def localize_module(module, workspace):
+    if workspace == f"ws/{module.id}":
+        return module
+    loc = lambda text: localize(text, module.id, workspace)  # noqa: E731
+    qcm = Qcm.model_validate(json.loads(loc(json.dumps(module.qcm.model_dump(), ensure_ascii=False))))
+    exercice = module.exercice and Exercice(enonce=loc(module.exercice.enonce),
+                                            indices=[loc(i) for i in module.exercice.indices],
+                                            explication=loc(module.exercice.explication))
+    return dataclasses.replace(module, cours=loc(module.cours), qcm=qcm, exercice=exercice)
 
 
 def duree_minutes(duree):
@@ -310,7 +341,8 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
             request, "module.html",
             module=module, sommaire=cours_sommaire(module.cours),
             cours_html=render_cours(module.cours, module.id,
-                                    images_base=f"/admin/apercu/modules/{module.id}/" if apercu else None),
+                                    images_base=f"/admin/apercu/modules/{module.id}/" if apercu else None,
+                                    workspace=workspace_of(root, module.id)),
             enonce_html=render_markdown(module.exercice.enonce) if module.exercice else "", qcm=_public_qcm(module),
             parcours=parcours, prev=prev, next=nxt, numero=numero, apercu=apercu,
         )
@@ -370,7 +402,8 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
     @app.get("/api/contenus/modules/{module_id}", dependencies=[Depends(student)])
     def api_module(module_id: str):
         m = _module_or_404(published(), module_id)
-        return {"id": m.id, "titre": m.en_tete.titre, "resume": m.en_tete.resume, "duree": m.en_tete.duree}
+        return {"id": m.id, "titre": m.en_tete.titre, "resume": m.en_tete.resume, "duree": m.en_tete.duree,
+                "workspace": workspace_of(published(), m.id)}
 
     @app.get("/api/contenus/modules/{module_id}/lab", dependencies=[Depends(student)])
     def api_lab(module_id: str):
@@ -416,7 +449,8 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
         if verifier is None:
             raise HTTPException(503, "Vérification indisponible")
         try:
-            return verifier(published() / "modules" / module_id, module_id, body.etudiant).as_dict()
+            return verifier(published() / "modules" / module_id, module_id, body.etudiant,
+                            workspace_of(published(), module_id)).as_dict()
         except InvalidStudent:
             raise HTTPException(400, "Étudiant invalide") from None
         except Busy:
@@ -592,7 +626,9 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
     def api_preview(body: PreviewBody, admin=Depends(admin_write)):
         if not MODULE_ID_RE.fullmatch(body.module):
             raise HTTPException(400, "identifiant de module invalide")
-        return {"html": render_cours(body.markdown, body.module, images_base=f"/admin/apercu/modules/{body.module}/")}
+        workspace = workspace_of(draft(), body.module)
+        return {"html": render_cours(localize(body.markdown, body.module, workspace), body.module,
+                                     images_base=f"/admin/apercu/modules/{body.module}/", workspace=workspace)}
 
     @app.get("/admin/api/parcours/{parcours_id}")
     def api_parcours_read(parcours_id: str, admin=Depends(admin_user)):
@@ -677,8 +713,9 @@ def app_from_env():
     slots = make_slots(int(os.environ.get("VERIFICATIONS_MAX", "4")))
     homes_dir = os.environ.get("LAB_HOMES_DIR") or None  # dossiers à quota des étudiants (sinon volumes Docker)
 
-    def verifier(module_dir, module_id, student):
-        return verify_exercise(module_dir, module_id, student, image=image, slots=slots, homes_dir=homes_dir)
+    def verifier(module_dir, module_id, student, workspace=None):
+        return verify_exercise(module_dir, module_id, student, image=image, slots=slots, homes_dir=homes_dir,
+                               workspace=workspace)
 
     return create_app(store, runner, secret, cookie_secure=os.environ.get("COOKIE_SECURE", "1") != "0",
                       tests_enabled=tests_enabled, verifier=verifier)

@@ -6,7 +6,7 @@ import { ModuleClient } from "./api/module";
 import { TerminalsClient } from "./api/terminals";
 import { readConfig } from "./config";
 import { ACTIVITY_EVENTS, IdleWatcher } from "./idle";
-import { ensureCourseFile, exerciseDir, installLabWithRetry, labDir } from "./module";
+import { ensureCourseFile, exerciseDir, installLabWithRetry, labDir, migrateLegacy, setWorkspace } from "./module";
 import { normalizePath, parentOf } from "./paths";
 import { RosbridgeClient } from "./ros/rosbridge";
 import { Session } from "./session";
@@ -208,6 +208,9 @@ async function prepareModule(): Promise<string> {
   const id = config.moduleId;
   try {
     const client = moduleClient;
+    setWorkspace(id, (await client.info()).workspace);
+    const moved = await migrateLegacy(contents, id);
+    if (moved.length) toast(`Les dossiers de ce module sont maintenant rangés dans ~/${parentOf(labDir(id))}/`, "info");
     await installLabWithRetry(contents, id, () => client.labFiles());
   } catch (e) {
     console.warn(`Module ${id} non installé :`, e);

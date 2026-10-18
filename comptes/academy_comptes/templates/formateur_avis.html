@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Avis des étudiants{% endblock %}
+{% block main_class %}page wide{% endblock %}
+{% block content %}
+<div class="trainer-head">
+  <h1>Avis des étudiants</h1>
+  <span class="row">
+    <a class="button" href="/compte/formateur/avis.csv">Exporter (CSV)</a>
+    <a class="button" href="/compte/formateur">← Tableau de bord</a>
+  </span>
+</div>
+<section class="card">
+  <form method="get" class="row">
+    <label class="inline">Module
+      <select name="module">
+        <option value="">Tous les modules</option>
+        {% for p in parcours %}<optgroup label="{{ p.titre }}">
+          {% for m in p.modules %}<option value="{{ m.id }}"{% if m.id == module %} selected{% endif %}>{{ m.titre }}</option>{% endfor %}
+        </optgroup>{% endfor %}
+      </select>
+    </label>
+    <button class="button" type="submit">Afficher</button>
+  </form>
+  <p class="muted small">{{ lignes | length }} avis{% if module %} sur « {{ titres[module] }} »{% endif %}, du plus récent au plus ancien. Les avis de l'équipe ne sont pas comptés.</p>
+  <div class="table-scroll">
+  <table class="results avis-liste">
+    <thead><tr>{% if not module %}<th>Module</th>{% endif %}<th>Note</th><th>Difficulté</th><th>Commentaire</th><th>Étudiant</th><th>Date</th></tr></thead>
+    <tbody>
+    {% for a, u in lignes %}
+      <tr>
+        {% if not module %}<td><a href="?module={{ a.module | urlencode }}">{{ titres.get(a.module, a.module) }}</a></td>{% endif %}
+        <td><span class="etoiles" aria-label="{{ a.note }} sur 5">{{ "★" * a.note }}<span class="muted">{{ "☆" * (5 - a.note) }}</span></span></td>
+        <td>{% if a.difficulte == "trop_difficile" %}<strong class="warn">{{ difficultes[a.difficulte] }}</strong>{% else %}{{ difficultes.get(a.difficulte, a.difficulte) }}{% endif %}</td>
+        <td class="avis-texte">{% if a.commentaire %}{{ a.commentaire }}{% else %}<span class="muted">—</span>{% endif %}</td>
+        <td><a href="/compte/formateur/etudiants/{{ u.id }}">{{ u.nom or u.email }}</a></td>
+        <td>{{ a.modifie_le.strftime('%d/%m/%Y') }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">Aucun avis pour l'instant.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

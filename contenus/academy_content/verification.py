@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 STUDENT_RE = re.compile(r"^u\d{1,12}$")
+WORKSPACE_RE = re.compile(r"^ws/(?:[a-z0-9][a-z0-9-]{0,63}/)?[0-9]{2}-[a-z0-9]+(?:-[a-z0-9]+)*$")
 HIDDEN = ("solution/", "indices.md", "explication.md")
 MAX_WORKSPACE_MB = 200
 CHECK_TIMEOUT = 300
@@ -23,8 +24,10 @@ CODE_RE = re.compile(r"^::code:: (\d+)$", re.M)
 SCRIPT = r"""
 set -u
 ID="$1"
-SRC="/eleve/ws/$ID-exercice"
-export EXERCICE="$HOME/.academy/$ID" WS="$HOME/ws/$ID-exercice"
+# $4 : dossier du lab guidé (ws/<parcours>/<module>) ; avant le rangement par parcours, ws/<module>
+SRC="/eleve/$4-exercice"
+[ -d "$SRC" ] || SRC="/eleve/ws/$ID-exercice"
+export EXERCICE="$HOME/.academy/$ID" WS="$HOME/$4-exercice"
 if [ ! -d "$SRC" ]; then echo "::absent::"; exit 3; fi
 SIZE=$(du -sm --exclude=build --exclude=install --exclude=log "$SRC" | cut -f1)
 if [ "$SIZE" -gt "$2" ]; then echo "::trop-gros:: $SIZE"; exit 4; fi
@@ -96,12 +99,15 @@ def _journal(output, code):
 
 
 def verify_exercise(module_dir, module_id, student, image, client=None, slots=None, wait=60, timeout=420,
-                    homes_dir=None):
+                    homes_dir=None, workspace=None):
     """Lance check.sh sur le workspace de l'étudiant ; ne lève que pour un nom invalide ou une surcharge.
 
     homes_dir : dossiers des étudiants à quota (LAB_HOMES_DIR, monté au même chemin dans Contenus) ;
     sinon, le volume Docker de l'étudiant.
     """
+    workspace = workspace or f"ws/{module_id}"
+    if not WORKSPACE_RE.fullmatch(workspace):
+        raise ValueError(f"dossier de lab invalide : {workspace!r}")
     import docker  # importé ici : inutile pour le site et les tests unitaires
 
     volume = volume_name(student)
@@ -121,7 +127,8 @@ def verify_exercise(module_dir, module_id, student, image, client=None, slots=No
     try:
         container = client.containers.create(
             image,
-            command=["bash", "-lc", SCRIPT, "verification", module_id, str(MAX_WORKSPACE_MB), str(CHECK_TIMEOUT)],
+            command=["bash", "-lc", SCRIPT, "verification", module_id, str(MAX_WORKSPACE_MB), str(CHECK_TIMEOUT),
+                     workspace],
             user="etudiant",
             network_mode="none",
             mem_limit="2g",
