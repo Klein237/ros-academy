@@ -13,19 +13,24 @@ interface DirNode {
 export interface FileTreeOptions {
   client: ContentsClient;
   root: string;
+  /** Haut de l'arborescence (ex. ws/bras-robotique : le dossier du parcours) ; par défaut, tout le dossier personnel. */
+  base?: string;
   onOpen(path: string): void;
   onDeleted?(path: string): void;
 }
 
-/** Arborescence de /home/etudiant, chargée dossier par dossier. */
+/** Arborescence de /home/etudiant (ou d'un de ses dossiers, `base`), chargée dossier par dossier. */
 export class FileTree {
   readonly el = h("aside", { class: "panel files", attrs: { "aria-label": "Fichiers" } });
   private readonly list = h("div", { class: "tree", attrs: { role: "tree" } });
   private readonly dirs = new Map<string, DirNode>();
-  private selectedDir = "";
+  private readonly base: string;
+  private selectedDir: string;
   private selectedRow: HTMLElement | null = null;
 
   constructor(private readonly opts: FileTreeOptions) {
+    this.base = opts.base ?? "";
+    this.selectedDir = this.base;
     const actions = h(
       "div",
       { class: "panel-actions" },
@@ -33,9 +38,11 @@ export class FileTree {
       button("+ Dossier", () => this.prompt("directory"), { title: "Nouveau dossier" }),
       button("⟳", () => void this.refresh(), { title: "Rafraîchir", attrs: { "aria-label": "Rafraîchir" } }),
     );
-    this.el.append(h("div", { class: "panel-header" }, h("h2", { text: "Fichiers" })), actions, this.list);
-    const root: DirNode = { path: "", expanded: true, children: this.list, row: null };
-    this.dirs.set("", root);
+    const header = h("div", { class: "panel-header" }, h("h2", { text: "Fichiers" }));
+    if (this.base) header.append(h("span", { class: "files-base", text: `~/${this.base}`, attrs: { title: `~/${this.base}` } }));
+    this.el.append(header, actions, this.list);
+    const root: DirNode = { path: this.base, expanded: true, children: this.list, row: null };
+    this.dirs.set(this.base, root);
   }
 
   /** Charge la racine et déplie le dossier de départ. */
@@ -45,9 +52,10 @@ export class FileTree {
 
   /** Recharge l'arborescence et déplie un dossier (création d'un exercice, réinitialisation…). */
   async reveal(path: string): Promise<void> {
-    await this.loadDir(this.dirs.get("")!);
-    let current = "";
-    for (const part of path.split("/").filter(Boolean)) {
+    await this.loadDir(this.top);
+    if (this.base && path !== this.base && !path.startsWith(`${this.base}/`)) return; // hors du parcours
+    let current = this.base;
+    for (const part of path.slice(this.base.length).split("/").filter(Boolean)) {
       current = joinPath(current, part);
       const node = this.dirs.get(current);
       if (!node) break;
@@ -64,11 +72,21 @@ export class FileTree {
       node.children.replaceChildren(h("div", { class: "tree-empty", text: "Dossier illisible" }));
       return;
     }
-    const depth = node.path ? node.path.split("/").length : 0;
+    const depth = this.depth(node.path);
     const rows = entries
       .filter((e) => !e.name.startsWith("."))
       .map((e) => (e.type === "directory" ? this.dirRow(e, depth) : this.fileRow(e, depth)));
     node.children.replaceChildren(...(rows.length ? rows : [h("div", { class: "tree-empty", text: "Vide" })]));
+  }
+
+  private get top(): DirNode {
+    return this.dirs.get(this.base)!;
+  }
+
+  /** Profondeur sous le haut de l'arborescence (0 pour ses enfants directs). */
+  private depth(path: string): number {
+    const rel = this.base ? path.slice(this.base.length + 1) : path;
+    return rel ? rel.split("/").length : 0;
   }
 
   private indent(depth: number): HTMLElement {
@@ -177,13 +195,12 @@ export class FileTree {
 
   /** Recharge les dossiers dépliés (après une commande, une création…). */
   async refresh(): Promise<void> {
-    const root = this.dirs.get("")!;
-    await this.loadDir(root);
+    await this.loadDir(this.top);
   }
 
   private prompt(kind: "file" | "directory"): void {
     const dir = this.selectedDir;
-    const node = this.dirs.get(dir) ?? this.dirs.get("")!;
+    const node = this.dirs.get(dir) ?? this.top;
     if (!node.expanded) void this.expand(node);
     const input = h("input", {
       class: "tree-input",
@@ -232,7 +249,7 @@ export class FileTree {
       );
     }
     this.opts.onDeleted?.(entry.path);
-    const parent = this.dirs.get(parentOf(entry.path)) ?? this.dirs.get("")!;
+    const parent = this.dirs.get(parentOf(entry.path)) ?? this.top;
     await this.loadDir(parent);
   }
 }
