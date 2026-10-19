@@ -1,7 +1,9 @@
 {% extends "base.html" %}
+{% from "icones.html" import objet %}
 {% block title %}Connexion{% endblock %}
 {% block content %}
 <section class="card login">
+  {{ objet("robot", 96, "carte-objet-haut") }}
   <h1>Se connecter</h1>
   {% if erreur %}<p class="form-error" role="alert">{{ erreur }}</p>{% endif %}
   {% if github or google %}

@@ -1,7 +1,8 @@
 {% extends "base.html" %}
+{% from "icones.html" import objet %}
 {% block title %}{{ parcours.titre }}{% endblock %}
 {% block content %}
-<h1>{{ parcours.titre }}</h1>
+<div class="titre-objet">{{ objet(icone_parcours(parcours.id), 88) }}<h1>{{ parcours.titre }}</h1></div>
 {% if en_attente and not actuel %}
 <section class="card notice" role="status">
   <p><strong>Paiement reçu, ouverture de l'accès en cours.</strong> Votre parcours s'ouvre dans quelques secondes : rechargez cette page.</p>

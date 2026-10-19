@@ -1,11 +1,12 @@
 {% extends "base.html" %}
+{% from "icones.html" import objet %}
 {% set nav_actif = "apprentissage" %}
 {% block title %}Résultats{% endblock %}
 {% block main_class %}page plein{% endblock %}
 {% block content %}
 <div class="conteneur tableau">
 <p class="breadcrumb"><a href="/compte/apprentissage">Mon apprentissage</a> › Résultats</p>
-<h1>Mes résultats</h1>
+<div class="titre-objet">{{ objet("medaille", 88) }}<h1>Mes résultats</h1></div>
 {% for r in resultats %}
 <section class="encart resultats-parcours">
   <div class="entete-section">

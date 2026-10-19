@@ -642,3 +642,12 @@ button.lien.actif { font-weight: 600; text-decoration: none; }
   .carte-tarif-objet { width: 76px; height: 76px; }
   .carte-tarif .pastilles, .carte-tarif h3 { padding-right: 70px; }
 }
+
+/* Icônes en verre : en-têtes de page, erreurs, cartes de compte */
+.page-titre.avec-objet { position: relative; padding-right: 180px; }
+.page-titre-objet { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); width: 150px; height: 150px; }
+.erreur-objet { display: block; width: 140px; height: 140px; margin: 0 auto 8px; }
+@media (max-width: 640px) {
+  .page-titre.avec-objet { padding-right: 20px; }
+  .page-titre-objet { position: static; transform: none; width: 96px; height: 96px; margin-bottom: 4px; }
+}
