@@ -565,5 +565,8 @@ def test_lab_image_health_for_the_monitor(store):
     assert "docker build -t ros-lab:0.1.0 images/ros-lab" in r.json()["alerte"]
     state["present"] = True
     assert c.get("/api/contenus/sante/image-lab").status_code == 503 and state["calls"] == 1  # en cache
+    note = TestClient(create_app(store, Runner(), SECRET, cookie_secure=False,
+                                 lab_image=lambda: (False, "ros-lab:0.1.0", "Téléchargement automatique en cours.")))
+    assert "échoue. Téléchargement automatique en cours. Sinon" in note.get("/api/contenus/sante/image-lab").json()["alerte"]
     no_docker = TestClient(create_app(store, Runner(), SECRET, cookie_secure=False))
     assert no_docker.get("/api/contenus/sante/image-lab").json() == {"verifiee": False}

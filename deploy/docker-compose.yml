@@ -33,6 +33,7 @@ services:
     environment:
       JWT_SECRET: ${JWT_SECRET:?}
       ROS_LAB_IMAGE: ${ROS_LAB_IMAGE:-ros-lab:0.1.0}
+      ROS_LAB_REGISTRE: ${ROS_LAB_REGISTRE-ghcr.io/klein237/ros-lab}   # image absente : retéléchargée d'ici
       CONTENT_GIT_REMOTE: ${CONTENT_GIT_REMOTE:-}
       MODULE_TESTS: ${MODULE_TESTS:-docker}
       VERIFICATIONS_MAX: ${VERIFICATIONS_MAX:-4}   # vérifications d'exercices simultanées

@@ -202,6 +202,10 @@ image_ros() {
   etape "Image ROS des labs"
   local image
   image=$(valeur_env "$ENV_FILE" ROS_LAB_IMAGE)
+  if [ -f "$ENV_FILE" ] && grep -q '^ROS_LAB_REGISTRE=' "$ENV_FILE"; then
+    ROS_LAB_REGISTRE=$(valeur_env "$ENV_FILE" ROS_LAB_REGISTRE)
+    export ROS_LAB_REGISTRE
+  fi
   image_ros_a_jour "${image:-ros-lab:0.1.0}" "$RACINE/images/ros-lab"
 }
 

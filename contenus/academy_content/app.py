@@ -33,6 +33,7 @@ from .model import (
     load_parcours,
     module_files,
 )
+from .image_lab import LabImage
 from .render import IMAGE_RE, code_files, cours_sommaire, lab_link, render_cours, render_markdown
 from .store import ContentStore, StoreError
 from .verification import Busy, InvalidStudent
@@ -276,7 +277,7 @@ class RestoreBody(BaseModel):
 
 def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tests_enabled=True, verifier=None,
                lab_image=None):
-    """lab_image : () -> (présente, nom de l'image), pour la veille (None : pas de Docker, non vérifié)."""
+    """lab_image : () -> (présente, nom de l'image[, note]), pour la veille (None : pas de Docker, non vérifié)."""
     app = FastAPI(title="Contenus RoboForge", docs_url=None, redoc_url=None, openapi_url=None)
     templates = Jinja2Templates(directory=str(HERE / "templates"))
     templates.env.globals["lab_link"] = lab_link
@@ -435,13 +436,14 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
             return {"verifiee": False}
         if time.time() - image_state["lu"] > 60:
             image_state["resultat"], image_state["lu"] = lab_image(), time.time()
-        present, name = image_state["resultat"]
+        present, name, *note = image_state["resultat"]
         if not present:
+            note = f" {note[0]}" if note and note[0] else ""
             return JSONResponse(status_code=503, content={
                 "verifiee": True, "presente": False, "image": name,
                 "alerte": f"L'image des labs {name} est absente du serveur : aucun lab ne peut démarrer et « Vérifier » "
-                          f"échoue. Reconstruisez-la depuis le dossier du projet : docker build -t {name} images/ros-lab "
-                          "(ou relancez scripts/installer-serveur.sh)."})
+                          f"échoue.{note} Sinon, reconstruisez-la depuis le dossier du projet : "
+                          f"docker build -t {name} images/ros-lab (ou relancez scripts/installer-serveur.sh)."})
         return {"verifiee": True, "presente": True, "image": name}
 
     @app.get("/api/contenus/parcours")
@@ -738,17 +740,13 @@ def app_from_env():
         return verify_exercise(module_dir, module_id, student, image=image, slots=slots, homes_dir=homes_dir,
                                workspace=workspace)
 
-    def lab_image():
+    def docker_client():
         import docker
 
-        try:
-            docker.from_env().images.get(image)
-            return True, image
-        except docker.errors.ImageNotFound:
-            return False, image
-        except Exception as exc:  # noqa: BLE001 - démon Docker injoignable : signalé aussi
-            log.warning("Image %s non vérifiable : %s", image, exc)
-            return False, image
+        return docker.from_env()
+
+    # registre où la CI publie l'image (vide : pas de téléchargement automatique)
+    lab_image = LabImage(image, os.environ.get("ROS_LAB_REGISTRE", "ghcr.io/klein237/ros-lab"), docker_client)
 
     return create_app(store, runner, secret, cookie_secure=os.environ.get("COOKIE_SECURE", "1") != "0",
                       tests_enabled=tests_enabled, verifier=verifier, lab_image=lab_image)
