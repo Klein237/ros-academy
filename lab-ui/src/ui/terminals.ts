@@ -4,6 +4,7 @@ import "@xterm/xterm/css/xterm.css";
 import { TerminalConnection, type ConnectionStatus, type TerminalsClient } from "../api/terminals";
 import { ShellReady } from "../shellReady";
 import { button, h, toast } from "./dom";
+import { currentTheme, onThemeChange, terminalTheme } from "./theme";
 
 interface Tab {
   id: number;
@@ -45,6 +46,9 @@ export class TerminalPanel {
     });
     this.el.append(h("div", { class: "panel-header" }, this.tabs, add), this.body);
     this.resizeObserver.observe(this.body);
+    onThemeChange((t) => {
+      for (const tab of this.open) tab.term.options.theme = terminalTheme(t);
+    });
   }
 
   /** Rattache les terminaux existants (page rechargée) ou en ouvre un. */
@@ -111,7 +115,7 @@ export class TerminalPanel {
       // à 1.0, la ligne coupe le bas des caractères : les « _ » disparaissaient ($ROS_DISTRO → $ROS DISTRO)
       lineHeight: 1.2,
       scrollback: 5000,
-      theme: { background: "#101114", foreground: "#e6e3dc", cursor: "#e3b866", selectionBackground: "#4a3d22" },
+      theme: terminalTheme(currentTheme()),
     });
     const fit = new FitAddon();
     term.loadAddon(fit);

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "partiels/icones.html" import coche, fleche %}
+{% from "partiels/icones.html" import coche, fleche, objet %}
 {% block main_class %}page plein{% endblock %}
 {% block content %}
 {% set premier = (parcours | selectattr("statut", "equalto", "disponible") | first) %}
@@ -19,6 +19,8 @@
       <li>{{ coche() }}Certificat vérifiable</li>
     </ul>
   </div>
+  <div class="apercu-cadre">
+  {{ objet("robot", 150, "apercu-objet") }}
   <div class="apercu" role="img" aria-label="Aperçu : un exercice de diagnostic à gauche ; à droite, le lab où l'on corrige le code, puis la vérification qui passe d'un échec à une réussite">
     <div class="apercu-barre"><span></span><span></span><span></span></div>
     <div class="apercu-corps">
@@ -35,6 +37,7 @@
         <code class="apercu-terminal"><span class="ko">✘</span> <i>le robot n'a pas bougé</i><br><span class="ok">✔</span> 0,62 m parcourus depuis le départ</code>
       </div>
     </div>
+  </div>
   </div>
 </section>
 
@@ -84,6 +87,7 @@
 
 <section class="conteneur bloc" aria-labelledby="commencer-ici">
   <div class="encart encart-ambre encart-commencer">
+    {{ objet("noeuds", 110, "encart-objet") }}
     <div>
       <span class="pastille ambre">Commencez ici · gratuit, sans compte</span>
       <h2 id="commencer-ici">Découvrir ROS 2</h2>
@@ -98,10 +102,10 @@
     <h2 id="chemin">Du problème au robot qui marche</h2>
     <p class="sous-titre">Chaque module raconte une situation concrète, et vous la résolvez vous-même.</p>
     <ol class="etapes">
-      <li><span class="numero">01</span><h3>Un cas réel</h3><p>Un robot doit avancer, répondre à une question, rejoindre un point. On part toujours d'un besoin concret.</p></li>
-      <li><span class="numero">02</span><h3>L'essentiel en théorie</h3><p>Un cours court qui explique ce qu'il faut comprendre pour ce cas, avec des schémas et des exemples en Python et en C++.</p></li>
-      <li><span class="numero">03</span><h3>Les mains dedans</h3><p>Vous codez, lancez et observez dans le lab, ouvert à côté du cours. Puis vous corrigez un robot en panne.</p></li>
-      <li><span class="numero">04</span><h3>Validé</h3><p>Votre code est vérifié automatiquement. Un QCM, une note, et un certificat à la fin du parcours.</p></li>
+      <li>{{ objet("robot", 88, "etape-objet") }}<span class="numero">01</span><h3>Un cas réel</h3><p>Un robot doit avancer, répondre à une question, rejoindre un point. On part toujours d'un besoin concret.</p></li>
+      <li>{{ objet("ampoule", 88, "etape-objet") }}<span class="numero">02</span><h3>L'essentiel en théorie</h3><p>Un cours court qui explique ce qu'il faut comprendre pour ce cas, avec des schémas et des exemples en Python et en C++.</p></li>
+      <li>{{ objet("terminal", 88, "etape-objet") }}<span class="numero">03</span><h3>Les mains dedans</h3><p>Vous codez, lancez et observez dans le lab, ouvert à côté du cours. Puis vous corrigez un robot en panne.</p></li>
+      <li>{{ objet("bouclier", 88, "etape-objet") }}<span class="numero">04</span><h3>Validé</h3><p>Votre code est vérifié automatiquement. Un QCM, une note, et un certificat à la fin du parcours.</p></li>
     </ol>
   </div>
 </section>
@@ -137,6 +141,7 @@
 
 <section class="conteneur bloc" aria-labelledby="formateurs">
   <div class="encart encart-sombre">
+    {{ objet("medaille", 110, "encart-objet") }}
     <div>
       <h2 id="formateurs">Vous formez une classe ou une équipe ?</h2>
       <p>Suivez la progression de chacun, repérez qui bloque sur quel exercice et délivrez des certificats vérifiables.</p>

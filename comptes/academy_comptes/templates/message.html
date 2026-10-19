@@ -1,7 +1,9 @@
 {% extends "base.html" %}
+{% from "icones.html" import objet %}
 {% block title %}{{ titre }}{% endblock %}
 {% block content %}
 <section class="card">
+  {% if icone %}{{ objet(icone, 96, "carte-objet-haut") }}{% endif %}
   <h1>{{ titre }}</h1>
   <p>{{ message }}</p>
   {% if lien %}<p><a class="button primary" href="{{ lien }}">{{ lien_texte }}</a></p>{% endif %}

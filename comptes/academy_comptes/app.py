@@ -132,6 +132,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
     http = http or httpx.Client(timeout=15)
     templates = Jinja2Templates(directory=str(HERE / "templates"))
     templates.env.globals["billing"] = settings.billing_enabled
+    templates.env.globals["icone_parcours"] = tableau.icone
     if settings.show_login_link:
         log.warning("Liens de connexion affichés à l'écran (CONNEXION_LIEN_A_L_ECRAN=1) : test en local seulement")
     elif settings.login_link_on_screen:
@@ -574,7 +575,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         return retour(200, info_mdp="Mot de passe enregistré.")
 
     def lab_maintenance(request):
-        return page(request, "message.html", 503, titre="Lab en maintenance",
+        return page(request, "message.html", 503, titre="Lab en maintenance", icone="terminal",
                     message="Le lab est momentanément indisponible : l'équipe est prévenue et le remet en route. "
                             "Votre travail est conservé. En attendant, les cours, les QCM et les questions restent "
                             "accessibles ; réessayez dans un moment.",
@@ -587,11 +588,11 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
             return login_redirect(f"/compte/lab?suite={quote(suite, safe='')}")
         formule = lab_plan(db, user)
         if formule == "aucune":
-            return page(request, "message.html", 403, titre="Le lab est inclus avec un parcours",
+            return page(request, "message.html", 403, titre="Le lab est inclus avec un parcours", icone="robot",
                         message="Le lab s'ouvre avec l'achat d'un parcours (ou un accès offert). « Découvrir ROS 2 » "
                                 "reste ouvert à tous, sans compte.", lien="/tarifs/", lien_texte="Voir les tarifs")
         if minutes_left(db, user, settings) == 0:
-            return page(request, "message.html", 403, titre="Quota de lab épuisé",
+            return page(request, "message.html", 403, titre="Quota de lab épuisé", icone="terminal",
                         message="Vous avez utilisé toutes vos minutes de lab ce mois-ci. Les cours, les QCM et vos "
                                 "notes restent accessibles ; le lab sera de nouveau disponible le mois prochain.",
                         lien="/compte/resultats", lien_texte="Voir mes résultats")

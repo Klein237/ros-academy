@@ -1,6 +1,7 @@
 import { poseFromMessage, type Pose2D } from "../ros/pose";
 import type { RosbridgeClient, RosStatus } from "../ros/rosbridge";
 import { button, h } from "./dom";
+import { currentTheme, onThemeChange } from "./theme";
 
 const POSE_TYPE = "nav_msgs/msg/Odometry";
 const TWIST_TYPE = "geometry_msgs/msg/Twist";
@@ -76,6 +77,7 @@ export class View2D {
     this.canvas.addEventListener("keyup", (ev) => this.key(ev, false));
     this.canvas.addEventListener("blur", () => this.setDrive(null));
     new ResizeObserver(() => this.draw()).observe(this.canvas);
+    onThemeChange(() => this.draw());
     this.setHint();
   }
 
@@ -217,12 +219,13 @@ export class View2D {
       width / 2 + (x - this.center.x) * scale,
       height / 2 - (y - this.center.y) * scale,
     ];
+    const t = currentTheme();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = "#101114";
+    ctx.fillStyle = t.surface;
     ctx.fillRect(0, 0, width, height);
 
     // grille de 1 m
-    ctx.strokeStyle = "#24252b";
+    ctx.strokeStyle = t.grid;
     ctx.lineWidth = 1;
     const x0 = Math.floor(this.center.x - width / scale / 2);
     const x1 = Math.ceil(this.center.x + width / scale / 2);
@@ -244,12 +247,12 @@ export class View2D {
     // axes du repère odom (x rouge, y vert)
     const [ox, oy] = toScreen(0, 0);
     ctx.lineWidth = 2;
-    ctx.strokeStyle = "#d9534f";
+    ctx.strokeStyle = t.axisX;
     ctx.beginPath();
     ctx.moveTo(ox, oy);
     ctx.lineTo(ox + scale * 0.5, oy);
     ctx.stroke();
-    ctx.strokeStyle = "#5cb85c";
+    ctx.strokeStyle = t.axisY;
     ctx.beginPath();
     ctx.moveTo(ox, oy);
     ctx.lineTo(ox, oy - scale * 0.5);
@@ -257,7 +260,7 @@ export class View2D {
 
     // trace
     if (this.trail.length > 1) {
-      ctx.strokeStyle = "#3d7ea6";
+      ctx.strokeStyle = t.trail;
       ctx.lineWidth = 2;
       ctx.beginPath();
       this.trail.forEach((p, i) => {
@@ -272,11 +275,11 @@ export class View2D {
     if (this.pose) {
       const [rx, ry] = toScreen(this.pose.x, this.pose.y);
       const r = 0.18 * scale;
-      ctx.fillStyle = "#e3b866";
+      ctx.fillStyle = t.accent;
       ctx.beginPath();
       ctx.arc(rx, ry, r, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = "#101114";
+      ctx.strokeStyle = t.surface;
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(rx, ry);
@@ -285,7 +288,7 @@ export class View2D {
     }
 
     // échelle
-    ctx.fillStyle = "#9a9aa3";
+    ctx.fillStyle = t.muted;
     ctx.font = "12px system-ui, sans-serif";
     ctx.fillText("1 m", 12, height - 22);
     ctx.fillRect(12, height - 14, scale, 2);

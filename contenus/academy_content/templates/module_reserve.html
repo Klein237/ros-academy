@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "partiels/icones.html" import coche %}
+{% from "partiels/icones.html" import coche, objet %}
 {% set nav_actif = "catalogue" %}
 {% block title %}{{ module.en_tete.titre }} · RoboForge{% endblock %}
 {% block content %}
@@ -14,6 +14,7 @@
   </header>
 
   <section class="encart encart-primaire" aria-labelledby="reserve">
+    {{ objet("bouclier", 110, "encart-objet") }}
     {% if not connecte %}
     <div>
       <h2 id="reserve">Cours réservé aux inscrits</h2>

@@ -1,7 +1,9 @@
 {% extends "base.html" %}
+{% from "partiels/icones.html" import objet %}
 {% block title %}{{ titre }} · RoboForge{% endblock %}
 {% block content %}
 <section class="error">
+  {{ objet("robot", 140, "erreur-objet") }}
   <h1>{{ titre }}</h1>
   <p>{{ message }}</p>
   <p><a class="button" href="/">Retour à l'accueil</a></p>

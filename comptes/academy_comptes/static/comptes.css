@@ -117,3 +117,9 @@ nav.row a[aria-current] { font-weight: 600; }
   .graphique-valeur { font-size: 20px; }
   .graphique-date { font-size: 18px; }
 }
+
+/* Icônes en verre (servies par Contenus) */
+.carte-objet-haut { display: block; width: 96px; height: 96px; margin: -8px auto 4px; }
+.certificate-page .carte-objet-haut { width: 110px; height: 110px; }
+.titre-objet { display: flex; align-items: center; gap: 14px; }
+.titre-objet h1 { margin: 0; }

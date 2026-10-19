@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "icones.html" import objet %}
 {% block title %}Certificat n° {{ numero }}{% endblock %}
 {% block content %}
 <section class="card certificate-page{% if revoque %} revoked{% endif %}">
@@ -7,6 +8,7 @@
   {% else %}
   <p class="verdict ok" role="status"><strong>Certificat authentique</strong>, délivré par RoboForge.</p>
   {% endif %}
+  {% if not revoque %}{{ objet("medaille", 110, "carte-objet-haut") }}{% endif %}
   <h1>{{ cert.nom }}</h1>
   <p>a terminé le parcours <strong>{{ cert.parcours_titre }}</strong> avec une note finale de <strong>{{ fr(cert.note) }} / 20</strong>{% if cert.mention %} (mention {{ cert.mention }}){% endif %}.</p>
   <table class="results">

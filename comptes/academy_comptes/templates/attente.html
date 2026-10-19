@@ -1,7 +1,9 @@
 {% extends "base.html" %}
+{% from "icones.html" import objet %}
 {% block title %}{{ titre }}{% endblock %}
 {% block content %}
 <section class="card login">
+  {{ objet("bouclier", 96, "carte-objet-haut") }}
   <h1>{{ titre }}</h1>
   <p>{{ message }}</p>
   {% if erreur %}<p class="form-error" role="alert">{{ erreur }}</p>{% endif %}

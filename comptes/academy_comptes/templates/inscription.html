@@ -1,7 +1,9 @@
 {% extends "base.html" %}
+{% from "icones.html" import objet %}
 {% block title %}Créer un compte{% endblock %}
 {% block content %}
 <section class="card login">
+  {{ objet("robot", 96, "carte-objet-haut") }}
   <h1>Créer un compte</h1>
   <p class="muted">Votre compte enregistre vos exercices, vos QCM et vos notes. Les parcours s'achètent ensuite, un par un : chacun ouvre ses cours, le lab ROS 2 et son certificat.</p>
   {% if complet %}<p class="card notice" role="status">Les places de la phase de test sont toutes prises. Inscrivez-vous quand même : vous prendrez rang sur la liste d'attente, et nous vous écrirons dès qu'une place s'ouvre.</p>{% endif %}

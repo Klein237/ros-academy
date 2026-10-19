@@ -1,11 +1,13 @@
 {% extends "base.html" %}
+{% from "partiels/icones.html" import objet %}
 {% set nav_actif = "decouvrir" %}
 {% block title %}Découvrir ROS 2 · RoboForge{% endblock %}
 {% block description %}D'où vient ROS, pourquoi ROS 2, qui l'utilise aujourd'hui et les liens utiles pour bien commencer.{% endblock %}
 {% block main_class %}page plein{% endblock %}
 {% block content %}
 {% set premier = parcours | first %}
-<div class="conteneur page-titre">
+<div class="conteneur page-titre avec-objet">
+  {{ objet("noeuds", 150, "page-titre-objet") }}
   <p class="eyebrow">Module 0 · Introduction · 20 min</p>
   <h1 class="titre-xl">ROS 2, le langage commun des robots</h1>
   <p class="chapeau">Un robot, c'est des capteurs, des moteurs et beaucoup de logiciels qui doivent se parler. ROS 2 leur donne une façon commune de le faire, et des milliers de briques prêtes à l'emploi pour ne pas tout réécrire.</p>
