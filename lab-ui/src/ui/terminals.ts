@@ -111,7 +111,7 @@ export class TerminalPanel {
       // à 1.0, la ligne coupe le bas des caractères : les « _ » disparaissaient ($ROS_DISTRO → $ROS DISTRO)
       lineHeight: 1.2,
       scrollback: 5000,
-      theme: { background: "#0f141a", foreground: "#d8dee9", cursor: "#7fd4c1", selectionBackground: "#2f4a5a" },
+      theme: { background: "#101114", foreground: "#e6e3dc", cursor: "#e3b866", selectionBackground: "#4a3d22" },
     });
     const fit = new FitAddon();
     term.loadAddon(fit);

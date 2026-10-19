@@ -45,7 +45,7 @@ export class EditorPanel {
         base: "vs-dark",
         inherit: true,
         rules: [],
-        colors: { "editor.background": "#0f141a" },
+        colors: { "editor.background": "#101114" },
       });
       this.editor = monaco.editor.create(this.host, {
         theme: "lab",

@@ -218,11 +218,11 @@ export class View2D {
       height / 2 - (y - this.center.y) * scale,
     ];
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = "#0f141a";
+    ctx.fillStyle = "#101114";
     ctx.fillRect(0, 0, width, height);
 
     // grille de 1 m
-    ctx.strokeStyle = "#1e2a36";
+    ctx.strokeStyle = "#24252b";
     ctx.lineWidth = 1;
     const x0 = Math.floor(this.center.x - width / scale / 2);
     const x1 = Math.ceil(this.center.x + width / scale / 2);
@@ -272,11 +272,11 @@ export class View2D {
     if (this.pose) {
       const [rx, ry] = toScreen(this.pose.x, this.pose.y);
       const r = 0.18 * scale;
-      ctx.fillStyle = "#7fd4c1";
+      ctx.fillStyle = "#e3b866";
       ctx.beginPath();
       ctx.arc(rx, ry, r, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = "#0f141a";
+      ctx.strokeStyle = "#101114";
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(rx, ry);
@@ -285,7 +285,7 @@ export class View2D {
     }
 
     // échelle
-    ctx.fillStyle = "#8a99a8";
+    ctx.fillStyle = "#9a9aa3";
     ctx.font = "12px system-ui, sans-serif";
     ctx.fillText("1 m", 12, height - 22);
     ctx.fillRect(12, height - 14, scale, 2);

@@ -35,13 +35,13 @@ export class Scene3D {
     // lève une erreur si WebGL est indisponible : le panneau l'affiche
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    this.scene.background = new THREE.Color(0x0f141a);
+    this.scene.background = new THREE.Color(0x101114);
     this.world.rotation.x = -Math.PI / 2;
     this.world.add(this.base, new THREE.AxesHelper(0.3));
     // sol : cases de 10 cm sur 4 m, et de 1 m jusqu'à 20 m
-    const fine = new THREE.GridHelper(4, 40, 0x2c3e50, 0x1b2631);
-    const large = new THREE.GridHelper(20, 20, 0x2c3e50, 0x2c3e50);
-    this.scene.add(fine, large, this.world, new THREE.HemisphereLight(0xffffff, 0x2a3440, 1.6));
+    const fine = new THREE.GridHelper(4, 40, 0x3a3b42, 0x1f2026);
+    const large = new THREE.GridHelper(20, 20, 0x3a3b42, 0x3a3b42);
+    this.scene.add(fine, large, this.world, new THREE.HemisphereLight(0xffffff, 0x2a2b31, 1.6));
     const sun = new THREE.DirectionalLight(0xffffff, 1.8);
     sun.position.set(3, 5, 4);
     this.scene.add(sun);

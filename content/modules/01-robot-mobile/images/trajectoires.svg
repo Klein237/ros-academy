@@ -2,24 +2,24 @@
 <title id="t">Trois commandes, trois trajectoires</title>
 <desc id="d">Avec ω = 0, le robot va en ligne droite. Avec v = 0, il tourne sur place. Avec v et ω positifs, il décrit un arc de cercle de rayon R = v / ω, vers la gauche.</desc>
 <style>
-.fond { fill: #fbfbf9; stroke: #c9cfc9; stroke-width: 1.5; }
-.grille { stroke: #e7eae6; stroke-width: 1; }
-.boite { fill: #ffffff; stroke: #c9cfc9; stroke-width: 1.5; }
-.calcul { fill: #e3f1ee; stroke: #0b5e57; stroke-width: 2; }
+.fond { fill: #fbfaf6; stroke: #cfc8b8; stroke-width: 1.5; }
+.grille { stroke: #ece8de; stroke-width: 1; }
+.boite { fill: #ffffff; stroke: #cfc8b8; stroke-width: 1.5; }
+.calcul { fill: #ecedf9; stroke: #3b4596; stroke-width: 2; }
 .capteur { fill: #fff8e8; stroke: #d39a2c; stroke-width: 2; }
 .actionneur { fill: #eef1f5; stroke: #56606a; stroke-width: 2; }
-.robot { fill: #e3f1ee; stroke: #0b5e57; stroke-width: 2; }
+.robot { fill: #ecedf9; stroke: #3b4596; stroke-width: 2; }
 .roue { fill: #12171c; }
 .roulette { fill: #ffffff; stroke: #12171c; stroke-width: 1.5; }
-.nez { fill: #0b5e57; }
+.nez { fill: #3b4596; }
 .ax-x { stroke: #d64545; stroke-width: 3; fill: none; } .ax-y { stroke: #2f9e44; stroke-width: 3; fill: none; }
 .px { fill: #d64545; } .py { fill: #2f9e44; }
 .trait { stroke: #56606a; stroke-width: 2; fill: none; }
 .tirets { stroke: #8a949c; stroke-width: 1.5; stroke-dasharray: 5 5; fill: none; }
 .trajet { stroke: #d39a2c; stroke-width: 3; fill: none; stroke-linecap: round; }
 .trajet-pointe { fill: #d39a2c; }
-.vitesse { stroke: #0b5e57; stroke-width: 3; fill: none; }
-.vitesse-pointe { fill: #0b5e57; }
+.vitesse { stroke: #3b4596; stroke-width: 3; fill: none; }
+.vitesse-pointe { fill: #3b4596; }
 .pointe { fill: #56606a; }
 .cir { fill: #d39a2c; }
 .t { fill: #12171c; font: 400 14px "IBM Plex Sans", system-ui, sans-serif; }
@@ -29,25 +29,25 @@
 .t-sur { fill: #56606a; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; letter-spacing: 0.08em; }
 .t-math { fill: #12171c; font: italic 500 15px "IBM Plex Serif", Georgia, serif; }
 .t-code { fill: #12171c; font: 500 13px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
-.t-accent { fill: #0b5e57; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-accent { fill: #3b4596; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
 .t-ambre { fill: #8a5d10; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
 .t-x { fill: #d64545; font: 600 13px "JetBrains Mono", monospace; } .t-y { fill: #2f9e44; font: 600 13px "JetBrains Mono", monospace; }
-.badge { fill: #0b5e57; } .t-badge { fill: #ffffff; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; }
-.sep { stroke: #e2e5e1; stroke-width: 1.5; }
+.badge { fill: #3b4596; } .t-badge { fill: #ffffff; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; }
+.sep { stroke: #e7e2d6; stroke-width: 1.5; }
 @media (prefers-color-scheme: dark) {
-  .fond { fill: #0f161d; stroke: #34424f; } .grille { stroke: #1b2630; }
-  .boite { fill: #121a22; stroke: #34424f; }
-  .calcul, .robot { fill: #12302d; stroke: #4fb3a7; }
+  .fond { fill: #101114; stroke: #3a3b42; } .grille { stroke: #1f2026; }
+  .boite { fill: #16171b; stroke: #3a3b42; }
+  .calcul, .robot { fill: #1d2140; stroke: #9aa4f0; }
   .capteur { fill: #2a2212; stroke: #f2b544; }
-  .actionneur { fill: #1a222b; stroke: #8a99a8; }
-  .roue { fill: #c9d3dc; } .roulette { fill: #121a22; stroke: #c9d3dc; } .nez { fill: #4fb3a7; }
+  .actionneur { fill: #1c1d22; stroke: #9a9aa3; }
+  .roue { fill: #c9c9cf; } .roulette { fill: #16171b; stroke: #c9c9cf; } .nez { fill: #9aa4f0; }
   .ax-x { stroke: #ff6b6b; } .ax-y { stroke: #51cf66; } .px, .t-x { fill: #ff6b6b; } .py, .t-y { fill: #51cf66; }
-  .trait { stroke: #8a99a8; } .tirets { stroke: #5d6b78; } .pointe { fill: #8a99a8; }
+  .trait { stroke: #9a9aa3; } .tirets { stroke: #62636b; } .pointe { fill: #9a9aa3; }
   .trajet { stroke: #f2b544; } .trajet-pointe, .cir { fill: #f2b544; }
-  .vitesse { stroke: #4fb3a7; } .vitesse-pointe { fill: #4fb3a7; }
-  .t, .t-gras, .t-titre, .t-math, .t-code { fill: #e3e8ee; }
-  .t-petit, .t-sur { fill: #8a99a8; } .t-accent { fill: #4fb3a7; } .t-ambre { fill: #f2b544; }
-  .badge { fill: #4fb3a7; } .t-badge { fill: #0b1015; } .sep { stroke: #22303c; }
+  .vitesse { stroke: #9aa4f0; } .vitesse-pointe { fill: #9aa4f0; }
+  .t, .t-gras, .t-titre, .t-math, .t-code { fill: #f4f1ea; }
+  .t-petit, .t-sur { fill: #9a9aa3; } .t-accent { fill: #9aa4f0; } .t-ambre { fill: #f2b544; }
+  .badge { fill: #9aa4f0; } .t-badge { fill: #0b0b0d; } .sep { stroke: #26272d; }
 }
 </style>
 <defs>
