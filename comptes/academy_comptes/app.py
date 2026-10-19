@@ -22,7 +22,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from sqlalchemy import select
 
-from . import acces, avis, certificats, formateur, grading, inscriptions, questions, rgpd
+from . import acces, avis, certificats, formateur, grading, inscriptions, questions, rgpd, tableau
 from .billing import BadSignature, StripeClient, StripeError, format_amount, price_cents, verify_signature
 from .auth import (
     OAUTH_COOKIE,
@@ -1133,9 +1133,16 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         actif = next((r for r in suivis if r["commence"] and r["prochain"]),
                      next((r for r in suivis if r["prochain"]), None))
         notes = [m["grade"].note for r in suivis for m in r["modules"] if m["etat"] == "termine"]
-        return page(request, "apprentissage.html", user=user, suivis=suivis, actif=actif,
+        # le parcours mis en avant : celui qu'on reprend, sinon le premier commencé
+        focus = actif or next((r for r in suivis if r["commence"]), suivis[0] if suivis else None)
+        return page(request, "apprentissage.html", user=user, suivis=suivis, actif=actif, focus=focus,
                     termines=len(notes), moyenne=round(sum(notes) / len(notes), 1) if notes else None,
                     utilisees=minutes_used(db, user), restantes=minutes_left(db, user, settings),
+                    indices=sum(m["indices"] for r in suivis for m in r["modules"]),
+                    graphique=tableau.chart(tableau.weekly_minutes(db, user)),
+                    mes_questions=tableau.my_questions(db, user),
+                    badges=tableau.badges(focus) if focus else [], icone=tableau.icone,
+                    note_min=settings.certificat_note_min,
                     certificats=[r["certificat"] for r in suivis if r["certificat"] and not r["certificat"].revoque_le])
 
     @app.get("/api/comptes/progression/{parcours_id}")

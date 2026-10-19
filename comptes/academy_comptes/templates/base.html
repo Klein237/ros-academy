@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="/static/contenus/site.css">
   <link rel="stylesheet" href="/static/comptes/comptes.css">
 </head>
-<body>
+<body{% block body_class %}{% endblock %}>
   {# Même en-tête et pied de page que Contenus (contenus/academy_content/templates/base.html) #}
   <a class="skip-link" href="#principal">Aller au contenu</a>
   <header class="site-header">

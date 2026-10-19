@@ -1,0 +1,162 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<!-- Icônes en verre de RoboForge : une scène three.js par objet (?objet=robot). Rendue par rendre.mjs. -->
+<style>html,body{margin:0;background:transparent}canvas{display:block}</style>
+<script type="importmap">
+{"imports":{"three":"./three/build/three.module.js","three/addons/":"./three/examples/jsm/"}}
+</script>
+</head>
+<body>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+const params = new URLSearchParams(location.search);
+const SIZE = Number(params.get('taille') || 640);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: true, premultipliedAlpha: false });
+renderer.setPixelRatio(1);
+renderer.setSize(SIZE, SIZE);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+renderer.setClearColor(0x000000, 0);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.6;
+
+const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
+camera.position.set(0, 0.6, 8);
+camera.lookAt(0, 0, 0);
+
+// lumières : clé chaude (or) en haut à gauche, contre-jour froid, liseré or à droite
+const cle = new THREE.DirectionalLight('#ffe2a8', 2.2); cle.position.set(-4, 5, 4); scene.add(cle);
+const contre = new THREE.DirectionalLight('#9fb4ff', 3.0); contre.position.set(3, 2, -5); scene.add(contre);
+const lisere = new THREE.PointLight('#e3b866', 40, 20); lisere.position.set(3.5, -1, 2.5); scene.add(lisere);
+const bas = new THREE.PointLight('#7d8cff', 18, 20); bas.position.set(-3, -3, 1); scene.add(bas);
+
+
+// verre dépoli lumineux : liseré de Fresnel ajouté à l'émission (le centre reste sombre et profond)
+const avecLisere = (m, couleur, force) => {
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.couleurLisere = { value: new THREE.Color(couleur) };
+    sh.uniforms.forceLisere = { value: force };
+    sh.fragmentShader = 'uniform vec3 couleurLisere;\nuniform float forceLisere;\n' + sh.fragmentShader.replace(
+      '#include <emissivemap_fragment>',
+      '#include <emissivemap_fragment>\n float fres = pow(1.0 - abs(dot(normalize(normal), normalize(vViewPosition))), 2.2);\n totalEmissiveRadiance += couleurLisere * fres * forceLisere;');
+  };
+  return m;
+};
+const verre = (teinte = '#2a3068') => avecLisere(new THREE.MeshPhysicalMaterial({
+  color: teinte, metalness: 0.05, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.08,
+  emissive: '#0c0f24', envMapIntensity: 1.1, sheen: 0.8, sheenColor: '#aab4ff', sheenRoughness: 0.35,
+  transparent: true, opacity: 0.96,
+}), '#c9d1ff', 2.4);
+const verreOr = () => avecLisere(new THREE.MeshPhysicalMaterial({
+  color: '#7a5718', metalness: 0.55, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.06,
+  emissive: '#1c1203', envMapIntensity: 1.3, sheen: 0.6, sheenColor: '#ffe3a8',
+}), '#ffd27a', 2.2);
+
+const g = new THREE.Group(); scene.add(g);
+const add = (geo, mat, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0) => {
+  const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); g.add(m); return m;
+};
+const extrude = (shape, depth, bevel = 0.12) => new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 8, curveSegments: 32 });
+
+const objets = {
+  robot() {
+    add(new RoundedBoxGeometry(2.4, 0.9, 1.9, 6, 0.32), verre(), 0, 0, 0);
+    const roue = new THREE.CylinderGeometry(0.55, 0.55, 0.32, 48);
+    add(roue, verreOr(), 0.05, -0.12, 1.12, Math.PI / 2);
+    add(roue, verreOr(), 0.05, -0.12, -1.12, Math.PI / 2);
+    add(new THREE.SphereGeometry(0.42, 48, 24, 0, Math.PI * 2, 0, Math.PI / 2), verre(), 0.55, 0.45, 0);
+    add(new THREE.SphereGeometry(0.16, 24, 16), verreOr(), -0.95, -0.5, 0);
+    g.rotation.set(0.42, -0.65, 0);
+  },
+  bras() {
+    add(new THREE.CylinderGeometry(0.85, 1.0, 0.4, 48), verre(), 0, -1.45, 0);
+    add(new THREE.SphereGeometry(0.34, 32, 16), verreOr(), 0, -1.1, 0);
+    add(new RoundedBoxGeometry(0.42, 1.6, 0.42, 4, 0.18), verre(), 0.3, -0.35, 0, 0, 0, -0.35);
+    add(new THREE.SphereGeometry(0.3, 32, 16), verreOr(), 0.58, 0.42, 0);
+    add(new RoundedBoxGeometry(1.5, 0.36, 0.36, 4, 0.16), verre(), 1.25, 0.62, 0, 0, 0, 0.28);
+    add(new RoundedBoxGeometry(0.12, 0.5, 0.18, 2, 0.05), verreOr(), 2.02, 0.98, 0.12, 0, 0, 0.28);
+    add(new RoundedBoxGeometry(0.12, 0.5, 0.18, 2, 0.05), verreOr(), 2.1, 0.62, -0.12, 0, 0, 0.28);
+    g.position.set(-0.9, 0.35, 0); g.rotation.set(0.15, -0.5, 0);
+  },
+  conteneur() {
+    add(new RoundedBoxGeometry(2.6, 1.3, 1.3, 6, 0.14), verre(), 0, 0, 0);
+    const nervure = new RoundedBoxGeometry(0.1, 1.12, 0.06, 2, 0.03);
+    for (let i = -5; i <= 5; i++) add(nervure, verreOr(), i * 0.22, 0, 0.68);
+    for (let i = -5; i <= 5; i++) add(new RoundedBoxGeometry(0.06, 1.12, 0.1, 2, 0.03), verre(), 1.32, 0, i * 0.1);
+    g.rotation.set(0.38, -0.55, 0);
+  },
+  bouclier() {
+    const s = new THREE.Shape();
+    s.moveTo(0, 1.35); s.bezierCurveTo(0.55, 1.05, 0.95, 1.0, 1.15, 1.0); s.lineTo(1.15, 0.1);
+    s.bezierCurveTo(1.15, -0.75, 0.55, -1.2, 0, -1.45); s.bezierCurveTo(-0.55, -1.2, -1.15, -0.75, -1.15, 0.1);
+    s.lineTo(-1.15, 1.0); s.bezierCurveTo(-0.95, 1.0, -0.55, 1.05, 0, 1.35);
+    add(extrude(s, 0.35, 0.16), verre(), 0, 0, -0.2);
+    const c = new THREE.Shape();
+    c.moveTo(-0.55, 0.05); c.lineTo(-0.18, -0.35); c.lineTo(0.58, 0.45); c.lineTo(0.44, 0.58); c.lineTo(-0.18, -0.06); c.lineTo(-0.41, -0.09);
+    add(extrude(c, 0.18, 0.06), verreOr(), 0, 0, 0.32);
+    g.rotation.set(0.12, -0.45, 0.04);
+  },
+  terminal() {
+    add(new RoundedBoxGeometry(2.6, 1.9, 0.3, 6, 0.14), verre(), 0, 0, 0);
+    add(new RoundedBoxGeometry(2.6, 0.32, 0.34, 4, 0.12), verre('#eef0ff'), 0, 0.8, 0.02);
+    const chevron = new THREE.Shape(); chevron.moveTo(-0.85, 0.3); chevron.lineTo(-0.35, -0.05); chevron.lineTo(-0.85, -0.4); chevron.lineTo(-0.85, -0.22); chevron.lineTo(-0.6, -0.05); chevron.lineTo(-0.85, 0.12);
+    add(extrude(chevron, 0.14, 0.04), verreOr(), 0, -0.1, 0.18);
+    add(new RoundedBoxGeometry(0.6, 0.12, 0.16, 2, 0.05), verreOr(), 0.05, -0.45, 0.26);
+    g.rotation.set(0.25, -0.5, 0);
+  },
+  ampoule() {
+    add(new THREE.SphereGeometry(1.05, 64, 32), verre(), 0, 0.35, 0);
+    add(new THREE.CylinderGeometry(0.45, 0.5, 0.65, 48), verreOr(), 0, -0.85, 0);
+    for (let i = 0; i < 3; i++) add(new THREE.TorusGeometry(0.5, 0.05, 12, 48), verreOr(), 0, -0.68 - i * 0.18, 0, Math.PI / 2);
+    add(new THREE.TorusGeometry(0.28, 0.04, 12, 48, Math.PI), verreOr(), 0, 0.15, 0, 0, 0, Math.PI);
+    g.rotation.set(0.2, -0.4, 0.1);
+  },
+  medaille() {
+    add(new THREE.CylinderGeometry(1.15, 1.15, 0.28, 64), verreOr(), 0, -0.1, 0, Math.PI / 2);
+    const e = new THREE.Shape();
+    for (let i = 0; i < 10; i++) { const r = i % 2 ? 0.28 : 0.62, a = Math.PI / 2 + i * Math.PI / 5; i ? e.lineTo(r * Math.cos(a), r * Math.sin(a)) : e.moveTo(r * Math.cos(a), r * Math.sin(a)); }
+    add(extrude(e, 0.1, 0.05), verre('#fff7e6'), 0, -0.1, 0.16);
+    const ruban = new RoundedBoxGeometry(0.5, 1.2, 0.08, 2, 0.04);
+    add(ruban, verre(), -0.32, 1.25, -0.1, 0, 0, 0.35);
+    add(ruban, verre(), 0.32, 1.25, -0.1, 0, 0, -0.35);
+    g.position.y = -0.2; g.rotation.set(0.1, -0.45, 0);
+  },
+  noeuds() {
+    const pts = [[-1.3, -0.6, 0], [0.2, 0.9, 0.2], [1.3, -0.5, -0.2], [0.1, -1.0, 0.5]];
+    pts.forEach((p, i) => add(new THREE.SphereGeometry(i === 1 ? 0.48 : 0.38, 48, 24), i === 1 ? verreOr() : verre(), ...p));
+    const lien = (a, b) => {
+      const va = new THREE.Vector3(...a), vb = new THREE.Vector3(...b), d = vb.clone().sub(va);
+      const m = add(new THREE.CylinderGeometry(0.07, 0.07, d.length(), 16), verre('#eef0ff'));
+      m.position.copy(va.clone().add(vb).multiplyScalar(0.5));
+      m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
+    };
+    lien(pts[0], pts[1]); lien(pts[1], pts[2]); lien(pts[0], pts[3]); lien(pts[3], pts[2]); lien(pts[1], pts[3]);
+    g.rotation.set(0.2, -0.3, 0);
+  },
+};
+
+const nom = params.get('objet') || 'robot';
+objets[nom]();
+// cadrer l'objet
+const boite = new THREE.Box3().setFromObject(g), centre = boite.getCenter(new THREE.Vector3()), taille = boite.getSize(new THREE.Vector3());
+g.position.sub(centre);
+const rayon = Math.max(taille.x, taille.y, taille.z) * 0.5;
+camera.position.set(0, 0.25, rayon / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.25 + 1);
+camera.lookAt(0, 0, 0);
+renderer.render(scene, camera);
+renderer.render(scene, camera);
+window.rendu = renderer.domElement.toDataURL('image/png');
+</script>
+</body>
+</html>
