@@ -291,3 +291,58 @@ it("serveur arrêté pendant la session, quota à zéro → état quota", async 
   expect(await s.checkAlive()).toBe(false);
   expect(s.state.kind).toBe("quota");
 });
+
+it("démarre le lab avec le dossier du parcours du module", async () => {
+  const hub = fakeHub({ server: [null, { ready: true, pending: null, parcours: "bras-robotique" }] });
+  const s = new Session(hub as never, { parcours: async () => "bras-robotique" });
+  await s.open();
+  expect(hub.start).toHaveBeenCalledWith("bras-robotique");
+  expect(hub.stop).not.toHaveBeenCalled();
+  expect(s.state.kind).toBe("ready");
+});
+
+it("un lab lancé pour un autre parcours est arrêté, puis relancé avec le bon dossier", async () => {
+  const hub = fakeHub({
+    start: ["started"],
+    server: [
+      { ready: true, pending: null, parcours: "ros2-fondamentaux" }, // lab de l'autre parcours
+      { ready: false, pending: "stop", parcours: "ros2-fondamentaux" },
+      null, // arrêté
+      { ready: true, pending: null, parcours: "bras-robotique" },
+    ],
+  });
+  const s = new Session(hub as never, { parcours: async () => "bras-robotique", pollMs: 10 });
+  const messages: string[] = [];
+  s.onChange((st) => st.kind === "starting" && messages.push(st.message));
+  const done = s.open();
+  await vi.advanceTimersByTimeAsync(100);
+  await done;
+  expect(hub.stop).toHaveBeenCalledTimes(1);
+  expect(hub.start).toHaveBeenCalledWith("bras-robotique");
+  expect(messages).toContain("Changement de parcours : arrêt du lab précédent…");
+  expect(s.state.kind).toBe("ready");
+});
+
+it("lab ouvert seul : le serveur en cours convient, quel que soit son parcours", async () => {
+  const hub = fakeHub({ start: ["running"], server: [{ ready: true, pending: null, parcours: "bras-robotique" }] });
+  const s = new Session(hub as never);
+  await s.open();
+  expect(hub.stop).not.toHaveBeenCalled();
+  expect(hub.start).toHaveBeenCalledWith("");
+  expect(s.state.kind).toBe("ready");
+});
+
+it("lab relancé pour un autre parcours depuis un autre onglet : cet onglet s'arrête", async () => {
+  const hub = fakeHub({
+    server: [
+      null,
+      { ready: true, pending: null, parcours: "bras-robotique" },
+      { ready: true, pending: null, parcours: "ros2-fondamentaux" },
+    ],
+  });
+  const s = new Session(hub as never, { parcours: async () => "bras-robotique" });
+  await s.open();
+  expect(s.state.kind).toBe("ready");
+  expect(await s.checkAlive()).toBe(false);
+  expect(s.state).toEqual({ kind: "stopped", reason: "external" });
+});

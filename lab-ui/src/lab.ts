@@ -6,7 +6,7 @@ import { ModuleClient } from "./api/module";
 import { TerminalsClient } from "./api/terminals";
 import { readConfig } from "./config";
 import { ACTIVITY_EVENTS, IdleWatcher } from "./idle";
-import { ensureCourseFile, exerciseDir, installLabWithRetry, labDir, migrateLegacy, parcoursDir, setWorkspace } from "./module";
+import { ensureCourseFile, exerciseDir, installLabWithRetry, labDir, migrateLegacy, parcoursDir, parcoursOf, setWorkspace } from "./module";
 import { normalizePath, parentOf } from "./paths";
 import { RosbridgeClient } from "./ros/rosbridge";
 import { Session } from "./session";
@@ -24,10 +24,25 @@ import { WaitingScreen } from "./ui/waiting";
 const config = readConfig(location.search);
 const hub = new HubClient();
 const comptes = new ComptesClient();
-const session = new Session(hub, { account: comptes });
+const moduleClient = config.moduleId ? new ModuleClient(config.moduleId) : null;
+/** Informations du module, demandées une fois (démarrage du lab, puis installation du module). */
+const moduleInfo = moduleClient ? moduleClient.info() : null;
+moduleInfo?.catch(() => undefined); // l'erreur est traitée par prepareModule
+/**
+ * Chaque parcours a son dossier personnel : le lab démarre avec celui du parcours du module.
+ * Sans module, ou si le module ne répond pas, le lab en cours convient (null).
+ */
+async function parcoursDuModule(): Promise<string | null> {
+  if (!moduleInfo) return null;
+  try {
+    return parcoursOf((await moduleInfo).workspace);
+  } catch {
+    return null;
+  }
+}
+const session = new Session(hub, { account: comptes, parcours: parcoursDuModule });
 const contents = new ContentsClient(hub);
 const terminalsClient = new TerminalsClient(hub);
-const moduleClient = config.moduleId ? new ModuleClient(config.moduleId) : null;
 
 const app = document.getElementById("app")!;
 const waiting = new WaitingScreen(() => void session.launch());
@@ -208,7 +223,7 @@ async function prepareModule(): Promise<string> {
   const id = config.moduleId;
   try {
     const client = moduleClient;
-    setWorkspace(id, (await client.info()).workspace);
+    setWorkspace(id, (await (moduleInfo ?? client.info())).workspace);
     const moved = await migrateLegacy(contents, id);
     if (moved.length) toast(`Les dossiers de ce module sont maintenant rangés dans ~/${parentOf(labDir(id))}/`, "info");
     await installLabWithRetry(contents, id, () => client.labFiles());

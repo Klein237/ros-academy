@@ -217,3 +217,25 @@ def test_route_requires_secret_and_calls_the_verifier(store):
 
 
 from test_app import store  # noqa: E402,F401 (fixture)
+
+
+def test_parcours_home_is_preferred_then_the_old_common_home(tmp_path):
+    base = make_module(tmp_path)
+    ws = "ws/bras-robotique/01-demo"
+    # dossier du parcours (volume du Hub) : c'est lui qui est vérifié
+    fake = FakeDocker({"ros-lab-home-u7", "ros-lab-home-u7--bras-robotique"})
+    assert verify_exercise(base, "01-demo", "u7", "img", client=fake, workspace=ws).ok
+    assert fake.created[0][1]["volumes"] == {"ros-lab-home-u7--bras-robotique": {"bind": "/eleve", "mode": "ro"}}
+    # parcours pas encore rouvert depuis la séparation : l'ancien dossier commun
+    fake = FakeDocker({"ros-lab-home-u7"})
+    assert verify_exercise(base, "01-demo", "u7", "img", client=fake, workspace=ws).ok
+    assert fake.created[0][1]["volumes"] == {"ros-lab-home-u7": {"bind": "/eleve", "mode": "ro"}}
+    # dossiers à quota : <dossier>/.parcours/<parcours>
+    homes = tmp_path / "homes"
+    (homes / "u7" / ".parcours" / "bras-robotique").mkdir(parents=True)
+    fake = FakeDocker()
+    assert verify_exercise(base, "01-demo", "u7", "img", client=fake, homes_dir=str(homes), workspace=ws).ok
+    assert fake.created[0][1]["volumes"] == {str(homes / "u7" / ".parcours" / "bras-robotique"): {"bind": "/eleve", "mode": "ro"}}
+    (homes / "u8").mkdir()
+    assert verify_exercise(base, "01-demo", "u8", "img", client=fake, homes_dir=str(homes), workspace=ws).ok
+    assert fake.created[1][1]["volumes"] == {str(homes / "u8"): {"bind": "/eleve", "mode": "ro"}}

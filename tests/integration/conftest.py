@@ -42,8 +42,10 @@ class Hub:
             allow_redirects=False,
         )
 
-    def start(self, name, timeout=180):
-        r = self.api("POST", f"/users/{name}/server")
+    def start(self, name, timeout=180, parcours=None):
+        # avec un parcours, seul le dossier de ce parcours est monté ; toujours envoyé, comme le Lab UI :
+        # sans corps, le Hub reprendrait le parcours du démarrage précédent
+        r = self.api("POST", f"/users/{name}/server", json={"parcours": parcours or ""})
         if r.status_code not in (201, 202, 400):  # 400 = déjà démarré
             raise RuntimeError(
                 f"démarrage de {name} refusé : {r.status_code} {r.text}"

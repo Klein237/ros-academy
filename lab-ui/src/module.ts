@@ -46,6 +46,11 @@ export function parcoursDir(dir: string): string {
   return /^ws\/[a-z0-9][a-z0-9-]{0,63}\/[0-9]{2}-/.test(dir) ? dir.split("/").slice(0, 2).join("/") : "";
 }
 
+/** Parcours d'un dossier de lab (ws/<parcours>/<module>) ; "" pour un module sans parcours. */
+export function parcoursOf(workspace: string | undefined): string {
+  return parcoursDir(workspace ?? "").slice("ws/".length);
+}
+
 export const academyDir = (id: string) => `.academy/${id}`;
 
 /**

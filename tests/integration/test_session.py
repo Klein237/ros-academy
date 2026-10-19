@@ -181,6 +181,37 @@ def test_workspace_persists_across_restart(student, hub):
     assert "bonjour" in hub.run(name, "cat ~/ws/src/note.txt")
 
 
+def test_each_parcours_has_its_own_home(student, hub):
+    """Lab d'un parcours : seul son dossier est monté ; ~/ws/<parcours> de l'ancien dossier commun y est
+    déplacé à la première ouverture. Les sorties sont mises en majuscules : l'écho de la commande tapée
+    (en minuscules) ne peut pas suffire au test."""
+    name = student()  # lab ouvert seul : l'ancien dossier commun
+    hub.run(name, "mkdir -p ~/ws/bras-robotique/31 ~/ws/ros2-fondamentaux/05 && echo bras > ~/ws/bras-robotique/31/note"
+                  " && echo mobile > ~/ws/ros2-fondamentaux/05/note")
+    hub.stop(name)
+    hub.start(name, parcours="bras-robotique")
+    server = hub.api("GET", f"/users/{name}").json()["servers"][""]
+    assert server["user_options"] == {"parcours": "bras-robotique"}  # lu par le Lab UI
+    out = hub.run(name, "ls ~/ws | tr a-z A-Z; cat ~/ws/bras-robotique/31/note | tr a-z A-Z; "
+                        "test -f ~/.bashrc && echo bashrc-present | tr a-z A-Z")
+    assert "BRAS-ROBOTIQUE" in out and "ROS2-FONDAMENTAUX" not in out
+    assert "BRAS\n" in out.replace("\r", "") and "BASHRC-PRESENT" in out
+    if os.environ.get("LAB_HOMES_DIR"):
+        assert "1024M" in hub.run(name, "df -BM --output=size ~ | tail -1")  # même quota que le dossier commun
+    hub.run(name, "echo apres > ~/ws/bras-robotique/31/apres")
+    hub.stop(name)
+    hub.start(name, parcours="ros2-fondamentaux")
+    out = hub.run(name, "ls ~/ws | tr a-z A-Z; cat ~/ws/ros2-fondamentaux/05/note | tr a-z A-Z")
+    assert "ROS2-FONDAMENTAUX" in out and "BRAS-ROBOTIQUE" not in out and "MOBILE" in out
+    hub.stop(name)
+    hub.start(name, parcours="bras-robotique")
+    assert "APRES" in hub.run(name, "cat ~/ws/bras-robotique/31/apres | tr a-z A-Z")  # conservé
+    hub.stop(name)
+    hub.start(name)  # de nouveau seul : l'ancien dossier, sans les dossiers déplacés
+    out = hub.run(name, "ls ~/ws | tr a-z A-Z")
+    assert "BRAS-ROBOTIQUE" not in out and "ROS2-FONDAMENTAUX" not in out
+
+
 @pytest.mark.limit
 def test_server_limit_returns_429(student, hub):
     student(), student()  # ACTIVE_SERVER_LIMIT=2 : le Hub est plein

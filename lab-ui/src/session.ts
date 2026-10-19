@@ -24,6 +24,11 @@ export interface SessionOptions {
   pollMs?: number;
   timers?: Timers;
   account?: AccountLike;
+  /**
+   * Parcours du module ouvert : le lab démarre avec le dossier de ce parcours, et un lab lancé pour
+   * un autre parcours est d'abord arrêté. null (ou absent) : lab ouvert seul, le serveur en cours convient.
+   */
+  parcours?: () => Promise<string | null>;
 }
 
 /** Démarrage du conteneur de l'étudiant, vu comme une suite d'états affichables. */
@@ -37,6 +42,8 @@ export class Session {
   private readonly timers: Timers;
   private readonly account: AccountLike | null;
   private ticket: QueueTicket | null = null;
+  private readonly parcoursOf: () => Promise<string | null>;
+  private parcours: string | null = null;
 
   constructor(
     private readonly hub: HubLike,
@@ -47,6 +54,7 @@ export class Session {
     this.pollMs = opts.pollMs ?? 1000;
     this.timers = opts.timers ?? realTimers;
     this.account = opts.account ?? null;
+    this.parcoursOf = opts.parcours ?? (async () => null);
   }
 
   onChange(cb: (s: SessionState) => void): void {
@@ -86,9 +94,11 @@ export class Session {
     const refus = await this.labRefused();
     if (refus) return this.set(refus);
     try {
+      this.parcours = await this.parcoursOf();
+      await this.leaveOtherParcours();
       // une coupure pendant la demande ne dit rien du démarrage, qui continue côté Hub :
       // l'état réel est lu ensuite par waitReady (qui redemande le démarrage si besoin)
-      const result = await transientAs(this.hub.start(), "pending" as const);
+      const result = await transientAs(this.hub.start(this.parcours ?? ""), "pending" as const);
       if (result === "full") return this.waitForRoom();
       if (result !== "running") {
         const last = await transientAs(
@@ -115,6 +125,25 @@ export class Session {
       console.warn("Démarrage du lab en échec", e);
       this.set({ kind: "failed", message: "Le conteneur n'a pas pu démarrer." });
     }
+  }
+
+  /**
+   * Un lab lancé pour un autre parcours monte un autre dossier : il est arrêté avant de démarrer
+   * celui-ci (un seul lab à la fois). Ses fichiers sont conservés dans le dossier de son parcours.
+   */
+  private async leaveOtherParcours(): Promise<void> {
+    if (this.parcours === null) return;
+    const server = await this.hub.server().catch(() => null);
+    if (!server || (server.parcours ?? "") === this.parcours) return;
+    this.set({ kind: "starting", progress: 0, message: "Changement de parcours : arrêt du lab précédent…" });
+    await this.hub.stop();
+    const deadline = this.timers.now() + this.startTimeoutMs;
+    while (this.timers.now() < deadline) {
+      const s = await this.hub.server().catch(() => server);
+      if (!s) return;
+      await sleep(this.pollMs, this.timers);
+    }
+    throw new Error("le lab du parcours précédent ne s'arrête pas");
   }
 
   /**
@@ -199,7 +228,7 @@ export class Session {
       }
       if (!server) {
         // un ancien conteneur finissait de s'arrêter : on redemande le démarrage
-        if ((await this.hub.start()) === "full") return this.waitForRoom();
+        if ((await this.hub.start(this.parcours ?? "")) === "full") return this.waitForRoom();
       }
       await sleep(this.pollMs, this.timers);
     }
@@ -215,7 +244,13 @@ export class Session {
     } catch {
       return true; // réseau coupé : on ne conclut rien
     }
-    if (server?.ready) return true;
+    // relancé depuis un autre onglet pour un autre parcours : ce n'est plus le dossier de cet onglet
+    const autreParcours = this.parcours !== null && server?.ready && (server.parcours ?? "") !== this.parcours;
+    if (server?.ready && !autreParcours) return true;
+    if (autreParcours) {
+      this.set({ kind: "stopped", reason: "external" });
+      return false;
+    }
     // arrêté par Comptes au passage à zéro du quota, ou par le Hub
     this.set((await this.labRefused()) ?? { kind: "stopped", reason: "external" });
     return false;
