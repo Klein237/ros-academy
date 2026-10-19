@@ -25,14 +25,27 @@ if [ -z "$(distance)" ]; then
   echo "Le robot ne répond pas au service /get_pose (journal : $LOG)."
   exit 1
 fi
-# 2 s de commandes (20 messages à 10 Hz), puis plus rien
-timeout 15 ros2 topic pub -r 10 -t 20 /cmd_vel_brut geometry_msgs/msg/Twist "{linear: {x: 0.2}}" > /dev/null 2>&1
-sleep 1.5
-a=$(distance); sleep 2; b=$(distance)
-if python3 -c "import sys; sys.exit(float(sys.argv[1]) > 0.05)" "$a"; then
-  echo "Le robot n'a pas avancé pendant les 2 s de commandes ($a m) : garde_node doit laisser passer les commandes."
+avance() {  # vrai si la distance $1 dépasse 5 cm
+  python3 -c "import sys; sys.exit(not float(sys.argv[1] or 0) > 0.05)" "$1"
+}
+# Commandes à 10 Hz jusqu'à ce que le robot ait avancé (10 s au plus), puis plus rien. En continu
+# plutôt qu'une rafale de 2 s : sur une machine chargée, les premiers messages peuvent se perdre.
+setsid ros2 topic pub -r 10 /cmd_vel_brut geometry_msgs/msg/Twist "{linear: {x: 0.2}}" > /dev/null 2>&1 &
+PUB=$!
+trap 'kill -TERM -- -$PUB 2>/dev/null; kill -TERM -- -$NODE 2>/dev/null; wait $NODE 2>/dev/null' EXIT
+a=""
+for _ in $(seq 1 10); do
+  sleep 1
+  a=$(distance)
+  avance "$a" && break
+done
+kill -TERM -- -$PUB 2>/dev/null; wait $PUB 2>/dev/null
+if ! avance "$a"; then
+  echo "Le robot n'a pas avancé pendant 10 s de commandes (${a:-?} m) : garde_node doit laisser passer les commandes."
   exit 1
 fi
+sleep 1.5
+a=$(distance); sleep 2; b=$(distance)
 if python3 -c "import sys; a, b = map(float, sys.argv[1:]); sys.exit(b - a < 0.01)" "$a" "$b"; then
   echo "Les commandes ont cessé depuis plus de 1,5 s, mais le robot roule encore : $a m, puis $b m deux secondes plus tard."
   exit 1
