@@ -50,10 +50,10 @@
 		}
 	}
 
-	# Routes internes : correction du QCM, indices, explication (Contenus) et quota
+	# Routes internes : correction du QCM, indices, explication et santé (Contenus), quota
 	# demandé par le Hub (Comptes). Le navigateur passe par Comptes, qui applique les règles.
 	@interne {
-		path_regexp ^/api/(comptes/interne/|contenus/modules/[^/]+/(indices/|explication))
+		path_regexp ^/api/(comptes/interne/|contenus/sante/|contenus/modules/[^/]+/(indices/|explication))
 	}
 	@qcm_interne {
 		method POST
