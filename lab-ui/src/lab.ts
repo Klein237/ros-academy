@@ -6,7 +6,7 @@ import { ModuleClient } from "./api/module";
 import { TerminalsClient } from "./api/terminals";
 import { readConfig } from "./config";
 import { ACTIVITY_EVENTS, IdleWatcher } from "./idle";
-import { ensureCourseFile, exerciseDir, installLabWithRetry, labDir, migrateLegacy, setWorkspace } from "./module";
+import { ensureCourseFile, exerciseDir, installLabWithRetry, labDir, migrateLegacy, parcoursDir, setWorkspace } from "./module";
 import { normalizePath, parentOf } from "./paths";
 import { RosbridgeClient } from "./ros/rosbridge";
 import { Session } from "./session";
@@ -244,6 +244,7 @@ async function startWorkspace(): Promise<void> {
   const files = new FileTree({
     client: contents,
     root: cwd || (config.openPath ? parentOf(config.openPath) : ""),
+    base: parcoursDir(cwd),
     onOpen: (path) => void editor.openFile(path),
     onDeleted: (path) => editor.closeDeleted(path),
   });

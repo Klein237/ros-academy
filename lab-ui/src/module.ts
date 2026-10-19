@@ -38,6 +38,14 @@ export async function migrateLegacy(contents: Contents, id: string): Promise<str
   }
   return moved;
 }
+/**
+ * Dossier du parcours (ws/<parcours>) qui contient `dir` : l'explorateur part de là, pour que
+ * chaque parcours ne montre que ses propres modules. Hors d'un parcours : tout le dossier personnel.
+ */
+export function parcoursDir(dir: string): string {
+  return /^ws\/[a-z0-9][a-z0-9-]{0,63}\/[0-9]{2}-/.test(dir) ? dir.split("/").slice(0, 2).join("/") : "";
+}
+
 export const academyDir = (id: string) => `.academy/${id}`;
 
 /**

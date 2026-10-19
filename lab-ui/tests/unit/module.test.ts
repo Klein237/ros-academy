@@ -12,6 +12,7 @@ import {
   isTransient,
   labDir,
   migrateLegacy,
+  parcoursDir,
   resetLab,
   scriptCommand,
   setWorkspace,
@@ -246,5 +247,13 @@ describe("dossiers rangés par parcours", () => {
     expect(fs.files.get("ws/robot/09-garde/x")).toBe("nouveau");
     // module sans parcours : rien à faire
     expect(await migrateLegacy(fs, "10-seul")).toEqual([]);
+  });
+
+  it("l'explorateur part du dossier du parcours, pas de tout ~/ws", () => {
+    expect(parcoursDir("ws/bras-robotique/31-bras-urdf")).toBe("ws/bras-robotique");
+    expect(parcoursDir("ws/bras-robotique/31-bras-urdf-exercice")).toBe("ws/bras-robotique");
+    expect(parcoursDir("ws/05-noeud")).toBe(""); // module sans parcours
+    expect(parcoursDir("")).toBe("");
+    expect(parcoursDir("projets/mon-robot")).toBe(""); // dossier choisi par l'étudiant
   });
 });

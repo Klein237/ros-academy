@@ -525,6 +525,16 @@ button.link {
   color: var(--muted);
 }
 
+/* dossier du parcours affiché par l'explorateur */
+.files-base {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 11px ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--muted);
+}
+
 .panel-actions {
   display: flex;
   gap: 4px;
