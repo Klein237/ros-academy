@@ -234,6 +234,11 @@ export class ModulePanel {
         return await this.localCheck();
       }
       const status = e instanceof ComptesError ? e.status : 0;
+      if (status === 503) {
+        this.show("ko", "Le lab est en maintenance",
+          "L'équipe est prévenue et le remet en route. Votre travail est enregistré : vérifiez à nouveau plus tard.");
+        return;
+      }
       this.show("ko", status === 409 ? "Une vérification est déjà en cours" : status === 429
         ? "Le serveur de vérification est occupé" : "La vérification n'a pas pu être lancée", "Réessayez dans un instant.");
     } finally {

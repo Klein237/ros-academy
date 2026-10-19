@@ -66,6 +66,11 @@ class FakeContenus:
             raise verdict
         return verdict
 
+    lab_ok = True  # l'image des labs est-elle sur le serveur ?
+
+    def lab_available(self):
+        return self.lab_ok
+
     def parcours(self):
         return [{"id": "ros2", "titre": "ROS 2 Fondamentaux", "modules": [
             {"id": "01-a", "titre": "Module A", "coef": 1}, {"id": "02-b", "titre": "Module B", "coef": 3}]}]
@@ -405,6 +410,19 @@ def test_minutes_are_counted_once_per_minute_and_quota_stops_the_lab(client, env
     assert r.status_code == 403 and "Quota de lab épuisé" in r.text
 
 
+def test_lab_in_maintenance_when_the_image_is_missing(client, env):
+    login(client, env)
+    env["contenus"].lab_ok = False
+    r = client.get("/compte/lab?suite=/lab/%3Fmodule%3D01-a", follow_redirects=False)
+    assert r.status_code == 503 and "Lab en maintenance" in r.text and "Votre travail est conservé" in r.text
+    env["contenus"].verdicts[("01-a", "u1")] = UpstreamError(500)
+    r = client.post("/api/comptes/exercices/01-a/verification", headers=ORIGIN)
+    assert r.status_code == 503 and "maintenance" in r.json()["erreur"]
+    env["contenus"].lab_ok = True
+    assert client.get("/compte/lab", follow_redirects=False).headers["location"].startswith("/hub/jwt_login")
+    assert client.post("/api/comptes/exercices/01-a/verification", headers=ORIGIN).status_code == 502
+
+
 def test_pro_plan_has_no_limit(client, env):
     login(client, env)
     with db(client) as s:
@@ -630,3 +648,20 @@ def test_hub_asks_quota_with_the_derived_secret(client, env):
         s.add_all([UsageTick(user_id=1, minute=start + timedelta(minutes=i)) for i in range(600)])
         s.commit()
     assert client.get(url, headers=ok).json() == {"autorise": False}
+
+
+def test_contenus_client_lab_available():
+    import httpx
+
+    from academy_comptes.clients import ContenusClient
+
+    def client_for(handler):
+        return ContenusClient("http://contenus", SECRET, http=httpx.Client(transport=httpx.MockTransport(handler)))
+
+    assert client_for(lambda r: httpx.Response(503, json={"presente": False})).lab_available() is False
+    assert client_for(lambda r: httpx.Response(200, json={"presente": True})).lab_available() is True
+    assert client_for(lambda r: httpx.Response(200, json={"verifiee": False})).lab_available() is True
+
+    def down(request):
+        raise httpx.ConnectError("injoignable")
+    assert client_for(down).lab_available() is True  # Contenus injoignable : on laisse le Hub répondre

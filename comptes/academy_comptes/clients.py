@@ -94,3 +94,12 @@ class ContenusClient:
 
     def parcours(self):
         return self._json(self.http.get(f"{self.base}/api/contenus/parcours"))["parcours"]
+
+    def lab_available(self):
+        """Faux seulement si Contenus constate que l'image des labs manque. Sans réponse (Contenus
+        injoignable, pas de Docker), on laisse passer : le Hub dira lui-même ce qui ne va pas."""
+        try:
+            r = self.http.get(f"{self.base}/api/contenus/sante/image-lab", timeout=3)
+        except httpx.HTTPError:
+            return True
+        return r.status_code != 503

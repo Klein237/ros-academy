@@ -573,6 +573,13 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         log.info("Mot de passe changé pour u%s (depuis son compte)", user.id)
         return retour(200, info_mdp="Mot de passe enregistré.")
 
+    def lab_maintenance(request):
+        return page(request, "message.html", 503, titre="Lab en maintenance",
+                    message="Le lab est momentanément indisponible : l'équipe est prévenue et le remet en route. "
+                            "Votre travail est conservé. En attendant, les cours, les QCM et les questions restent "
+                            "accessibles ; réessayez dans un moment.",
+                    lien="/compte/apprentissage", lien_texte="Reprendre les cours")
+
     @app.get("/compte/lab")
     def compte_lab(request: Request, suite: str = "/lab/", user=Depends(current_user), db=Depends(get_db)):
         suite = safe_lab_next(suite)
@@ -588,6 +595,8 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
                         message="Vous avez utilisé toutes vos minutes de lab ce mois-ci. Les cours, les QCM et vos "
                                 "notes restent accessibles ; le lab sera de nouveau disponible le mois prochain.",
                         lien="/compte/resultats", lien_texte="Voir mes résultats")
+        if not contenus.lab_available():
+            return lab_maintenance(request)
         token = mint_lab_token(settings.jwt_secret, user, formule)
         return RedirectResponse(f"/hub/jwt_login?token={token}&next={quote(suite, safe='')}", status_code=303)
 
@@ -1445,6 +1454,8 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         except UpstreamError as exc:
             if exc.status == 429:
                 raise HTTPException(429, "Le serveur de vérification est occupé : réessayez dans un instant") from None
+            if exc.status != 404 and not contenus.lab_available():
+                raise HTTPException(503, "Le lab est en maintenance : réessayez plus tard") from None
             raise HTTPException(404 if exc.status == 404 else 502, "Vérification indisponible") from None
         finally:
             with verifying_lock:
