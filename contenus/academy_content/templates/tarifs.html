@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "partiels/icones.html" import coche, fleche %}
+{% from "partiels/icones.html" import coche, fleche, objet %}
 {% set nav_actif = "tarifs" %}
 {% block title %}Tarifs · RoboForge{% endblock %}
 {% block description %}Un prix par parcours, payé une fois : 12 mois d'accès au cours, au lab ROS 2 dans le navigateur, aux exercices corrigés et au certificat.{% endblock %}
@@ -16,6 +16,7 @@
   <div class="grille-parcours">
     {% for p in en_vente %}
     <article class="carte-parcours carte-tarif">
+      {{ objet(icone_parcours(p.id), 104, "carte-tarif-objet") }}
       <div class="pastilles"><span class="pastille claire">{{ p.niveau_texte }}</span></div>
       <h3><a href="/parcours/{{ p.id }}/">{{ p.titre }}</a></h3>
       <p>{{ p.accroche }}</p>
@@ -28,6 +29,7 @@
     {% endfor %}
     {% for p in offerts %}
     <article class="carte-parcours carte-tarif">
+      {{ objet(icone_parcours(p.id), 104, "carte-tarif-objet") }}
       <div class="pastilles"><span class="pastille ambre">Offert après un parcours validé</span></div>
       <h3><a href="/parcours/{{ p.id }}/">{{ p.titre }}</a></h3>
       <p>{{ p.accroche }}</p>
@@ -39,7 +41,9 @@
 </section>
 
 <section class="conteneur bloc" aria-labelledby="inclus">
-  <div class="encart">
+  <div class="encart encart-inclus">
+    {{ objet("bouclier", 120, "encart-objet") }}
+    <div>
     <h2 id="inclus">Ce que comprend un parcours</h2>
     <ul class="liste-cochee">
       <li>{{ coche() }}Tous les modules du parcours : le cours, les schémas et le QCM de chaque module</li>
@@ -48,11 +52,13 @@
       <li>{{ coche() }}Une note par module et un certificat vérifiable en ligne, qui reste valable après les 12 mois</li>
       <li>{{ coche() }}Le parcours « Docker pour la robotique », offert dès que vous avez obtenu un certificat</li>
     </ul>
+    </div>
   </div>
 </section>
 
 <section class="conteneur bloc" aria-labelledby="commencer-ici">
   <div class="encart encart-ambre encart-commencer">
+    {{ objet("noeuds", 110, "encart-objet") }}
     <div>
       <span class="pastille ambre">Gratuit, sans compte</span>
       <h2 id="commencer-ici">Découvrir ROS 2</h2>

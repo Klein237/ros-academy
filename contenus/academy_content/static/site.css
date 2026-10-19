@@ -632,3 +632,13 @@ button.lien.actif { font-weight: 600; text-decoration: none; }
   .apercu-objet { width: 96px; height: 96px; top: -64px; right: -6px; }
   .encart-objet { width: 84px; height: 84px; }
 }
+
+/* Tarifs : icônes en verre */
+.carte-tarif-objet { position: absolute; top: 12px; right: 12px; width: 104px; height: 104px; pointer-events: none; }
+.carte-tarif .pastilles, .carte-tarif h3 { padding-right: 96px; }
+.encart-inclus { display: flex; flex-wrap: wrap; gap: 20px 28px; align-items: center; }
+.encart-inclus > div { flex: 1 1 420px; min-width: 0; }
+@media (max-width: 640px) {
+  .carte-tarif-objet { width: 76px; height: 76px; }
+  .carte-tarif .pastilles, .carte-tarif h3 { padding-right: 70px; }
+}

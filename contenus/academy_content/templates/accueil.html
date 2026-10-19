@@ -1,7 +1,6 @@
 {% extends "base.html" %}
-{% from "partiels/icones.html" import coche, fleche %}
+{% from "partiels/icones.html" import coche, fleche, objet %}
 {% block main_class %}page plein{% endblock %}
-{% macro objet(nom, taille, classe="") %}<img class="objet-verre {{ classe }}" src="/static/contenus/icones/{{ nom }}.webp" alt="" width="{{ taille }}" height="{{ taille }}" loading="lazy">{% endmacro %}
 {% block content %}
 {% set premier = (parcours | selectattr("statut", "equalto", "disponible") | first) %}
 <section class="conteneur accueil-hero">
