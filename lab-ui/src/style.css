@@ -9,10 +9,47 @@
   --accent-ink: #0b0b0d;
   --warn: #f0c36d;
   --danger: #e57373;
+  --text-2: #c9c9cf;
+  --control: #1f2026;         /* boutons, pastilles, jauges */
+  --control-line: #44464e;
+  --warn-bg: #3b3220;
+  --warn-line: #5a4a26;
+  --row-hover: #1a1b20;
+  --row-selected: #24252b;
+  --view-bg: #101114;
+  --hint-bg: rgba(11, 11, 13, 0.85);
+  --overlay: rgba(11, 11, 13, 0.94);
+  --desktop-bg: #1c1d22;      /* l'écran du bureau distant reste sombre */
   --radius: 6px;
   color-scheme: dark;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: 14px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f7f5f0;
+    --panel: #ffffff;
+    --panel-2: #fbfaf6;
+    --line: #e7e2d6;
+    --text: #12171c;
+    --muted: #5b5f66;
+    --accent: #7a5718;
+    --accent-ink: #ffffff;
+    --warn: #6b4e12;
+    --danger: #b91c1c;
+    --text-2: #3f4851;
+    --control: #f1ede3;
+    --control-line: #cfc8b8;
+    --warn-bg: #fcf5e6;
+    --warn-line: #ecd6a6;
+    --row-hover: #f4efe4;
+    --row-selected: #f6ecd7;
+    --view-bg: #f3f0e8;
+    --hint-bg: rgba(255, 255, 255, 0.9);
+    --overlay: rgba(247, 245, 240, 0.94);
+    color-scheme: light;
+  }
 }
 
 * {
@@ -45,7 +82,7 @@ input {
 
 button,
 .button {
-  background: #1f2026;
+  background: var(--control);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 4px 10px;
@@ -56,7 +93,7 @@ button,
 
 button:hover,
 .button:hover {
-  border-color: #44464e;
+  border-color: var(--control-line);
 }
 
 button:focus-visible,
@@ -145,9 +182,9 @@ code {
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
-  background: #3b3220;
+  background: var(--warn-bg);
   color: var(--warn);
-  border-bottom: 1px solid #5a4a26;
+  border-bottom: 1px solid var(--warn-line);
 }
 
 .banner[hidden] {
@@ -295,7 +332,7 @@ button.link {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  background: #1c1d22;
+  background: var(--desktop-bg);
 }
 
 .desktop-detached {
@@ -329,7 +366,7 @@ button.link {
   position: relative;
   min-width: 0;
   min-height: 0;
-  background: #101114;
+  background: var(--view-bg);
 }
 
 .view3d-canvas {
@@ -345,7 +382,7 @@ button.link {
   right: 12px;
   bottom: 8px;
   margin: 0;
-  color: #c9c9cf;
+  color: var(--text-2);
 }
 
 .view3d-side {
@@ -569,11 +606,11 @@ button.link {
 }
 
 .tree-row:hover {
-  background: #1a1b20;
+  background: var(--row-hover);
 }
 
 .tree-row.selected {
-  background: #24252b;
+  background: var(--row-selected);
 }
 
 .indent {
@@ -668,7 +705,7 @@ button.link {
   position: absolute;
   inset: auto 8px 8px 8px;
   margin: 0;
-  background: rgba(11, 11, 13, 0.85);
+  background: var(--hint-bg);
   padding: 6px 8px;
   border-radius: var(--radius);
 }
@@ -724,7 +761,7 @@ button.link {
   font-size: 11px;
   padding: 1px 8px;
   border-radius: 999px;
-  background: #1f2026;
+  background: var(--control);
   color: var(--muted);
 }
 
@@ -742,7 +779,7 @@ button.link {
   inset: 0;
   display: grid;
   place-items: center;
-  background: rgba(11, 11, 13, 0.94);
+  background: var(--overlay);
   z-index: 10;
   padding: 16px;
 }
@@ -760,7 +797,7 @@ button.link {
 
 .progress {
   height: 6px;
-  background: #1f2026;
+  background: var(--control);
   border-radius: 3px;
   overflow: hidden;
   margin: 16px 0;
@@ -777,7 +814,7 @@ button.link {
   height: 28px;
   margin: 16px auto;
   border-radius: 50%;
-  border: 3px solid #1f2026;
+  border: 3px solid var(--control);
   border-top-color: var(--accent);
   animation: spin 0.9s linear infinite;
 }
@@ -802,7 +839,7 @@ button.link {
   bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
-  background: #1f2026;
+  background: var(--control);
   border: 1px solid var(--line);
   padding: 6px 14px;
   border-radius: var(--radius);

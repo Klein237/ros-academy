@@ -7,6 +7,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import URDFLoader, { type URDFJoint, type URDFRobot } from "urdf-loader";
 import type { Transform } from "../ros/robot";
+import { currentTheme, onThemeChange, type LabTheme } from "./theme";
 
 export interface LoadedRobot {
   name: string;
@@ -35,13 +36,13 @@ export class Scene3D {
     // lève une erreur si WebGL est indisponible : le panneau l'affiche
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    this.scene.background = new THREE.Color(0x101114);
+    const t = currentTheme();
+    this.scene.background = new THREE.Color(t.scene);
     this.world.rotation.x = -Math.PI / 2;
     this.world.add(this.base, new THREE.AxesHelper(0.3));
-    // sol : cases de 10 cm sur 4 m, et de 1 m jusqu'à 20 m
-    const fine = new THREE.GridHelper(4, 40, 0x3a3b42, 0x1f2026);
-    const large = new THREE.GridHelper(20, 20, 0x3a3b42, 0x3a3b42);
-    this.scene.add(fine, large, this.world, new THREE.HemisphereLight(0xffffff, 0x2a2b31, 1.6));
+    this.grids = this.makeGrids(t);
+    this.hemi = new THREE.HemisphereLight(0xffffff, t.ground, 1.6);
+    this.scene.add(...this.grids, this.world, this.hemi);
     const sun = new THREE.DirectionalLight(0xffffff, 1.8);
     sun.position.set(3, 5, 4);
     this.scene.add(sun);
@@ -49,6 +50,28 @@ export class Scene3D {
     this.controls = new OrbitControls(this.camera, canvas);
     this.controls.addEventListener("change", () => this.render());
     new ResizeObserver(() => this.resize()).observe(canvas);
+    onThemeChange((theme) => this.applyTheme(theme));
+  }
+
+  private grids: THREE.GridHelper[];
+  private hemi: THREE.HemisphereLight;
+
+  private makeGrids(t: LabTheme): THREE.GridHelper[] {
+    // sol : cases de 10 cm sur 4 m, et de 1 m jusqu'à 20 m
+    return [new THREE.GridHelper(4, 40, t.gridMajor, t.gridMinor), new THREE.GridHelper(20, 20, t.gridMajor, t.gridMajor)];
+  }
+
+  /** Thème du système changé : fond, sol et lumière d'ambiance suivent. */
+  private applyTheme(t: LabTheme): void {
+    this.scene.background = new THREE.Color(t.scene);
+    for (const g of this.grids) {
+      this.scene.remove(g);
+      g.dispose();
+    }
+    this.grids = this.makeGrids(t);
+    this.scene.add(...this.grids);
+    this.hemi.groundColor = new THREE.Color(t.ground);
+    this.render();
   }
 
   /** Remplace le robot affiché ; renvoie ce qui a été chargé. */

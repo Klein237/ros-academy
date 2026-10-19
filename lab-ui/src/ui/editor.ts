@@ -4,6 +4,7 @@ import { OpenDocuments } from "../docs";
 import { languageFor } from "../lang";
 import { baseName } from "../paths";
 import { button, h, toast } from "./dom";
+import { currentTheme, onThemeChange, type LabTheme } from "./theme";
 
 type MonacoNS = typeof Monaco;
 
@@ -41,14 +42,19 @@ export class EditorPanel {
   private async load(): Promise<MonacoNS> {
     this.loading ??= import("./monaco").then(({ monaco }) => {
       this.monaco = monaco;
-      monaco.editor.defineTheme("lab", {
-        base: "vs-dark",
-        inherit: true,
-        rules: [],
-        colors: { "editor.background": "#101114" },
-      });
+      // un thème par mode du système ; l'éditeur change avec lui, sans recharger
+      for (const t of ["sombre", "clair"] as const) {
+        monaco.editor.defineTheme(`lab-${t}`, {
+          base: t === "sombre" ? "vs-dark" : "vs",
+          inherit: true,
+          rules: [],
+          colors: { "editor.background": t === "sombre" ? "#101114" : "#fbfaf6" },
+        });
+      }
+      const themeOf = (t: LabTheme) => `lab-${t.name}`;
+      onThemeChange((t) => monaco.editor.setTheme(themeOf(t)));
       this.editor = monaco.editor.create(this.host, {
-        theme: "lab",
+        theme: themeOf(currentTheme()),
         automaticLayout: true,
         fontSize: 14,
         minimap: { enabled: false },
