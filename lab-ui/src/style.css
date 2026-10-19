@@ -1,12 +1,12 @@
 :root {
-  --bg: #0b1015;
-  --panel: #121a22;
-  --panel-2: #0f141a;
-  --line: #22303c;
-  --text: #d8dee9;
-  --muted: #8a99a8;
-  --accent: #7fd4c1;
-  --accent-ink: #0b1015;
+  --bg: #0b0b0d;
+  --panel: #16171b;
+  --panel-2: #101114;
+  --line: #26272d;
+  --text: #e6e3dc;
+  --muted: #9a9aa3;
+  --accent: #e3b866;
+  --accent-ink: #0b0b0d;
   --warn: #f0c36d;
   --danger: #e57373;
   --radius: 6px;
@@ -45,7 +45,7 @@ input {
 
 button,
 .button {
-  background: #1b2631;
+  background: #1f2026;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 4px 10px;
@@ -56,7 +56,7 @@ button,
 
 button:hover,
 .button:hover {
-  border-color: #35495b;
+  border-color: #44464e;
 }
 
 button:focus-visible,
@@ -295,7 +295,7 @@ button.link {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  background: #1b1f24;
+  background: #1c1d22;
 }
 
 .desktop-detached {
@@ -329,7 +329,7 @@ button.link {
   position: relative;
   min-width: 0;
   min-height: 0;
-  background: #0f141a;
+  background: #101114;
 }
 
 .view3d-canvas {
@@ -345,7 +345,7 @@ button.link {
   right: 12px;
   bottom: 8px;
   margin: 0;
-  color: #c9d3dc;
+  color: #c9c9cf;
 }
 
 .view3d-side {
@@ -569,11 +569,11 @@ button.link {
 }
 
 .tree-row:hover {
-  background: #18232e;
+  background: #1a1b20;
 }
 
 .tree-row.selected {
-  background: #1d2d3a;
+  background: #24252b;
 }
 
 .indent {
@@ -668,7 +668,7 @@ button.link {
   position: absolute;
   inset: auto 8px 8px 8px;
   margin: 0;
-  background: rgba(11, 16, 21, 0.85);
+  background: rgba(11, 11, 13, 0.85);
   padding: 6px 8px;
   border-radius: var(--radius);
 }
@@ -724,7 +724,7 @@ button.link {
   font-size: 11px;
   padding: 1px 8px;
   border-radius: 999px;
-  background: #1b2631;
+  background: #1f2026;
   color: var(--muted);
 }
 
@@ -742,7 +742,7 @@ button.link {
   inset: 0;
   display: grid;
   place-items: center;
-  background: rgba(11, 16, 21, 0.94);
+  background: rgba(11, 11, 13, 0.94);
   z-index: 10;
   padding: 16px;
 }
@@ -760,7 +760,7 @@ button.link {
 
 .progress {
   height: 6px;
-  background: #1b2631;
+  background: #1f2026;
   border-radius: 3px;
   overflow: hidden;
   margin: 16px 0;
@@ -777,7 +777,7 @@ button.link {
   height: 28px;
   margin: 16px auto;
   border-radius: 50%;
-  border: 3px solid #1b2631;
+  border: 3px solid #1f2026;
   border-top-color: var(--accent);
   animation: spin 0.9s linear infinite;
 }
@@ -802,7 +802,7 @@ button.link {
   bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
-  background: #1b2631;
+  background: #1f2026;
   border: 1px solid var(--line);
   padding: 6px 14px;
   border-radius: var(--radius);

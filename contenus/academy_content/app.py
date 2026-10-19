@@ -275,12 +275,21 @@ class RestoreBody(BaseModel):
     sha: str
 
 
+# objet en verre de chaque parcours (static/icones/, généré par scripts/icones-3d/) ; les autres : le graphe de nœuds
+ICONES_PARCOURS = {"ros2-fondamentaux": "robot", "bras-robotique": "bras", "docker-robotique": "conteneur"}
+
+
+def icone_parcours(parcours_id):
+    return ICONES_PARCOURS.get(parcours_id, "noeuds")
+
+
 def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tests_enabled=True, verifier=None,
                lab_image=None):
     """lab_image : () -> (présente, nom de l'image[, note]), pour la veille (None : pas de Docker, non vérifié)."""
     app = FastAPI(title="Contenus RoboForge", docs_url=None, redoc_url=None, openapi_url=None)
     templates = Jinja2Templates(directory=str(HERE / "templates"))
     templates.env.globals["lab_link"] = lab_link
+    templates.env.globals["icone_parcours"] = icone_parcours
     internal_token = hmac.new(secret.encode(), b"contenus-interne", hashlib.sha256).hexdigest()
 
     def internal(request: Request):
