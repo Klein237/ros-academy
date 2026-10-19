@@ -60,3 +60,60 @@ nav.row a[aria-current] { font-weight: 600; }
 /* Avis des étudiants (formateurs) */
 .etoiles { color: var(--accent); letter-spacing: 1px; white-space: nowrap; }
 .avis-texte { white-space: pre-line; max-width: 60ch; }
+/* Mon apprentissage : thème noir et or, icônes en verre (contenus/academy_content/static/icones/) */
+.theme-noir-or {
+  --bg: #0b0b0d; --surface: #16171b; --surface-2: #101114; --text: #f4f1ea; --text-2: #c9c9cf; --muted: #9a9aa3;
+  --line: #26272d; --line-strong: #3a3b42; --accent: #e3b866; --accent-hover: #f0d9a6; --accent-ink: #0b0b0d;
+  --accent-soft: #2e2614; --accent-soft-ink: #f0d9a6; --amber: #e3b866; --amber-soft: #2e2614; --amber-line: #6b5428;
+  --ink: #16171b; --ink-text: #c9c9cf; --ok: #4ade80; --ko: #f87171;
+  color-scheme: dark; background: var(--bg); color: var(--text);
+}
+.objet-verre { flex: none; object-fit: contain; }
+.tableau-or { gap: 20px; }
+.tableau-sur { margin: 0; color: var(--muted); }
+.reprendre-or { background: var(--surface); border: 1px solid var(--accent); }
+.reprendre-or .reprendre-sur { color: var(--accent); }
+.reprendre-or > div { flex: 1 1 360px; }
+.bilan { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 24px; display: flex; flex-wrap: wrap; gap: 24px 40px; align-items: flex-end; }
+.bilan-moyenne { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.bilan-valeur { font-family: var(--font-titre); font-size: clamp(2.6rem, 6vw, 3.6rem); font-weight: 700; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.pastille-or { background: var(--accent-soft); color: var(--accent-soft-ink); border-radius: 999px; padding: 4px 12px; font-size: 0.875rem; font-weight: 600; }
+.bilan-tuiles { flex: 1 1 420px; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.bilan-tuiles .chiffre { background: var(--surface-2); }
+.chiffre-valeur small { font-size: 1.1rem; color: var(--muted); font-weight: 600; }
+.tableau-grille { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 20px; }
+.carte-or { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 24px; min-width: 0; }
+.carte-or h2 { font-size: 1.2rem; margin: 0; }
+.carte-or .chiffre-note { margin: 4px 0 0; }
+.graphique { display: block; width: 100%; height: auto; margin-top: 16px; overflow: visible; }
+.graphique-zone { fill: transparent; }
+.graphique-barre { fill: #6b5428; }
+.graphique-barre.actuelle, .graphique-semaine:hover .graphique-barre { fill: var(--accent); }
+.graphique-axe { stroke: var(--line-strong); stroke-width: 1; }
+.graphique-valeur { fill: var(--text-2); font-size: 12px; font-weight: 600; }
+.graphique-date { fill: var(--muted); font-size: 11px; }
+.notes-modules { list-style: none; margin: 16px 0 12px; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.notes-modules li { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(80px, 2fr) 3.2em; gap: 12px; align-items: center; }
+.notes-titre { color: var(--text-2); font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notes-modules strong { text-align: right; font-variant-numeric: tabular-nums; }
+.vide { display: flex; align-items: center; gap: 14px; color: var(--muted); margin: 16px 0; }
+.tableau-cartes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 20px; }
+.carte-icone { display: flex; gap: 16px; align-items: flex-start; }
+.carte-icone p { margin: 4px 0 10px; color: var(--text-2); }
+.badges { list-style: none; margin: 16px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+.badge { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 8px; border-radius: 16px; background: var(--surface-2); border: 1px solid var(--line); text-align: center; }
+.badge-objet { position: relative; }
+.badge-numero { position: absolute; right: -4px; bottom: -2px; min-width: 24px; height: 24px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 0.8rem; font-weight: 700; display: grid; place-items: center; }
+.badge-titre { font-size: 0.85rem; color: var(--text-2); line-height: 1.3; }
+.badge-en_cours { border-color: var(--accent); }
+.badge-en_cours .objet-verre { opacity: 0.55; }
+.badge-a_faire .objet-verre { opacity: 0.22; }
+.badge-a_faire .badge-numero { background: var(--line-strong); color: var(--text-2); }
+.badge-a_faire .badge-titre { color: var(--muted); }
+.tableau-or .suivi { gap: 12px 18px; }
+@media (max-width: 560px) {
+  .notes-modules li { grid-template-columns: minmax(0, 1fr) 3.2em; gap: 4px 12px; }
+  .notes-titre { grid-column: 1 / -1; white-space: normal; }
+  .graphique-valeur { font-size: 20px; }
+  .graphique-date { font-size: 18px; }
+}
