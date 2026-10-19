@@ -83,10 +83,10 @@ describe("HubClient", () => {
     expect((await hub.server())?.parcours).toBe("bras-robotique");
   });
 
-  it("sans parcours : démarrage sans corps (ancien dossier commun)", async () => {
+  it("sans parcours : parcours vide envoyé (ancien dossier commun), jamais celui du démarrage précédent", async () => {
     const { hub, fetchFn } = hubWith(json(200, TOKEN), json(201));
     await hub.start();
-    expect((fetchFn.mock.calls as unknown as [string, RequestInit][])[1]![1].body).toBeUndefined();
+    expect((fetchFn.mock.calls as unknown as [string, RequestInit][])[1]![1].body).toBe(JSON.stringify({ parcours: "" }));
   });
 
   it("une autre erreur de démarrage est remontée", async () => {

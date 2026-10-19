@@ -130,14 +130,17 @@ export class HubClient {
     return { ready: Boolean(server.ready), pending: server.pending ?? null, parcours: typeof parcours === "string" ? parcours : "" };
   }
 
-  /** Démarre le serveur ; avec `parcours`, seul le dossier de ce parcours est monté en /home/etudiant. */
+  /**
+   * Démarre le serveur ; avec `parcours`, seul le dossier de ce parcours est monté en /home/etudiant
+   * ("" : l'ancien dossier commun). Toujours envoyé : sans corps, le Hub reprendrait le parcours
+   * du démarrage précédent.
+   */
   async start(parcours = ""): Promise<StartResult> {
-    const init: RequestInit = { method: "POST" };
-    if (parcours) {
-      init.headers = { "Content-Type": "application/json" };
-      init.body = JSON.stringify({ parcours });
-    }
-    const r = await this.request(await this.userApi("/server"), init);
+    const r = await this.request(await this.userApi("/server"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ parcours }),
+    });
     switch (r.status) {
       case 201:
         return "started";
