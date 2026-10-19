@@ -61,11 +61,18 @@ class Resultat:
         return {"ok": self.ok, "code": self.code, "journal": self.journal}
 
 
-def volume_name(student):
-    """Volume personnel créé par DockerSpawner (« ros-lab-home-{username} »)."""
+def volume_name(student, parcours=""):
+    """Volume personnel créé par le Hub : « ros-lab-home-<nom> », ou « …--<parcours> » pour le dossier
+    d'un parcours (hub/rosacademy_hub/spawner.py)."""
     if not STUDENT_RE.fullmatch(student or ""):
         raise InvalidStudent(student)
-    return f"ros-lab-home-{student}"
+    return f"ros-lab-home-{student}--{parcours}" if parcours else f"ros-lab-home-{student}"
+
+
+def parcours_of(workspace):
+    """ws/<parcours>/<module> → <parcours> ; "" pour un module rangé à l'ancienne (ws/<module>)."""
+    parts = workspace.split("/")
+    return parts[1] if len(parts) == 3 else ""
 
 
 def exercise_archive(module_dir):
@@ -110,18 +117,10 @@ def verify_exercise(module_dir, module_id, student, image, client=None, slots=No
         raise ValueError(f"dossier de lab invalide : {workspace!r}")
     import docker  # importé ici : inutile pour le site et les tests unitaires
 
-    volume = volume_name(student)
     client = client or docker.from_env()
-    if homes_dir:
-        home = Path(homes_dir) / student
-        if not home.is_dir() or home.is_symlink():  # Docker créerait un dossier absent : on ne monte rien
-            return Resultat(False, 3, _journal("::absent::", 3))
-        volume = str(home)
-    else:
-        try:
-            client.volumes.get(volume)  # un volume absent serait créé vide par Docker : on ne monte rien
-        except docker.errors.NotFound:
-            return Resultat(False, 3, _journal("::absent::", 3))
+    volume = _student_home(client, docker.errors.NotFound, student, parcours_of(workspace), homes_dir)
+    if volume is None:
+        return Resultat(False, 3, _journal("::absent::", 3))
     if slots is not None and not slots.acquire(timeout=wait):
         raise Busy()
     try:
@@ -155,6 +154,25 @@ def verify_exercise(module_dir, module_id, student, image, client=None, slots=No
         if slots is not None:
             slots.release()
     return Resultat(code == 0 and "::code:: 0" in output, code, _journal(output, code))
+
+
+def _student_home(client, not_found, student, parcours, homes_dir):
+    """Dossier à monter : celui du parcours s'il existe, sinon l'ancien dossier commun (parcours pas
+    encore rouvert depuis la séparation) ; None si rien n'existe (Docker créerait un dossier vide)."""
+    if homes_dir:
+        home = Path(homes_dir) / student
+        candidates = ([home / ".parcours" / parcours] if parcours else []) + [home]
+        for path in candidates:
+            if path.is_dir() and not path.is_symlink() and not home.is_symlink():
+                return str(path)
+        return None
+    for name in ([volume_name(student, parcours)] if parcours else []) + [volume_name(student)]:
+        try:
+            client.volumes.get(name)
+            return name
+        except not_found:
+            continue
+    return None
 
 
 def make_slots(n):

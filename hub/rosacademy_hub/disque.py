@@ -27,6 +27,9 @@ STUDENT_UID = STUDENT_GID = 1000  # utilisateur « etudiant » de l'image ros-la
 USERNAME_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
 STUDENT_RE = re.compile(r"^u(\d{1,9})$")
 QUOTA_OPTIONS = {"prjquota", "pquota", "pqnoenforce"}
+# Un dossier personnel par parcours : <dossier de l'étudiant>/.parcours/<parcours>
+PARCOURS_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
+PARCOURS_DIR = ".parcours"
 
 
 class HomeError(Exception):
@@ -93,15 +96,59 @@ def prepare_home(root, username, skel="/etc/skel"):
             except OSError as exc:
                 raise HomeError(f"projet {want} impossible à poser sur {path} : {exc}") from exc
         if created:
-            for name in sorted(os.listdir(skel)) if os.path.isdir(skel) else []:
-                src = os.path.join(skel, name)
-                if os.path.isfile(src) and not os.path.islink(src):
-                    dst = os.path.join(path, name)
-                    shutil.copyfile(src, dst)
-                    os.chown(dst, STUDENT_UID, STUDENT_GID)
+            _copy_skel(path, skel)
             os.fchown(fd, STUDENT_UID, STUDENT_GID)
     finally:
         os.close(fd)
+    return path
+
+
+def _copy_skel(path, skel):
+    for name in sorted(os.listdir(skel)) if os.path.isdir(skel) else []:
+        src = os.path.join(skel, name)
+        if os.path.isfile(src) and not os.path.islink(src):
+            dst = os.path.join(path, name)
+            shutil.copyfile(src, dst)
+            os.chown(dst, STUDENT_UID, STUDENT_GID)
+
+
+def _mkdir_student(path, projid):
+    """Crée `path` (s'il n'existe pas) pour l'étudiant, dans son projet ; True s'il vient d'être créé."""
+    try:
+        os.mkdir(path, 0o750)
+    except FileExistsError:
+        if os.path.islink(path) or not os.path.isdir(path):
+            raise HomeError(f"{path} n'est pas un dossier : refus de le suivre") from None
+        return False
+    fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        set_project(fd, projid)
+        os.fchown(fd, STUDENT_UID, STUDENT_GID)
+    finally:
+        os.close(fd)
+    return True
+
+
+def prepare_parcours_home(root, username, parcours, skel="/etc/skel"):
+    """Dossier personnel d'un parcours, dans le dossier de l'étudiant (même projet, donc même quota).
+
+    Monté seul en /home/etudiant : depuis le lab d'un parcours, les autres ne sont pas visibles.
+    À sa création, ~/ws/<parcours> de l'ancien dossier commun (avant la séparation) y est déplacé.
+    """
+    if not PARCOURS_RE.fullmatch(parcours or ""):
+        raise HomeError(f"parcours refusé pour un dossier personnel : {parcours!r}")
+    home = prepare_home(root, username, skel)
+    projid = project_id(username)
+    _mkdir_student(os.path.join(home, PARCOURS_DIR), projid)
+    path = os.path.join(home, PARCOURS_DIR, parcours)
+    if not _mkdir_student(path, projid):
+        return path
+    _copy_skel(path, skel)
+    old = os.path.join(home, "ws", parcours)
+    if os.path.isdir(old) and not os.path.islink(old):
+        _mkdir_student(os.path.join(path, "ws"), projid)
+        os.rename(old, os.path.join(path, "ws", parcours))  # même système de fichiers : rien n'est recopié
+        log.info("Dossier %s déplacé dans le dossier du parcours %s", old, path)
     return path
 
 

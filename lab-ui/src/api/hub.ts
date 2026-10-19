@@ -10,6 +10,8 @@ export interface LabToken {
 export interface ServerStatus {
   ready: boolean;
   pending: string | null;
+  /** Parcours dont le dossier est monté ("" ou absent : l'ancien dossier commun, lab ouvert seul). */
+  parcours?: string;
 }
 
 export interface ProgressEvent {
@@ -119,13 +121,23 @@ export class HubClient {
   async server(): Promise<ServerStatus | null> {
     const r = await this.request(await this.userApi());
     if (!r.ok) throw new HttpError(r.status, `statut du serveur illisible (${r.status})`);
-    const body = (await r.json()) as { servers?: Record<string, ServerStatus> };
+    const body = (await r.json()) as {
+      servers?: Record<string, { ready?: boolean; pending?: string | null; user_options?: { parcours?: unknown } }>;
+    };
     const server = body.servers?.[""];
-    return server ? { ready: Boolean(server.ready), pending: server.pending ?? null } : null;
+    if (!server) return null;
+    const parcours = server.user_options?.parcours;
+    return { ready: Boolean(server.ready), pending: server.pending ?? null, parcours: typeof parcours === "string" ? parcours : "" };
   }
 
-  async start(): Promise<StartResult> {
-    const r = await this.request(await this.userApi("/server"), { method: "POST" });
+  /** Démarre le serveur ; avec `parcours`, seul le dossier de ce parcours est monté en /home/etudiant. */
+  async start(parcours = ""): Promise<StartResult> {
+    const init: RequestInit = { method: "POST" };
+    if (parcours) {
+      init.headers = { "Content-Type": "application/json" };
+      init.body = JSON.stringify({ parcours });
+    }
+    const r = await this.request(await this.userApi("/server"), init);
     switch (r.status) {
       case 201:
         return "started";

@@ -150,6 +150,11 @@ def test_spawner_delete_forever_removes_the_docker_volume(monkeypatch):
     removed = []
 
     class Client:
+        def volumes(self, filters):
+            # filtre par sous-chaîne, comme Docker : u60 ne doit pas être emporté avec u6
+            names = ["ros-lab-home-u6--bras-robotique", "ros-lab-home-u60--x", "ros-lab-home-u6--docker"]
+            return {"Volumes": [{"Name": n} for n in names if filters["name"] in n]}
+
         def remove_volume(self, name, force):
             if name in removed:
                 raise NotFound("absent")
@@ -158,5 +163,142 @@ def test_spawner_delete_forever_removes_the_docker_volume(monkeypatch):
     s = spawner_mod.RosLabSpawner(user=SimpleNamespace(name="u6", id=6, url="/user/u6/", escaped_name="u6"))
     monkeypatch.setattr(spawner_mod.RosLabSpawner, "client", Client())
     asyncio.run(s.delete_forever())
-    assert removed == ["ros-lab-home-u6"]
+    assert removed == ["ros-lab-home-u6", "ros-lab-home-u6--bras-robotique", "ros-lab-home-u6--docker"]
     asyncio.run(s.delete_forever())  # déjà supprimé : pas d'erreur
+
+
+# --- Un dossier personnel par parcours
+
+
+def test_parcours_home_is_inside_the_home_and_takes_its_ws_folder(fs):
+    root, skel, projects, owners = fs
+    home = root / "u42"
+    (home / "ws" / "bras-robotique" / "31-bras-urdf").mkdir(parents=True)
+    (home / "ws" / "bras-robotique" / "31-bras-urdf" / "bras.urdf").write_text("<robot/>")
+    (home / "ws" / "ros2-fondamentaux" / "05-noeud").mkdir(parents=True)
+    path = disque.prepare_parcours_home(str(root), "u42", "bras-robotique", skel=str(skel))
+    assert path == str(home / ".parcours" / "bras-robotique")
+    assert projects[os.stat(path).st_ino] == (FS_XFLAG_PROJINHERIT, 10_042)  # même quota que le dossier
+    assert owners[os.stat(path).st_ino] == (1000, 1000)
+    assert (home / ".parcours" / "bras-robotique" / ".bashrc").exists()
+    assert (home / ".parcours" / "bras-robotique" / "ws" / "bras-robotique" / "31-bras-urdf" / "bras.urdf").exists()
+    assert not (home / "ws" / "bras-robotique").exists()  # déplacé, pas recopié
+    assert (home / "ws" / "ros2-fondamentaux" / "05-noeud").exists()  # l'autre parcours ne bouge pas
+
+
+def test_existing_parcours_home_is_left_alone(fs):
+    root, skel, _, _ = fs
+    disque.prepare_parcours_home(str(root), "u3", "bras-robotique", skel=str(skel))
+    (root / "u3" / "ws" / "bras-robotique").mkdir(parents=True)  # recréé ensuite dans le dossier commun
+    (root / "u3" / ".parcours" / "bras-robotique" / "travail.py").write_text("x")
+    disque.prepare_parcours_home(str(root), "u3", "bras-robotique", skel=str(skel))
+    assert (root / "u3" / "ws" / "bras-robotique").exists()  # migration faite une seule fois
+    assert (root / "u3" / ".parcours" / "bras-robotique" / "travail.py").read_text() == "x"
+
+
+def test_unsafe_parcours_and_symlinks_are_refused(fs, tmp_path):
+    root, skel, _, _ = fs
+    for bad in ["", "..", "../u2", "a/b", ".cache", "Bras", "a" * 65]:
+        with pytest.raises(HomeError):
+            disque.prepare_parcours_home(str(root), "u4", bad, skel=str(skel))
+    (root / "u4" / ".parcours").mkdir(parents=True)
+    (root / "u4" / ".parcours" / "bras").symlink_to(tmp_path)
+    with pytest.raises(HomeError, match="lien|dossier"):
+        disque.prepare_parcours_home(str(root), "u4", "bras", skel=str(skel))
+
+
+def test_spawner_reads_a_valid_parcours_from_user_options():
+    from types import SimpleNamespace
+
+    from rosacademy_hub.spawner import RosLabSpawner
+
+    s = RosLabSpawner(user=SimpleNamespace(name="u5", id=5, url="/user/u5/", escaped_name="u5"))
+    assert s.parcours == ""
+    s.user_options = {"parcours": "bras-robotique"}
+    assert s.parcours == "bras-robotique"
+    for bad in ["../x", "a/b", 3, None, "Bras"]:
+        s.user_options = {"parcours": bad}
+        assert s.parcours == ""
+
+
+class FakeDocker:
+    """API bas niveau de docker-py, juste ce qu'utilise prepare_parcours_volume."""
+
+    def __init__(self, volumes, code=0):
+        self.vols, self.code, self.runs, self.removed = set(volumes), code, [], []
+
+    def inspect_volume(self, name):
+        from docker.errors import NotFound
+
+        if name not in self.vols:
+            raise NotFound(name)
+        return {"Name": name}
+
+    def create_volume(self, name):
+        self.vols.add(name)
+
+    def remove_volume(self, name, force):
+        self.vols.discard(name)
+        self.removed.append(name)
+
+    def create_host_config(self, **kw):
+        return kw
+
+    def create_container(self, image, **kw):
+        self.runs.append((image, kw))
+        return "c1"
+
+    def start(self, c):
+        pass
+
+    def wait(self, c, timeout):
+        return {"StatusCode": self.code}
+
+    def remove_container(self, c, force):
+        pass
+
+
+def test_parcours_volume_is_created_once_with_its_migration():
+    from rosacademy_hub.spawner import prepare_parcours_volume
+
+    d = FakeDocker({"ros-lab-home-u8"})
+    assert prepare_parcours_volume(d, "u8", "bras-robotique", "img") == "ros-lab-home-u8--bras-robotique"
+    image, kw = d.runs[0]
+    assert image == "img" and kw["command"][-1] == "bras-robotique"
+    assert kw["host_config"]["binds"] == {
+        "ros-lab-home-u8--bras-robotique": {"bind": "/home/etudiant", "mode": "rw"},
+        "ros-lab-home-u8": {"bind": "/ancien", "mode": "rw"},
+    }
+    assert kw["host_config"]["network_mode"] == "none"
+    prepare_parcours_volume(d, "u8", "bras-robotique", "img")
+    assert len(d.runs) == 1  # volume déjà là : pas de nouvelle migration
+    # nouvel étudiant : pas d'ancien volume à monter
+    d2 = FakeDocker(set())
+    prepare_parcours_volume(d2, "u9", "docker-robotique", "img")
+    assert list(d2.runs[0][1]["host_config"]["binds"]) == ["ros-lab-home-u9--docker-robotique"]
+
+
+def test_failed_migration_removes_the_new_volume_to_retry_later():
+    from rosacademy_hub.spawner import prepare_parcours_volume
+
+    d = FakeDocker({"ros-lab-home-u8"}, code=1)
+    with pytest.raises(RuntimeError, match="non préparé"):
+        prepare_parcours_volume(d, "u8", "bras-robotique", "img")
+    assert d.vols == {"ros-lab-home-u8"}
+
+
+def test_migration_script_moves_only_the_parcours_folder(tmp_path):
+    import subprocess
+
+    from rosacademy_hub.spawner import MIGRATION
+
+    ancien, home = tmp_path / "ancien", tmp_path / "home"
+    (ancien / "ws" / "bras-robotique" / "31").mkdir(parents=True)
+    (ancien / "ws" / "ros2-fondamentaux").mkdir(parents=True)
+    home.mkdir()
+    script = MIGRATION.replace("/ancien", str(ancien))
+    subprocess.run(["sh", "-c", script, "migration", "bras-robotique"], cwd=home, check=True)
+    assert (home / "ws" / "bras-robotique" / "31").is_dir()
+    assert not (ancien / "ws" / "bras-robotique").exists()
+    assert (ancien / "ws" / "ros2-fondamentaux").is_dir()
+    subprocess.run(["sh", "-c", script, "migration", "docker-robotique"], cwd=home, check=True)  # rien à déplacer

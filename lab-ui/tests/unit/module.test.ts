@@ -13,6 +13,7 @@ import {
   labDir,
   migrateLegacy,
   parcoursDir,
+  parcoursOf,
   resetLab,
   scriptCommand,
   setWorkspace,
@@ -255,5 +256,8 @@ describe("dossiers rangés par parcours", () => {
     expect(parcoursDir("ws/05-noeud")).toBe(""); // module sans parcours
     expect(parcoursDir("")).toBe("");
     expect(parcoursDir("projets/mon-robot")).toBe(""); // dossier choisi par l'étudiant
+    expect(parcoursOf("ws/bras-robotique/31-bras-urdf")).toBe("bras-robotique");
+    expect(parcoursOf("ws/05-noeud")).toBe("");
+    expect(parcoursOf(undefined)).toBe("");
   });
 });

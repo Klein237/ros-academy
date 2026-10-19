@@ -29,7 +29,7 @@ describe("parseSSE", () => {
 describe("HubClient", () => {
   it("demande le jeton avec le cookie du Hub puis l'envoie en en-tête, sans cookie", async () => {
     const { hub, fetchFn } = hubWith(json(200, TOKEN), json(200, { servers: { "": { ready: true, pending: null } } }));
-    expect(await hub.server()).toEqual({ ready: true, pending: null });
+    expect(await hub.server()).toEqual({ ready: true, pending: null, parcours: "" });
     const calls = fetchFn.mock.calls as unknown as [string, RequestInit][];
     expect(calls[0]![0]).toBe("/hub/lab_token");
     expect(calls[0]![1].credentials).toBe("same-origin");
@@ -68,6 +68,25 @@ describe("HubClient", () => {
   ])("POST /server → %i = %s", async (status, result) => {
     const { hub } = hubWith(json(200, TOKEN), json(status));
     expect(await hub.start()).toBe(result);
+  });
+
+  it("démarre avec le dossier du parcours et lit celui du serveur en cours", async () => {
+    const { hub, fetchFn } = hubWith(
+      json(200, TOKEN),
+      json(201),
+      json(200, { servers: { "": { ready: true, pending: null, user_options: { parcours: "bras-robotique" } } } }),
+    );
+    expect(await hub.start("bras-robotique")).toBe("started");
+    const [, init] = (fetchFn.mock.calls as unknown as [string, RequestInit][])[1]!;
+    expect(init.body).toBe(JSON.stringify({ parcours: "bras-robotique" }));
+    expect(new Headers(init.headers).get("Content-Type")).toBe("application/json");
+    expect((await hub.server())?.parcours).toBe("bras-robotique");
+  });
+
+  it("sans parcours : démarrage sans corps (ancien dossier commun)", async () => {
+    const { hub, fetchFn } = hubWith(json(200, TOKEN), json(201));
+    await hub.start();
+    expect((fetchFn.mock.calls as unknown as [string, RequestInit][])[1]![1].body).toBeUndefined();
   });
 
   it("une autre erreur de démarrage est remontée", async () => {
