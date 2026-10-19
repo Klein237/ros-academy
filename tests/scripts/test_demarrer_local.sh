@@ -113,6 +113,30 @@ echo "verifier_envoi_mail (faux docker compose)"
 egal "envoi réussi annoncé" "$(grep -c "l'envoi des e-mails du site fonctionne" "$TMP/mail")" 1
 egal "échec expliqué" "$(grep -c "SMTPServerDisconnected\|mot de passe d'application" "$TMP/mail")" 2
 
+echo "image_ros_a_jour (faux docker)"
+# docker simulé : $TMP/docker.log garde les commandes ; le registre a l'image si REGISTRE_A_L_IMAGE=1
+docker() {
+  echo "$*" >> "$TMP/docker.log"
+  case "$1" in
+    image) [ -n "${LABEL_LOCAL:-}" ] && { echo "$LABEL_LOCAL"; return 0; }; return 1 ;;
+    pull) [ "${REGISTRE_A_L_IMAGE:-0}" = 1 ] ;;
+    *) return 0 ;;
+  esac
+}
+mkdir -p "$TMP/ros-lab" && echo "FROM scratch" > "$TMP/ros-lab/Dockerfile"
+emp=$(empreinte_image_ros "$TMP/ros-lab")
+: > "$TMP/docker.log"; REGISTRE_A_L_IMAGE=1 image_ros_a_jour ros-lab:0.1.0 "$TMP/ros-lab" >/dev/null
+egal "téléchargée par empreinte depuis le registre" "$(grep -c "^pull -q ghcr.io/klein237/ros-lab:$emp$" "$TMP/docker.log")" 1
+egal "renommée sous le nom local" "$(grep -c "^tag ghcr.io/klein237/ros-lab:$emp ros-lab:0.1.0$" "$TMP/docker.log")" 1
+egal "pas construite" "$(grep -c '^build' "$TMP/docker.log")" 0
+: > "$TMP/docker.log"; REGISTRE_A_L_IMAGE=0 image_ros_a_jour ros-lab:0.1.0 "$TMP/ros-lab" >/dev/null
+egal "absente du registre : construite" "$(grep -c "^build --label ros-academy.empreinte=$emp -t ros-lab:0.1.0" "$TMP/docker.log")" 1
+: > "$TMP/docker.log"; ROS_LAB_REGISTRE='' REGISTRE_A_L_IMAGE=1 image_ros_a_jour ros-lab:0.1.0 "$TMP/ros-lab" >/dev/null
+egal "registre désactivé : pas de téléchargement" "$(grep -c '^pull' "$TMP/docker.log")" 0
+: > "$TMP/docker.log"; LABEL_LOCAL=$emp image_ros_a_jour ros-lab:0.1.0 "$TMP/ros-lab" >/dev/null
+egal "déjà à jour : rien à faire" "$(grep -c '^pull\|^build' "$TMP/docker.log")" 0
+unset -f docker
+
 echo "fonctions appelées"
 # toute fonction appelée dans le script y est définie (une suppression par erreur casse le démarrage)
 manque=""
