@@ -592,3 +592,15 @@ def test_static_files_revalidated_after_deploy(client):
     # une vidéo reste lisible par plages (Safari l'exige)
     r = client.get("/static/contenus/videos/robots.mp4", headers={"Range": "bytes=0-99"})
     assert r.status_code == 206 and len(r.content) == 100
+
+
+def test_scripts_and_styles_have_versioned_urls(client):
+    # une nouvelle version change d'adresse : une copie gardée par un navigateur n'est plus utilisée
+    import hashlib
+    import re
+    html = client.get("/").text
+    for nom in ("site.css", "site.js", "entete.js"):
+        m = re.search(rf'"/static/contenus/{re.escape(nom)}\?v=([0-9a-f]{{12}})"', html)
+        assert m, nom
+        r = client.get(f"/static/contenus/{nom}")
+        assert m.group(1) == hashlib.sha256(r.content).hexdigest()[:12]

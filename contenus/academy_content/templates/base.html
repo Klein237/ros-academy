@@ -7,7 +7,7 @@
   <meta name="description" content="{% block description %}Apprenez à développer le logiciel d'un robot avec ROS 2, dans un lab où vous pouvez expérimenter, vous tromper et recommencer : terminal, éditeur et simulateur Gazebo dans votre navigateur.{% endblock %}">
   <link rel="icon" href="data:,">
   <link rel="preload" href="/static/contenus/polices/ibm-plex-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/static/contenus/site.css">
+  <link rel="stylesheet" href="{{ statique('site.css') }}">
   {% block head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
@@ -43,8 +43,8 @@
     {% block content %}{% endblock %}
   </main>
   {% include "partiels/pied.html" %}
-  <script type="module" src="/static/contenus/entete.js"></script>
-  <script type="module" src="/static/contenus/site.js"></script>
+  <script type="module" src="{{ statique('entete.js') }}"></script>
+  <script type="module" src="{{ statique('site.js') }}"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

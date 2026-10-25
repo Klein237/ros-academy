@@ -132,6 +132,9 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
     http = http or httpx.Client(timeout=15)
     templates = Jinja2Templates(directory=str(HERE / "templates"))
     templates.env.globals["billing"] = settings.billing_enabled
+    # site.css et entete.js viennent du service Contenus : une nouvelle adresse à chaque démarrage (déploiement)
+    # pour qu'aucun navigateur ne garde une ancienne copie
+    templates.env.globals["version_statique"] = str(int(time.time()))
     templates.env.globals["icone_parcours"] = tableau.icone
     if settings.show_login_link:
         log.warning("Liens de connexion affichés à l'écran (CONNEXION_LIEN_A_L_ECRAN=1) : test en local seulement")

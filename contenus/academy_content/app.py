@@ -1,6 +1,7 @@
 """Service Contenus : site étudiant, API publique des modules, espace d'administration."""
 
 import dataclasses
+import functools
 import hashlib
 import hmac
 import json
@@ -46,6 +47,14 @@ for _type, _ext in (("image/webp", ".webp"), ("video/webm", ".webm"), ("video/mp
 
 log = logging.getLogger("contenus")
 HERE = Path(__file__).parent
+
+
+@functools.lru_cache
+def statique(nom):
+    """Adresse d'un fichier de static/ suivie de l'empreinte de son contenu : chaque version a sa propre
+    adresse, donc aucun navigateur ne réutilise une ancienne copie gardée en cache."""
+    empreinte = hashlib.sha256((HERE / "static" / nom).read_bytes()).hexdigest()[:12]
+    return f"/static/contenus/{nom}?v={empreinte}"
 TEMPLATE_MODULE = HERE / "modele"
 
 INTERNAL_HEADER = "X-Academy-Interne"
@@ -295,6 +304,7 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
     app = FastAPI(title="Contenus RoboForge", docs_url=None, redoc_url=None, openapi_url=None)
     templates = Jinja2Templates(directory=str(HERE / "templates"))
     templates.env.globals["lab_link"] = lab_link
+    templates.env.globals["statique"] = statique
     templates.env.globals["icone_parcours"] = icone_parcours
     internal_token = hmac.new(secret.encode(), b"contenus-interne", hashlib.sha256).hexdigest()
 
