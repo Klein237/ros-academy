@@ -7,9 +7,9 @@
 <section class="hero-scene">
   {# Vidéos muettes en boucle : l'image d'attente s'affiche d'abord ; site.js ne lance la lecture
      que sur grand écran, sans économie de données ni « animations réduites » #}
-  <video class="hero-fond" muted loop playsinline preload="none" poster="{{ v }}patrouille.webp" data-video-auto aria-hidden="true">
-    <source src="{{ v }}patrouille.webm" type="video/webm">
-    <source src="{{ v }}patrouille.mp4" type="video/mp4">
+  <video class="hero-fond" muted loop playsinline preload="none" poster="{{ v }}robots.webp" data-video-auto aria-hidden="true">
+    <source src="{{ v }}robots.webm" type="video/webm">
+    <source src="{{ v }}robots.mp4" type="video/mp4">
   </video>
   <div class="hero-voile" aria-hidden="true"></div>
   <div class="conteneur accueil-hero">
@@ -28,22 +28,8 @@
       <li>{{ coche() }}Certificat vérifiable</li>
     </ul>
   </div>
-  <div class="apercu-cadre">
-  {{ objet("robot", 150, "apercu-objet") }}
-  <figure class="apercu apercu-video">
-    <div class="apercu-barre"><span></span><span></span><span></span><span class="apercu-titre-lab">Lab · Bras robotique · Vue 3D</span></div>
-    <video muted loop playsinline preload="none" poster="{{ v }}bras.webp" data-video-auto aria-label="Dans le lab, le bras du parcours prend un cube et le dépose">
-      <source src="{{ v }}bras.webm" type="video/webm">
-      <source src="{{ v }}bras.mp4" type="video/mp4">
-    </video>
-    <div class="apercu-lab apercu-bas">
-      <code class="apercu-editeur"><i># angles pour atteindre le cube</i><br>q = <b>angles_pour</b>(0.32, 0.18, 0.18)</code>
-      <code class="apercu-terminal"><span class="ok">✔</span> pince sur la cible<br><span class="ok">✔</span> cube déposé</code>
-    </div>
-  </figure>
   </div>
-  </div>
-  <p class="hero-legende">Les robots des parcours, en 3D : le robot mobile et son laser, le bras</p>
+  <p class="hero-legende">Drone agricole, quadrupède, bras, robot de livraison, humanoïde, robot sous-marin : tous programmés avec ROS</p>
 </section>
 
 <section class="bande" aria-labelledby="se-tromper">
@@ -64,12 +50,28 @@
     <div>
       <h2 id="navigateur">Votre navigateur suffit</h2>
       <p>Pas d'Ubuntu à installer, pas de machine virtuelle, pas de dépendances qui cassent. Chaque étudiant reçoit son propre environnement ROS 2, prêt en quelques secondes, et retrouve ses fichiers à chaque connexion.</p>
+      <ul class="outils-lab">
+        <li><span class="outil-icone">$_</span>Terminal · ros2, colcon</li>
+        <li><span class="outil-icone">{ }</span>Éditeur · Python, C++, URDF</li>
+        <li><span class="outil-icone">◎</span>Gazebo, RViz et Vue 3D</li>
+      </ul>
     </div>
-    <ul class="outils">
-      <li><span class="outil-icone">$_</span><strong>Terminal</strong><span>ros2, colcon, rviz2</span></li>
-      <li><span class="outil-icone">{ }</span><strong>Éditeur de code</strong><span>Python, C++, launch, URDF</span></li>
-      <li><span class="outil-icone">◎</span><strong>Simulateur</strong><span>Gazebo Harmonic et RViz</span></li>
-    </ul>
+    <div class="lab-videos">
+      <figure class="apercu apercu-video">
+        <div class="apercu-barre"><span></span><span></span><span></span><span class="apercu-titre-lab">Robot mobile et laser</span></div>
+        <video muted loop playsinline preload="none" poster="{{ v }}patrouille.webp" data-video-auto aria-label="Dans le lab, le robot mobile du parcours patrouille dans sa salle, son laser en doré">
+          <source src="{{ v }}patrouille.webm" type="video/webm">
+          <source src="{{ v }}patrouille.mp4" type="video/mp4">
+        </video>
+      </figure>
+      <figure class="apercu apercu-video">
+        <div class="apercu-barre"><span></span><span></span><span></span><span class="apercu-titre-lab">Vue 3D · bras</span></div>
+        <video muted loop playsinline preload="none" poster="{{ v }}bras.webp" data-video-auto aria-label="Dans le lab, le bras du parcours prend un cube et le dépose">
+          <source src="{{ v }}bras.webm" type="video/webm">
+          <source src="{{ v }}bras.mp4" type="video/mp4">
+        </video>
+      </figure>
+    </div>
   </div>
 </section>
 

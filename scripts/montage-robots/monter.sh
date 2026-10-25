@@ -6,7 +6,8 @@
 #
 # DOSSIER_DES_VIDEOS : les vidéos sources, dans l'ordre alphabétique (01-drone.mp4, 02-marin.mp4…).
 #   Un fichier « nom.debut » à côté d'une vidéo (ex. 02-marin.debut contenant 4.5) choisit le début
-#   de l'extrait, en secondes ; sinon il commence à 1 s.
+#   de l'extrait, en secondes ; sinon il commence à 1 s. Un fichier « nom.cadrage » (0 à 1) place la
+#   fenêtre 16:9 dans une vidéo plus haute (verticale) : 0 en haut, 0.5 au centre (par défaut), 1 en bas.
 # SORTIE : préfixe des fichiers produits (SORTIE.webm, SORTIE.mp4, SORTIE.webp).
 # Seules des vidéos dont la licence permet l'usage commercial (Pexels, Pixabay, Coverr, vos tournages)
 # doivent entrer ici : notez leur source et leur licence dans SOURCES.md, à côté des vidéos.
@@ -24,9 +25,11 @@ entrees=() filtres="" n=0
 for v in "${VIDEOS[@]}"; do
   debut=1
   [ -f "${v%.*}.debut" ] && debut=$(tr -dc '0-9.' < "${v%.*}.debut")
+  cadrage=0.5
+  [ -f "${v%.*}.cadrage" ] && cadrage=$(tr -dc '0-9.' < "${v%.*}.cadrage")
   entrees+=(-ss "$debut" -t "$DUREE" -i "$v")
   # cadrage commun, étalonnage : un peu moins de saturation, ombres plus denses, tons chauds
-  filtres+="[$n:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,fps=24,setsar=1,"
+  filtres+="[$n:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720:(iw-1280)/2:(ih-720)*$cadrage,fps=24,setsar=1,"
   filtres+="eq=saturation=0.85:contrast=1.08:brightness=-0.04,colorbalance=rs=0.04:bs=-0.05:rh=0.03:bh=-0.04,format=yuv420p[v$n];"
   n=$((n + 1))
 done

@@ -1,0 +1,5 @@
+# vidéos sources (plusieurs Mo, voir SOURCES.md) : seuls leurs réglages sont dans le dépôt
+*.mp4
+*.mov
+*.webm
+*.mkv
