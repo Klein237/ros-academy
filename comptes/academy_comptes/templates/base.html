@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Mon compte{% endblock %} · RoboForge</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="/static/contenus/site.css">
+  <link rel="stylesheet" href="/static/contenus/site.css?v={{ version_statique }}">
   <link rel="stylesheet" href="/static/comptes/comptes.css">
 </head>
 <body{% block body_class %}{% endblock %}>
@@ -41,6 +41,6 @@
       <nav aria-label="Pied de page"><a href="/decouvrir/">Découvrir ROS 2</a><a href="/mentions-legales">Mentions légales</a><a href="/confidentialite">Confidentialité</a></nav>
     </div>
   </footer>
-  <script type="module" src="/static/contenus/entete.js"></script>
+  <script type="module" src="/static/contenus/entete.js?v={{ version_statique }}"></script>
 </body>
 </html>
