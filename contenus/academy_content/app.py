@@ -332,6 +332,10 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
         elif request.url.path.startswith("/modules/"):
             # cours ou page réservée selon la session : jamais servi depuis un cache partagé
             response.headers["Cache-Control"] = "private, no-cache"
+        elif request.url.path.startswith("/static/contenus/"):
+            # sans cet en-tête, le navigateur garde site.js des heures sans redemander : après un
+            # déploiement, l'ancien script tourne sur les nouvelles pages ; no-cache revalide (304)
+            response.headers.setdefault("Cache-Control", "no-cache")
         return response
 
     def page(request, name, status=200, **ctx):
