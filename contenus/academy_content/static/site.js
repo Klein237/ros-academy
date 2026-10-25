@@ -747,14 +747,12 @@ function setupVideos() {
   };
   const observateur = new IntersectionObserver((entrees) => {
     for (const e of entrees) {
+      // play() charge la vidéo quand elle devient visible : plus bas dans la page, rien n'est téléchargé avant
       if (e.isIntersecting) { visibles.add(e.target); if (!document.hidden) jouer(e.target); }
       else { visibles.delete(e.target); e.target.pause(); }
     }
   }, { threshold: 0.2 });
-  for (const v of videos) {
-    v.preload = "auto";
-    observateur.observe(v);
-  }
+  for (const v of videos) observateur.observe(v);
   document.addEventListener("visibilitychange", () => {
     for (const v of visibles) document.hidden ? v.pause() : jouer(v);
   });
