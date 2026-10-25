@@ -582,3 +582,13 @@ def test_accueil_videos_with_poster_served_locally(client):
                        ("robots.webp", "image/webp")]:
         r = client.get(f"/static/contenus/videos/{nom}")
         assert r.status_code == 200 and r.headers["content-type"] == type_
+
+
+def test_static_files_revalidated_after_deploy(client):
+    # sinon l'ancien site.js reste en cache après un déploiement (vidéos figées sur l'image d'attente)
+    r = client.get("/static/contenus/site.js")
+    assert r.status_code == 200 and r.headers["cache-control"] == "no-cache" and r.headers.get("etag")
+    assert client.get("/static/contenus/site.js", headers={"If-None-Match": r.headers["etag"]}).status_code == 304
+    # une vidéo reste lisible par plages (Safari l'exige)
+    r = client.get("/static/contenus/videos/robots.mp4", headers={"Range": "bytes=0-99"})
+    assert r.status_code == 206 and len(r.content) == 100
