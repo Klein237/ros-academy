@@ -729,6 +729,38 @@ function setupAvis() {
   });
 }
 
+/**
+ * Vidéos muettes de l'accueil ([data-video-auto]) : l'image d'attente suffit sur petit écran, en
+ * économie de données ou avec « réduire les animations » (rien n'est téléchargé) ; sinon la vidéo
+ * se lance quand elle est visible et s'arrête hors de l'écran ou onglet caché.
+ */
+function setupVideos() {
+  const videos = [...document.querySelectorAll("video[data-video-auto]")];
+  if (!videos.length) return;
+  const calme = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const petit = window.matchMedia("(max-width: 720px)").matches;
+  if (calme || petit || navigator.connection?.saveData || !("IntersectionObserver" in window)) return;
+  const visibles = new Set();
+  const jouer = (v) => {
+    v.muted = true;
+    v.play().catch(() => {}); // lecture refusée : l'image d'attente reste
+  };
+  const observateur = new IntersectionObserver((entrees) => {
+    for (const e of entrees) {
+      if (e.isIntersecting) { visibles.add(e.target); if (!document.hidden) jouer(e.target); }
+      else { visibles.delete(e.target); e.target.pause(); }
+    }
+  }, { threshold: 0.2 });
+  for (const v of videos) {
+    v.preload = "auto";
+    observateur.observe(v);
+  }
+  document.addEventListener("visibilitychange", () => {
+    for (const v of visibles) document.hidden ? v.pause() : jouer(v);
+  });
+}
+
+setupVideos();
 setupTabs();
 setupCopy();
 setupCatalogue();

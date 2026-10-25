@@ -3,7 +3,16 @@
 {% block main_class %}page plein{% endblock %}
 {% block content %}
 {% set premier = (parcours | selectattr("statut", "equalto", "disponible") | first) %}
-<section class="conteneur accueil-hero">
+{% set v = "/static/contenus/videos/" %}
+<section class="hero-scene">
+  {# Vidéos muettes en boucle : l'image d'attente s'affiche d'abord ; site.js ne lance la lecture
+     que sur grand écran, sans économie de données ni « animations réduites » #}
+  <video class="hero-fond" muted loop playsinline preload="none" poster="{{ v }}patrouille.webp" data-video-auto aria-hidden="true">
+    <source src="{{ v }}patrouille.webm" type="video/webm">
+    <source src="{{ v }}patrouille.mp4" type="video/mp4">
+  </video>
+  <div class="hero-voile" aria-hidden="true"></div>
+  <div class="conteneur accueil-hero">
   <div class="accueil-hero-texte">
     <p class="pastille douce">ROS 2 Jazzy · Gazebo Harmonic · 100 % dans le navigateur</p>
     <h1>Apprenez à développer le logiciel d'un robot</h1>
@@ -21,24 +30,20 @@
   </div>
   <div class="apercu-cadre">
   {{ objet("robot", 150, "apercu-objet") }}
-  <div class="apercu" role="img" aria-label="Aperçu : un exercice de diagnostic à gauche ; à droite, le lab où l'on corrige le code, puis la vérification qui passe d'un échec à une réussite">
-    <div class="apercu-barre"><span></span><span></span><span></span></div>
-    <div class="apercu-corps">
-      <div class="apercu-cours">
-        <span class="eyebrow">Exercice · Le robot ne part pas en patrouille</span>
-        <span class="apercu-titre">Tout démarre, rien ne bouge</span>
-        <span class="apercu-texte">Aucune erreur à l'écran. À vous de trouver la panne avec les outils du cours.</span>
-        <code class="apercu-code">$ ros2 topic list -t<br>/cmd_vel [Twist, TwistStamped]</code>
-        <span class="apercu-boutons"><span class="mini primaire">Vérifier</span><span class="mini">Indice</span><span class="mini">Réinitialiser</span></span>
-      </div>
-      <div class="apercu-lab">
-        <div class="apercu-onglets"><span class="actif">patrouille_node.py</span><span>robot.launch.py</span></div>
-        <code class="apercu-editeur"><i># le robot attend des Twist</i><br>self.pub = self.create_publisher(<br>&nbsp;&nbsp;<b>Twist</b>, 'cmd_vel', 10)</code>
-        <code class="apercu-terminal"><span class="ko">✘</span> <i>le robot n'a pas bougé</i><br><span class="ok">✔</span> 0,62 m parcourus depuis le départ</code>
-      </div>
+  <figure class="apercu apercu-video">
+    <div class="apercu-barre"><span></span><span></span><span></span><span class="apercu-titre-lab">Lab · Bras robotique · Vue 3D</span></div>
+    <video muted loop playsinline preload="none" poster="{{ v }}bras.webp" data-video-auto aria-label="Dans le lab, le bras du parcours prend un cube et le dépose">
+      <source src="{{ v }}bras.webm" type="video/webm">
+      <source src="{{ v }}bras.mp4" type="video/mp4">
+    </video>
+    <div class="apercu-lab apercu-bas">
+      <code class="apercu-editeur"><i># angles pour atteindre le cube</i><br>q = <b>angles_pour</b>(0.32, 0.18, 0.18)</code>
+      <code class="apercu-terminal"><span class="ok">✔</span> pince sur la cible<br><span class="ok">✔</span> cube déposé</code>
     </div>
+  </figure>
   </div>
   </div>
+  <p class="hero-legende">Les robots des parcours, en 3D : le robot mobile et son laser, le bras</p>
 </section>
 
 <section class="bande" aria-labelledby="se-tromper">

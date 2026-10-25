@@ -1,0 +1,240 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Clips 3D</title>
+<!-- Clips des robots des cours (URDF réels), rendus image par image par rendre.mjs : ?scene=patrouille|dessus|bras -->
+<style>html,body{margin:0;background:#0b0b0d;overflow:hidden}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./three/build/three.module.js","three/":"./three/","urdf-loader":"./urdf-loader/src/URDFLoader.js"}}</script>
+</head><body>
+<script type="module">
+import * as THREE from "three";
+import URDFLoader from "urdf-loader";
+
+const P = new URLSearchParams(location.search);
+const SCENE = P.get("scene") || "patrouille";   // patrouille | dessus | bras
+const W = +(P.get("w") || 1280), H = +(P.get("h") || 720);
+const PERIODE = +(P.get("periode") || 12);       // s : boucle parfaite
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(W, H);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b0b0d);
+scene.fog = new THREE.Fog(0x0b0b0d, 6, 14);
+// Monde en repère ROS (z vers le haut)
+const monde = new THREE.Group();
+monde.rotation.x = -Math.PI / 2;
+scene.add(monde);
+
+const OR = 0xe3b866;
+scene.add(new THREE.HemisphereLight(0x8a8fb0, 0x0b0b0d, 0.55));
+const soleil = new THREE.DirectionalLight(0xfff3dd, 2.2);
+soleil.position.set(-3, 6, 2);
+soleil.castShadow = true;
+soleil.shadow.mapSize.set(2048, 2048);
+Object.assign(soleil.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 0.5, far: 20 });
+scene.add(soleil);
+const contre = new THREE.PointLight(OR, 6, 8, 1.6);
+contre.position.set(2.5, 1.6, -2.5);
+scene.add(contre);
+
+const mat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0.1, ...o });
+function boite(sx, sy, sz, x, y, z, m) {
+  const b = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), m);
+  b.position.set(x, y, z);
+  b.castShadow = b.receiveShadow = true;
+  monde.add(b);
+  return b;
+}
+
+// Sol sombre et grille dorée discrète
+const sol = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), mat(0x121317, { roughness: 0.9 }));
+sol.receiveShadow = true;
+monde.add(sol);
+const grille = new THREE.GridHelper(30, 60, OR, OR);
+grille.material.transparent = true;
+grille.material.opacity = 0.08;
+grille.rotation.x = Math.PI / 2;
+grille.position.z = 0.001;
+monde.add(grille);
+
+// --- Robot mobile : la salle du module 11 (worlds/salle.sdf), murs, caisse, laser
+const SEGMENTS = [];  // obstacles 2D pour le laser : [x1, y1, x2, y2]
+function obstacle(sx, sy, x, y) {
+  const [a, b, c, d] = [x - sx / 2, y - sy / 2, x + sx / 2, y + sy / 2];
+  SEGMENTS.push([a, b, c, b], [c, b, c, d], [c, d, a, d], [a, d, a, b]);
+}
+
+let robot = null, bras = null;
+const loader = new URDFLoader();
+const charger = (url) => new Promise((ok) => loader.load(url, ok));
+// matériaux plus fins que ceux de l'URDF (mêmes couleurs)
+function affiner(objet) {
+  objet.traverse((o) => {
+    if (!o.isMesh) return;
+    const c = o.material.color ? o.material.color.clone() : new THREE.Color(0x888888);
+    o.material = mat(c, { roughness: 0.45, metalness: 0.15 });
+    o.castShadow = o.receiveShadow = true;
+  });
+}
+
+const laser = { lignes: null, points: null, n: 360 };
+const CAISSE = [1.2, 0, 0.3];
+
+async function patrouille() {
+  const murs = mat(0x2a2c33, { roughness: 0.8 });
+  boite(0.1, 4.2, 0.5, 2.05, 0, 0.25, murs); obstacle(0.1, 4.2, 2.05, 0);
+  boite(0.1, 4.2, 0.5, -2.05, 0, 0.25, murs); obstacle(0.1, 4.2, -2.05, 0);
+  boite(4.2, 0.1, 0.5, 0, -2.05, 0.25, murs); obstacle(4.2, 0.1, 0, -2.05);
+  boite(4.2, 0.1, 0.5, 0, 2.05, 0.25, murs); obstacle(4.2, 0.1, 0, 2.05);
+  boite(0.3, 0.3, 0.3, CAISSE[0], CAISSE[1], 0.15, mat(0x1a66b3, { roughness: 0.4 })); obstacle(0.3, 0.3, CAISSE[0], CAISSE[1]);
+  robot = await charger("urdf/robot-mobile.urdf");
+  affiner(robot);
+  monde.add(robot);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(laser.n * 6), 3));
+  laser.lignes = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: OR, transparent: true, opacity: SCENE === "dessus" ? 0.22 : 0.3, blending: THREE.AdditiveBlending, depthWrite: false }));
+  monde.add(laser.lignes);
+  const pg = new THREE.BufferGeometry();
+  pg.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(laser.n * 3), 3));
+  laser.points = new THREE.Points(pg, new THREE.PointsMaterial({ color: 0xffd98a, size: SCENE === "dessus" ? 0.05 : 0.035, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+  monde.add(laser.points);
+}
+
+// Trajectoire en huit autour du centre, loin de la caisse ; périodique sur PERIODE
+function pose(t) {
+  const u = (2 * Math.PI * t) / PERIODE;
+  const x = -0.4 + 1.1 * Math.sin(u), y = 0.62 * Math.sin(2 * u);
+  const dx = 1.1 * Math.cos(u), dy = 1.24 * Math.cos(2 * u);
+  return { x, y, cap: Math.atan2(dy, dx) };
+}
+function rayon(ox, oy, a) {
+  const dx = Math.cos(a), dy = Math.sin(a);
+  let best = 8;
+  for (const [x1, y1, x2, y2] of SEGMENTS) {
+    const ex = x2 - x1, ey = y2 - y1, den = dx * ey - dy * ex;
+    if (Math.abs(den) < 1e-9) continue;
+    const t = ((x1 - ox) * ey - (y1 - oy) * ex) / den, s = ((x1 - ox) * dy - (y1 - oy) * dx) / den;
+    if (t > 0.12 && s >= 0 && s <= 1 && t < best) best = t;
+  }
+  return best;
+}
+function dessinerPatrouille(t) {
+  const p = pose(t);
+  robot.position.set(p.x, p.y, 0.06);
+  robot.rotation.set(0, 0, p.cap);
+  const roue = (t * 0.6) / 0.05;  // ~0,6 m/s / rayon des roues
+  for (const [nom, j] of Object.entries(robot.joints)) if (j.jointType === "continuous") j.setJointValue(roue);
+  // laser (base_link → laser : 0,15 0 0,12)
+  const lx = p.x + 0.15 * Math.cos(p.cap), ly = p.y + 0.15 * Math.sin(p.cap), lz = 0.06 + 0.12;
+  const L = laser.lignes.geometry.attributes.position, Pt = laser.points.geometry.attributes.position;
+  for (let i = 0; i < laser.n; i++) {
+    const a = p.cap - Math.PI + (2 * Math.PI * i) / laser.n, d = rayon(lx, ly, a);
+    const hx = lx + d * Math.cos(a), hy = ly + d * Math.sin(a);
+    // un rayon sur trois est dessiné (lisible) ; tous les points d'impact le sont
+    if (i % 3 === 0) { L.setXYZ(2 * i, lx, ly, lz); L.setXYZ(2 * i + 1, hx, hy, lz); }
+    else { L.setXYZ(2 * i, hx, hy, lz); L.setXYZ(2 * i + 1, hx, hy, lz); }
+    Pt.setXYZ(i, hx, hy, lz);
+  }
+  L.needsUpdate = Pt.needsUpdate = true;
+  // caméra : lent balancement autour de la salle (périodique)
+  const u = (2 * Math.PI * t) / PERIODE;
+  if (SCENE === "dessus") {
+    // vue de dessus façon RViz : la salle entière, légère rotation
+    camera.position.set(-0.3 + 0.2 * Math.sin(u), 5.6, 0.2 + 0.2 * Math.cos(u));
+    camera.up.set(Math.sin(0.15 * Math.sin(u)), 0, -Math.cos(0.15 * Math.sin(u)));
+    camera.lookAt(-0.3, 0, 0);
+  } else {
+    // caméra qui accompagne le robot (cible lissée vers le centre), orbite lente
+    const cx = 0.55 * p.x - 0.1, cy = 0.55 * p.y;        // repère ROS
+    const az = -2.5 + 0.5 * Math.sin(u), r = 2.1;
+    const camx = Math.max(-1.9, Math.min(1.9, cx + r * Math.cos(az))), camy = Math.max(-1.9, Math.min(1.9, cy + r * Math.sin(az)));
+    camera.position.set(camx, 1.35, -camy);
+    camera.lookAt(cx, 0.1, -cy);
+  }
+}
+
+// --- Bras du module 33 : prend un cube doré, le dépose, puis le ramène
+const cubes = [];
+const A = [0.32, 0.18], B = [0.3, -0.2];  // positions sur la table (repère du bras)
+let saisie = { A: null, B: null, haut: null };
+function outil() {
+  const v = new THREE.Vector3();
+  bras.links.tool0.getWorldPosition(v);
+  return monde.worldToLocal(v);
+}
+function poser(q) { for (const [n, v] of Object.entries(q)) bras.joints[n].setJointValue(v); scene.updateMatrixWorld(true); }
+// petite cinématique inverse numérique : outil sur la cible, pince vers le bas
+function cout(q, cible, z) {
+  poser(q);
+  const o = outil(), m = new THREE.Vector3();
+  bras.links.main.getWorldPosition(m);
+  monde.worldToLocal(m);
+  const dir = o.clone().sub(m).normalize();
+  return Math.hypot(o.x - cible[0], o.y - cible[1], o.z - z) + 0.05 * (1 + dir.z);
+}
+function ik(cible, z) {
+  const base = Math.atan2(cible[1], cible[0]);
+  let best = null, err = 1e9;
+  for (let e = -1.6; e <= 1.6; e += 0.05) for (let c = -2.2; c <= 2.2; c += 0.05) for (let w = -1.8; w <= 1.8; w += 0.1) {
+    const q = { base_rotation: base, epaule: e, coude: c, poignet: w }, k = cout(q, cible, z);
+    if (k < err) { err = k; best = q; }
+  }
+  for (let pas = 0.02; pas >= 0.002; pas /= 2) for (let it = 0; it < 40; it++) {
+    let mieux = false;
+    for (const j of ["epaule", "coude", "poignet"]) for (const s of [-pas, pas]) {
+      const q = { ...best, [j]: best[j] + s }, k = cout(q, cible, z);
+      if (k < err) { err = k; best = q; mieux = true; }
+    }
+    if (!mieux) break;
+  }
+  return best;
+}
+async function scBras() {
+  bras = await charger("urdf/bras.urdf");
+  affiner(bras);
+  bras.position.set(0, 0, 0.12);
+  monde.add(bras);
+  boite(0.9, 0.9, 0.12, 0.15, 0, 0.06, mat(0x1b1c21, { roughness: 0.7 }));
+  const cube = boite(0.045, 0.045, 0.045, A[0], A[1], 0.12 + 0.0225, mat(OR, { metalness: 0.75, roughness: 0.28 }));
+  cubes.push(cube);
+  const zc = 0.12 + 0.0225 + 0.035;
+  saisie.A = ik(A, zc); saisie.B = ik(B, zc);
+  saisie.hautA = ik(A, zc + 0.16); saisie.hautB = ik(B, zc + 0.16);
+}
+const lisse = (x) => x * x * (3 - 2 * x);
+function mix(q1, q2, s) { const r = {}; for (const k in q1) r[k] = q1[k] + (q2[k] - q1[k]) * lisse(s); return r; }
+function dessinerBras(t) {
+  // une demi-période : A → B ; l'autre : B → A
+  const half = PERIODE / 2, aller = t < half, s = (t % half) / half;
+  const [D, F, hD, hF] = aller ? [saisie.A, saisie.B, saisie.hautA, saisie.hautB] : [saisie.B, saisie.A, saisie.hautB, saisie.hautA];
+  const etapes = [[0, 0.14, hD, D], [0.14, 0.24, D, D], [0.24, 0.38, D, hD], [0.38, 0.62, hD, hF], [0.62, 0.76, hF, F], [0.76, 0.86, F, F], [0.86, 1, F, hD]];
+  let q = hD, tenu = false, ouverture = 0.03;
+  for (const [a, b, q1, q2] of etapes) if (s >= a && s <= b) q = mix(q1, q2, (s - a) / (b - a));
+  if (s >= 0.14 && s < 0.24) ouverture = 0.03 - 0.0075 * lisse((s - 0.14) / 0.1) / 0.25 * 0.25;
+  if (s >= 0.2 && s < 0.8) { tenu = true; ouverture = 0.022; }
+  if (s >= 0.8 && s < 0.86) ouverture = 0.022 + 0.008 * lisse((s - 0.8) / 0.06);
+  poser({ ...q, pince: 0.03 - ouverture, pince_miroir: 0.03 - ouverture });
+  const cube = cubes[0];
+  if (tenu) { const o = outil(); cube.position.set(o.x, o.y, o.z - 0.035); cube.rotation.set(0, 0, q.base_rotation); }
+  else { const p = s < 0.5 ? (aller ? A : B) : (aller ? B : A); cube.position.set(p[0], p[1], 0.12 + 0.0225); }
+  const u = (2 * Math.PI * t) / PERIODE, az = -2.2 + 0.45 * Math.sin(u);
+  camera.position.set(1.05 * Math.cos(az), 0.62, -1.05 * Math.sin(az));
+  camera.lookAt(0.15, 0.3, 0);
+}
+
+const camera = new THREE.PerspectiveCamera(SCENE === "bras" ? 38 : 40, W / H, 0.05, 60);
+if (SCENE === "bras") await scBras(); else await patrouille();
+window.dessiner = (t) => {
+  if (SCENE === "bras") dessinerBras(t); else dessinerPatrouille(t);
+  renderer.render(scene, camera);
+  return renderer.domElement.toDataURL("image/png");
+};
+window.pret = true;
+</script>
+</body></html>

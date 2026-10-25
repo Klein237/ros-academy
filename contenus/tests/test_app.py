@@ -570,3 +570,13 @@ def test_lab_image_health_for_the_monitor(store):
     assert "échoue. Téléchargement automatique en cours. Sinon" in note.get("/api/contenus/sante/image-lab").json()["alerte"]
     no_docker = TestClient(create_app(store, Runner(), SECRET, cookie_secure=False))
     assert no_docker.get("/api/contenus/sante/image-lab").json() == {"verifiee": False}
+
+
+def test_accueil_videos_with_poster_served_locally(client):
+    html = client.get("/").text
+    # image d'attente d'abord ; site.js décide de lancer la lecture (aucun préchargement)
+    assert html.count("data-video-auto") == 2 and 'preload="none"' in html
+    assert 'poster="/static/contenus/videos/patrouille.webp"' in html and "muted" in html
+    for nom, type_ in [("patrouille.webm", "video/webm"), ("bras.mp4", "video/mp4"), ("bras.webp", "image/webp")]:
+        r = client.get(f"/static/contenus/videos/{nom}")
+        assert r.status_code == 200 and r.headers["content-type"] == type_
