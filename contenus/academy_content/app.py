@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import json
 import logging
+import mimetypes
 import os
 import random
 import re
@@ -37,6 +38,11 @@ from .image_lab import LabImage
 from .render import IMAGE_RE, code_files, cours_sommaire, lab_link, render_cours, render_markdown
 from .store import ContentStore, StoreError
 from .verification import Busy, InvalidStudent
+
+# Types des fichiers statiques : Python ne connaît pas tous ceux du site sans /etc/mime.types
+# (image Python minimale, CI) ; sans eux, les images d'attente partiraient en application/octet-stream.
+for _type, _ext in (("image/webp", ".webp"), ("video/webm", ".webm"), ("video/mp4", ".mp4"), ("font/woff2", ".woff2")):
+    mimetypes.add_type(_type, _ext)
 
 log = logging.getLogger("contenus")
 HERE = Path(__file__).parent
