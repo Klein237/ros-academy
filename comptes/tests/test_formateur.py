@@ -90,7 +90,21 @@ def test_students_search_and_detail(client, env):
     assert "bob@exemple.fr" in detail and "<strong class=\"warn\">bloqué</strong>" in detail
     assert "10,0" in detail and "(1/2)" in detail and "1 / 3" in detail
     assert trainer.get("/compte/formateur/etudiants/99").status_code == 404
-    assert trainer.get("/compte/formateur/etudiants/4").status_code == 404  # le formateur lui-même
+    # le formateur lui-même : suivi comme membre de l'équipe
+    assert "admin@exemple.fr" in trainer.get("/compte/formateur/etudiants/4").text
+
+
+def test_team_is_followed_apart_from_students(client, env):
+    trainer, _ = build(client, env)
+    html = trainer.get("/compte/formateur", params={"qui": "equipe"}).text
+    tiles = dict((label, value) for value, label in
+                 re.findall(r'<span class="tile-value">([^<]*)</span><span class="tile-label">([^<]*)</span>', html))
+    assert tiles["membres de l'équipe".replace("'", "&#39;")] == "1"
+    assert "admin@exemple.fr" in html and "alice@exemple.fr" not in html
+    assert re.search(r'href="/compte/formateur/etudiants\.csv\?[^"]*qui=equipe"', html)  # l'export suit la vue
+    csv = trainer.get("/compte/formateur/etudiants.csv", params={"qui": "equipe"}).text
+    assert "admin@exemple.fr" in csv and "alice@exemple.fr" not in csv
+    assert "admin@exemple.fr" not in trainer.get("/compte/formateur").text
 
 
 def test_csv_export_is_spreadsheet_safe(client, env):

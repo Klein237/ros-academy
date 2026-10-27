@@ -54,3 +54,22 @@ def test_trainer_reads_feedback(client, env):
     assert "admin@exemple.fr" not in page
     csv = trainer.get("/compte/formateur/avis.csv").text
     assert "01-a;Module A;alice@exemple.fr" in csv and "'=HYPERLINK" in csv  # pas de formule dans le tableur
+
+
+def test_team_feedback_is_shown_apart(client, env):
+    alice = browser(client, env, "alice@exemple.fr")
+    alice.post("/api/comptes/avis/01-a", json=AVIS, headers=ORIGIN)
+    trainer = browser(client, env, "admin@exemple.fr")
+    trainer.post("/api/comptes/avis/01-a", json={**AVIS, "note": 2, "commentaire": "Indice 3 trop direct."},
+                 headers=ORIGIN)
+    page = trainer.get("/compte/formateur/avis").text
+    assert "Équipe (1)" in page and "Indice 3 trop direct." not in page
+    page = trainer.get("/compte/formateur/avis", params={"qui": "equipe"}).text
+    assert "Indice 3 trop direct." in page and "admin@exemple.fr" in page and "Étudiants (1)" in page
+    assert "Clair, mais" not in page
+    html = trainer.get("/compte/formateur", params={"qui": "equipe"}).text
+    assert "2,0 / 5" in html and "(1 avis)" in html  # la moyenne de l'équipe, pas celle des étudiants
+    assert "4,0 / 5" in trainer.get("/compte/formateur").text
+    csv = trainer.get("/compte/formateur/avis.csv", params={"qui": "equipe"}).text
+    assert "admin@exemple.fr" in csv and "alice@exemple.fr" not in csv
+    assert alice.get("/compte/formateur/avis", params={"qui": "equipe"}).status_code == 403

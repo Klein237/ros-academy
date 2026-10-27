@@ -51,13 +51,18 @@ class Summary:
     commentaires: int = 0
 
 
-def summaries(db, modules, excluded_emails=frozenset()):
+def _garde(email, staff_emails, equipe):
+    """Avis des étudiants (equipe faux) ou de l'équipe seule : les uns ne comptent jamais avec les autres."""
+    return (email in staff_emails) == equipe
+
+
+def summaries(db, modules, staff_emails=frozenset(), equipe=False):
     """Par module : nombre d'avis, note moyenne, répartition des difficultés, commentaires écrits."""
     notes, diffs, comments = defaultdict(list), defaultdict(lambda: dict.fromkeys(DIFFICULTES, 0)), defaultdict(int)
     rows = db.execute(select(ModuleFeedback, User.email).join(User, User.id == ModuleFeedback.user_id)
                       .where(ModuleFeedback.module.in_(modules))).all()
     for row, email in rows:
-        if email in excluded_emails:
+        if not _garde(email, staff_emails, equipe):
             continue
         notes[row.module].append(row.note)
         diffs[row.module][row.difficulte] = diffs[row.module].get(row.difficulte, 0) + 1
@@ -66,13 +71,13 @@ def summaries(db, modules, excluded_emails=frozenset()):
                        diffs[m], comments[m]) for m in modules}
 
 
-def listing(db, module=None, excluded_emails=frozenset(), limit=500):
+def listing(db, module=None, staff_emails=frozenset(), limit=500, equipe=False):
     """Avis les plus récents d'abord, avec le compte qui l'a donné."""
     q = select(ModuleFeedback, User).join(User, User.id == ModuleFeedback.user_id)
     if module:
         q = q.where(ModuleFeedback.module == module)
     rows = db.execute(q.order_by(ModuleFeedback.modifie_le.desc()).limit(limit)).all()
-    return [(row, user) for row, user in rows if user.email not in excluded_emails]
+    return [(row, user) for row, user in rows if _garde(user.email, staff_emails, equipe)]
 
 
 def _cell(value):

@@ -303,7 +303,7 @@ body.cote-a-cote main.page:not(.plein) { padding: 24px 24px 48px; }
 @media (max-width: 720px) {
   .hero-fond { filter: brightness(0.6); }
   .hero-scene .accueil-hero { min-height: 0; }
-  .hero-voile { background: linear-gradient(180deg, rgba(11, 11, 13, 0.85) 0%, rgba(11, 11, 13, 0.92) 60%, #0b0b0d 100%); }
+  .hero-voile { background: linear-gradient(180deg, rgba(11, 11, 13, 0.55) 0%, rgba(11, 11, 13, 0.8) 60%, #0b0b0d 100%); }
   .hero-scene .accueil-hero { padding-top: 40px; padding-bottom: 56px; }
   .hero-legende { display: none; }
 }

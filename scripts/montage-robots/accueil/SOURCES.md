@@ -19,5 +19,5 @@ comme ci-dessus dans ce dossier, puis :
 
 ```bash
 scripts/montage-robots/monter.sh scripts/montage-robots/accueil /tmp/robots
-cp /tmp/robots.{webm,mp4,webp} contenus/academy_content/static/videos/
+cp /tmp/robots.{webm,mp4,webp} /tmp/robots-mobile.{webm,mp4} contenus/academy_content/static/videos/
 ```

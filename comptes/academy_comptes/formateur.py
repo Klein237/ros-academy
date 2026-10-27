@@ -68,11 +68,15 @@ def _mean(values):
     return round(sum(values) / len(values), 1) if values else None
 
 
-def students(db, parcours, staff_emails, now):
+def students(db, parcours, staff_emails, now, equipe=False):
     """Les étudiants inscrits (actifs ou désinscrits ; administrateurs, formateurs et liste d'attente
-    exclus), avec leur progression sur le parcours."""
-    users = [u for u in db.scalars(select(User).where(User.statut.in_((ACTIF, DESINSCRIT))).order_by(User.id))
-             if u.email not in staff_emails]
+    exclus), avec leur progression sur le parcours. equipe : les comptes de l'équipe à la place (ceux qui
+    testent la formation), suivis à part pour ne pas fausser les chiffres des étudiants."""
+    if equipe:
+        users = [u for u in db.scalars(select(User).order_by(User.id)) if u.email in staff_emails]
+    else:
+        users = [u for u in db.scalars(select(User).where(User.statut.in_((ACTIF, DESINSCRIT))).order_by(User.id))
+                 if u.email not in staff_emails]
     ids = [u.id for u in users]
     if not ids:
         return []
