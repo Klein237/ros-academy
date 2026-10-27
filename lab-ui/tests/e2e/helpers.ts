@@ -114,7 +114,7 @@ export function newEmail(): string {
  * Journaux du service Comptes : sans SMTP, les liens envoyés par e-mail y sont écrits.
  * COMPTES_LOGS remplace la commande (déploiement local).
  */
-function comptesLogs(): string {
+export function comptesLogs(): string {
   return execSync(process.env.COMPTES_LOGS ?? "docker logs deploy-comptes-1 2>&1", { encoding: "utf8", maxBuffer: 64 << 20 });
 }
 
