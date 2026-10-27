@@ -758,13 +758,14 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         if not inscriptions.is_admin(settings, user.email):
             raise HTTPException(403, "Réservé aux administrateurs")
 
-    def trainer_data(db, parcours_id):
+    def trainer_data(db, parcours_id, equipe=False):
         try:
             all_parcours = contenus.parcours()
         except Exception:  # noqa: BLE001
             raise HTTPException(503, "Les parcours sont momentanément indisponibles") from None
         parcours = next((p for p in all_parcours if p["id"] == parcours_id), all_parcours[0] if all_parcours else None)
-        return all_parcours, parcours, formateur.students(db, parcours, inscriptions.staff_emails(db, settings), utcnow())
+        return all_parcours, parcours, formateur.students(db, parcours, inscriptions.staff_emails(db, settings), utcnow(),
+                                                          equipe)
 
     def users_with_access(db):
         now = utcnow()
@@ -772,11 +773,13 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
                 if a.fin is None or a.fin > now}
 
     @app.get("/compte/formateur", response_class=HTMLResponse)
-    def trainer(request: Request, parcours: str = "", q: str = "", user=Depends(current_user), db=Depends(get_db)):
+    def trainer(request: Request, parcours: str = "", q: str = "", qui: str = "", user=Depends(current_user),
+                db=Depends(get_db)):
         if not user:
             return login_redirect("/compte/formateur")
         require_trainer(db, user)
-        all_parcours, current, students = trainer_data(db, parcours)
+        equipe = qui == "equipe"  # suivi de l'équipe (formateurs qui testent la formation), à part des étudiants
+        all_parcours, current, students = trainer_data(db, parcours, equipe)
         try:
             labs = sum(1 for name in hub.running_servers() if HUB_NAME_RE.fullmatch(name))
         except Exception:  # noqa: BLE001 - Hub injoignable : le reste du tableau reste utile
@@ -785,7 +788,8 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
                     resume=formateur.overview(students, labs, utcnow(), users_with_access(db)),
                     modules=formateur.module_stats(students, current),
                     avis=avis.summaries(db, [m["id"] for m in current["modules"]] if current else [],
-                                        inscriptions.staff_emails(db, settings)),
+                                        inscriptions.staff_emails(db, settings), equipe),
+                    equipe=equipe,
                     students=sorted((st for st in students if formateur.matches(st, q)),
                                     key=lambda st: st.derniere_activite or datetime.min, reverse=True),
                     total=len(students), en_attente=inscriptions.waiting_count(db),
@@ -801,6 +805,8 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         require_trainer(db, user)
         _, current, students = trainer_data(db, parcours)
         student = next((st for st in students if st.user.id == student_id), None)
+        if not student:  # un membre de l'équipe (lien depuis son avis ou le suivi de l'équipe)
+            student = next((st for st in trainer_data(db, parcours, True)[2] if st.user.id == student_id), None)
         if not student:
             raise HTTPException(404, "Étudiant introuvable")
         certs = list(db.scalars(select(Certificate).where(Certificate.user_id == student.user.id)))
@@ -809,12 +815,12 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
                     restantes=minutes_left(db, student.user, settings), stuck_after=formateur.STUCK_AFTER)
 
     @app.get("/compte/formateur/etudiants.csv")
-    def trainer_csv(parcours: str = "", user=Depends(current_user), db=Depends(get_db)):
+    def trainer_csv(parcours: str = "", qui: str = "", user=Depends(current_user), db=Depends(get_db)):
         if not user:
             return login_redirect("/compte/formateur")
         require_trainer(db, user)
-        _, current, students = trainer_data(db, parcours)
-        name = f"etudiants-{current['id'] if current else 'parcours'}-{utcnow():%Y-%m-%d}.csv"
+        _, current, students = trainer_data(db, parcours, qui == "equipe")
+        name = f"{'equipe' if qui == 'equipe' else 'etudiants'}-{current['id'] if current else 'parcours'}-{utcnow():%Y-%m-%d}.csv"
         return Response(formateur.to_csv(students, current), media_type="text/csv; charset=utf-8",
                         headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
@@ -915,24 +921,29 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         return {m["id"]: m["titre"] for p in catalogue() for m in p["modules"]}
 
     @app.get("/compte/formateur/avis", response_class=HTMLResponse)
-    def trainer_feedback(request: Request, module: str = "", user=Depends(current_user), db=Depends(get_db)):
+    def trainer_feedback(request: Request, module: str = "", qui: str = "", user=Depends(current_user),
+                         db=Depends(get_db)):
         if not user:
             return login_redirect("/compte/formateur/avis")
         require_trainer(db, user)
         titres = module_titles()
         module = module if module in titres else ""
-        rows = avis.listing(db, module or None, inscriptions.staff_emails(db, settings))
+        staff, equipe = inscriptions.staff_emails(db, settings), qui == "equipe"
+        rows = avis.listing(db, module or None, staff, equipe=equipe)
+        autres = len(avis.listing(db, module or None, staff, equipe=not equipe))
         return page(request, "formateur_avis.html", user=user, lignes=rows, titres=titres, module=module,
-                    parcours=catalogue(), difficultes=avis.DIFFICULTES)
+                    parcours=catalogue(), difficultes=avis.DIFFICULTES, equipe=equipe, autres=autres)
 
     @app.get("/compte/formateur/avis.csv")
-    def trainer_feedback_csv(user=Depends(current_user), db=Depends(get_db)):
+    def trainer_feedback_csv(qui: str = "", user=Depends(current_user), db=Depends(get_db)):
         if not user:
             return login_redirect("/compte/formateur/avis")
         require_trainer(db, user)
-        rows = avis.listing(db, None, inscriptions.staff_emails(db, settings), limit=100000)
+        equipe = qui == "equipe"
+        rows = avis.listing(db, None, inscriptions.staff_emails(db, settings), limit=100000, equipe=equipe)
+        name = f"avis-{'equipe-' if equipe else ''}{utcnow():%Y-%m-%d}.csv"
         return Response(avis.to_csv(rows, module_titles()), media_type="text/csv; charset=utf-8",
-                        headers={"Content-Disposition": f'attachment; filename="avis-{utcnow():%Y-%m-%d}.csv"'})
+                        headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
     # --- Inscriptions (places, liste d'attente, vagues) : formateurs
 

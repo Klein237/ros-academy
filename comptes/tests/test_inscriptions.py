@@ -188,7 +188,7 @@ def test_trainer_rights(client, env):
     assert prof.get("/compte/formateur/equipe").status_code == 403
     assert prof.post("/compte/formateur/equipe", data={"email": "x@exemple.fr"}, headers=ORIGIN).status_code == 403
     assert prof.get("/compte/admin", follow_redirects=False).status_code == 403
-    assert "Équipe" not in page and "Équipe" in adm.get("/compte/formateur").text
+    assert "/compte/formateur/equipe\"" not in page and "/compte/formateur/equipe\"" in adm.get("/compte/formateur").text
     # retrait : redevient un compte étudiant
     r = adm.post("/compte/formateur/equipe/retirer", data={"email": "prof@exemple.fr"}, headers=ORIGIN,
                  follow_redirects=False)
