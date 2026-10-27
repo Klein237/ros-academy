@@ -191,8 +191,13 @@ test("dernières minutes : bandeau, puis arrêt du lab au passage à zéro", asy
   // serait épuisé avant qu'il soit prêt
   await openLabViaAccount(page);
   leaveMinutes(name, 1);
-  // le lab relit les minutes restantes chaque minute
-  await expect(page.locator(".quota-banner")).toContainText("Il vous reste 1 min de lab ce mois-ci", { timeout: 90_000 });
+  const restantes = async () =>
+    ((await (await page.request.get("/api/comptes/moi")).json()) as { minutes_restantes: number }).minutes_restantes;
+  expect(await restantes()).toBe(1);
+  // rechargé, le lab relit tout de suite les minutes restantes (sinon : à la minute suivante)
+  await page.reload();
+  await waitReady(page);
+  await expect(page.locator(".quota-banner")).toContainText("Il vous reste 1 min de lab ce mois-ci");
   // le relevé de Comptes (chaque minute) compte la dernière minute et arrête le serveur
   await expect(page.locator(".overlay")).toHaveAttribute("data-state", "quota", { timeout: 240_000 });
   await expect(page.locator(".overlay")).toContainText("Quota de lab épuisé");
