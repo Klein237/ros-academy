@@ -170,12 +170,33 @@ function useMinutes(name: string, minutes: number): void {
        FROM generate_series(0, ${minutes - 1}) AS g;`);
 }
 
+/** Complète les minutes déjà comptées ce mois-ci pour qu'il n'en reste que `left` (minutes passées, jamais
+ *  celles que le relevé de Comptes comptera ensuite). */
+function leaveMinutes(name: string, left: number): void {
+  const id = Number(name.slice(1));
+  const month = "date_trunc('month', now() AT TIME ZONE 'utc')";
+  sql(`INSERT INTO usage_ticks (user_id, minute)
+       SELECT ${id}, m FROM (SELECT ${month} + make_interval(mins => g) AS m FROM generate_series(0, 2000) AS g) c
+       WHERE m < (now() AT TIME ZONE 'utc') - interval '5 minutes'
+         AND NOT EXISTS (SELECT 1 FROM usage_ticks t WHERE t.user_id = ${id} AND t.minute = c.m)
+       ORDER BY m
+       LIMIT GREATEST(0, ${600 - left} - (SELECT count(*) FROM usage_ticks WHERE user_id = ${id} AND minute >= ${month}));`);
+}
+
 test("dernières minutes : bandeau, puis arrêt du lab au passage à zéro", async ({ page }) => {
-  test.setTimeout(360_000);
+  test.setTimeout(420_000);
   const name = await loginStudent(page, newEmail());
   students.push(name);
-  useMinutes(name, 599); // il reste 1 minute
+  // lab ouvert d'abord : sur une machine chargée, son démarrage dépasse parfois une minute et le quota
+  // serait épuisé avant qu'il soit prêt
   await openLabViaAccount(page);
+  leaveMinutes(name, 1);
+  const restantes = async () =>
+    ((await (await page.request.get("/api/comptes/moi")).json()) as { minutes_restantes: number }).minutes_restantes;
+  expect(await restantes()).toBe(1);
+  // rechargé, le lab relit tout de suite les minutes restantes (sinon : à la minute suivante)
+  await page.reload();
+  await waitReady(page);
   await expect(page.locator(".quota-banner")).toContainText("Il vous reste 1 min de lab ce mois-ci");
   // le relevé de Comptes (chaque minute) compte la dernière minute et arrête le serveur
   await expect(page.locator(".overlay")).toHaveAttribute("data-state", "quota", { timeout: 240_000 });

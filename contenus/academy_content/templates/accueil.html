@@ -6,8 +6,8 @@
 {% set v = "/static/contenus/videos/" %}
 <section class="hero-scene">
   {# Vidéos muettes en boucle : l'image d'attente s'affiche d'abord ; site.js ne lance la lecture
-     que sans économie de données ni « animations réduites ». Sur téléphone, seule celle-ci joue, dans sa
-     version légère (data-mobile : cadrage vertical 360×640, 3 fois plus légère) #}
+     que sans économie de données ni « animations réduites ». Sur téléphone, chaque vidéo joue dans sa
+     version légère (data-mobile) : le bandeau en cadrage vertical 360×640, les vidéos du lab en 640×360 #}
   <video class="hero-fond" muted loop playsinline preload="none" poster="{{ v }}robots.webp" data-video-auto aria-hidden="true">
     <source src="{{ v }}robots.webm" data-mobile="{{ v }}robots-mobile.webm" type="video/webm">
     <source src="{{ v }}robots.mp4" data-mobile="{{ v }}robots-mobile.mp4" type="video/mp4">
@@ -61,15 +61,15 @@
       <figure class="apercu apercu-video">
         <div class="apercu-barre"><span></span><span></span><span></span><span class="apercu-titre-lab">Robot mobile et laser</span></div>
         <video muted loop playsinline preload="none" poster="{{ v }}patrouille.webp" data-video-auto aria-label="Dans le lab, le robot mobile du parcours patrouille dans sa salle, son laser en doré">
-          <source src="{{ v }}patrouille.webm" type="video/webm">
-          <source src="{{ v }}patrouille.mp4" type="video/mp4">
+          <source src="{{ v }}patrouille.webm" data-mobile="{{ v }}patrouille-mobile.webm" type="video/webm">
+          <source src="{{ v }}patrouille.mp4" data-mobile="{{ v }}patrouille-mobile.mp4" type="video/mp4">
         </video>
       </figure>
       <figure class="apercu apercu-video">
         <div class="apercu-barre"><span></span><span></span><span></span><span class="apercu-titre-lab">Vue 3D · bras</span></div>
         <video muted loop playsinline preload="none" poster="{{ v }}bras.webp" data-video-auto aria-label="Dans le lab, le bras du parcours prend un cube et le dépose">
-          <source src="{{ v }}bras.webm" type="video/webm">
-          <source src="{{ v }}bras.mp4" type="video/mp4">
+          <source src="{{ v }}bras.webm" data-mobile="{{ v }}bras-mobile.webm" type="video/webm">
+          <source src="{{ v }}bras.mp4" data-mobile="{{ v }}bras-mobile.mp4" type="video/mp4">
         </video>
       </figure>
     </div>

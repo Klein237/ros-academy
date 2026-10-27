@@ -578,10 +578,11 @@ def test_accueil_videos_with_poster_served_locally(client):
     # bandeau : le montage de robots réels ; « Votre navigateur suffit » : le lab (simulateur, Vue 3D)
     assert html.count("data-video-auto") == 3 and 'preload="none"' in html
     assert 'poster="/static/contenus/videos/robots.webp"' in html and "muted" in html
-    # téléphone : seul le bandeau joue, dans sa version légère
-    assert html.count("data-mobile=") == 2 and 'data-mobile="/static/contenus/videos/robots-mobile.webm"' in html
+    # téléphone : chaque vidéo joue dans sa version légère
+    assert html.count("data-mobile=") == 6 and 'data-mobile="/static/contenus/videos/robots-mobile.webm"' in html
     for nom, type_ in [("robots.webm", "video/webm"), ("patrouille.webm", "video/webm"), ("bras.mp4", "video/mp4"),
-                       ("robots-mobile.webm", "video/webm"), ("robots-mobile.mp4", "video/mp4"), ("robots.webp", "image/webp")]:
+                       ("robots-mobile.webm", "video/webm"), ("robots-mobile.mp4", "video/mp4"),
+                       ("patrouille-mobile.webm", "video/webm"), ("bras-mobile.mp4", "video/mp4"), ("robots.webp", "image/webp")]:
         r = client.get(f"/static/contenus/videos/{nom}")
         assert r.status_code == 200 and r.headers["content-type"] == type_
 
