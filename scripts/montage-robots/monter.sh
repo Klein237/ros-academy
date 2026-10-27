@@ -8,7 +8,8 @@
 #   Un fichier « nom.debut » à côté d'une vidéo (ex. 02-marin.debut contenant 4.5) choisit le début
 #   de l'extrait, en secondes ; sinon il commence à 1 s. Un fichier « nom.cadrage » (0 à 1) place la
 #   fenêtre 16:9 dans une vidéo plus haute (verticale) : 0 en haut, 0.5 au centre (par défaut), 1 en bas.
-# SORTIE : préfixe des fichiers produits (SORTIE.webm, SORTIE.mp4, SORTIE.webp).
+# SORTIE : préfixe des fichiers produits (SORTIE.webm, SORTIE.mp4, SORTIE.webp, et pour les téléphones
+#   SORTIE-mobile.webm et SORTIE-mobile.mp4 : cadrage vertical 360×640, environ 3 fois plus légers).
 # Seules des vidéos dont la licence permet l'usage commercial (Pexels, Pixabay, Coverr, vos tournages)
 # doivent entrer ici : notez leur source et leur licence dans SOURCES.md, à côté des vidéos.
 set -euo pipefail
@@ -51,5 +52,9 @@ ffmpeg -loglevel error -y "${entrees[@]}" -filter_complex "$filtres" -map "$prec
 ffmpeg -loglevel error -y -i "$tmp/montage.mp4" -c:v libvpx-vp9 -b:v 0 -crf 42 -row-mt 1 -deadline good -cpu-used 2 -an "$SORTIE.webm"
 ffmpeg -loglevel error -y -i "$tmp/montage.mp4" -c:v libx264 -crf 29 -preset slow -pix_fmt yuv420p -movflags +faststart -an "$SORTIE.mp4"
 ffmpeg -loglevel error -y -ss 0.5 -i "$tmp/montage.mp4" -frames:v 1 -c:v libwebp -quality 70 "$SORTIE.webp"
+# téléphones : le centre de l'image, en vertical (ce que object-fit: cover y montre de toute façon)
+vertical="crop=406:720:(iw-406)/2:0,scale=360:640"
+ffmpeg -loglevel error -y -i "$tmp/montage.mp4" -vf "$vertical" -c:v libvpx-vp9 -b:v 0 -crf 42 -row-mt 1 -deadline good -cpu-used 2 -an "$SORTIE-mobile.webm"
+ffmpeg -loglevel error -y -i "$tmp/montage.mp4" -vf "$vertical" -c:v libx264 -crf 30 -preset slow -pix_fmt yuv420p -movflags +faststart -an "$SORTIE-mobile.mp4"
 total=$(awk -v n="$n" -v t="$DUREE" -v f="$FONDU" 'BEGIN { printf "%.1f", n * t - (n - 1) * f }')
 echo "$n extraits, $total s : $(du -h "$SORTIE.webm" | cut -f1) (WebM), $(du -h "$SORTIE.mp4" | cut -f1) (MP4)"

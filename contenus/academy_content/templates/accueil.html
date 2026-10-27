@@ -6,10 +6,11 @@
 {% set v = "/static/contenus/videos/" %}
 <section class="hero-scene">
   {# Vidéos muettes en boucle : l'image d'attente s'affiche d'abord ; site.js ne lance la lecture
-     que sur grand écran, sans économie de données ni « animations réduites » #}
+     que sans économie de données ni « animations réduites ». Sur téléphone, seule celle-ci joue, dans sa
+     version légère (data-mobile : cadrage vertical 360×640, 3 fois plus légère) #}
   <video class="hero-fond" muted loop playsinline preload="none" poster="{{ v }}robots.webp" data-video-auto aria-hidden="true">
-    <source src="{{ v }}robots.webm" type="video/webm">
-    <source src="{{ v }}robots.mp4" type="video/mp4">
+    <source src="{{ v }}robots.webm" data-mobile="{{ v }}robots-mobile.webm" type="video/webm">
+    <source src="{{ v }}robots.mp4" data-mobile="{{ v }}robots-mobile.mp4" type="video/mp4">
   </video>
   <div class="hero-voile" aria-hidden="true"></div>
   <div class="conteneur accueil-hero">
