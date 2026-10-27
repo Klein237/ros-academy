@@ -732,22 +732,23 @@ function setupAvis() {
 /**
  * Vidéos muettes de l'accueil ([data-video-auto]) : l'image d'attente suffit en économie de données
  * ou avec « réduire les animations » (rien n'est téléchargé). Sur petit écran, seules les vidéos qui
- * ont une version légère (source[data-mobile]) jouent, dans cette version. Sinon la vidéo se lance
+ * ont une version légère (source[data-mobile]) jouent, dans cette version (3 à 4 fois plus légère). Sinon la vidéo se lance
  * quand elle est visible et s'arrête hors de l'écran ou onglet caché.
  */
 function setupVideos() {
   let videos = [...document.querySelectorAll("video[data-video-auto]")];
   const calme = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (!videos.length || calme || navigator.connection?.saveData || !("IntersectionObserver" in window)) return;
-  if (window.matchMedia("(max-width: 720px)").matches) {
-    videos = videos.filter((v) => v.querySelector("source[data-mobile]"));
-    for (const v of videos) {
-      for (const s of v.querySelectorAll("source[data-mobile]")) s.src = s.dataset.mobile;
-      v.load(); // reprend les sources ; preload="none" : rien n'est encore téléchargé
-    }
-  }
+  const petit = window.matchMedia("(max-width: 720px)").matches;
+  if (petit) videos = videos.filter((v) => v.querySelector("source[data-mobile]"));
   const visibles = new Set();
   const jouer = (v) => {
+    if (petit && !v.dataset.leger) {
+      // version légère prise au premier affichage seulement : load() télécharge, même en preload="none"
+      v.dataset.leger = "1";
+      for (const s of v.querySelectorAll("source[data-mobile]")) s.src = s.dataset.mobile;
+      v.load();
+    }
     v.muted = true;
     v.play().catch(() => {}); // lecture refusée : l'image d'attente reste
   };
