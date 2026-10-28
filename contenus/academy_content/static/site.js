@@ -609,8 +609,20 @@ function setupQuestions() {
     }
   });
 
-  fetch(`${base}/questions/${encodeURIComponent(module)}`, { credentials: "same-origin" })
-    .then((r) => (r.ok ? r.json() : null))
+  const charger = () => fetch(`${base}/questions/${encodeURIComponent(module)}`, { credentials: "same-origin" })
+    .then((r) => (r.ok ? r.json() : null));
+  // lien vers une question alors que la page est déjà ouverte (e-mail, autre onglet) : la liste est
+  // relue (la question ou sa réponse peuvent être nouvelles), puis la question s'ouvre
+  window.addEventListener("hashchange", async () => {
+    const cible = /^#question-(\d+)$/.exec(location.hash);
+    if (!cible || section.hidden) return;
+    const d = await charger().catch(() => null);
+    if (d) questions = d.questions;
+    afficher(Number(cible[1]));
+    document.getElementById(`question-${cible[1]}`)?.scrollIntoView({ block: "start" });
+  });
+
+  charger()
     .then((d) => {
       if (!d) return; // sans session (ou sans accès) : pas de rubrique
       equipe = d.equipe;

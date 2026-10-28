@@ -468,7 +468,7 @@ body.cote-a-cote main.page:not(.plein) { padding: 24px 24px 48px; }
 .cours { font-size: 1.04rem; }
 .cours h2 { font-size: 1.55rem; margin-top: 2.2em; scroll-margin-top: 80px; }
 .cours h3 { scroll-margin-top: 80px; }
-#cours, #exercice, #qcm { scroll-margin-top: 72px; }
+#cours, #exercice, #qcm, #questions, #avis, .fil { scroll-margin-top: 72px; }
 .module-contenu .card { border-radius: var(--radius-lg); padding: 24px 28px; margin: 40px 0; }
 .module-contenu .card h2 { margin-top: 0; }
 .module-contenu .exercise { border-left: 4px solid var(--accent); }
@@ -496,7 +496,11 @@ body.cote-a-cote .etapes-module { margin-left: 0; }
   .etapes-module a { flex: 1; text-align: center; padding: 8px 0; }
   .module-corps { padding: 0 16px 96px; }
   .module-contenu { padding-top: 20px; }
-  #cours, #exercice, #qcm, .cours h2, .cours h3 { scroll-margin-top: 124px; }
+  #cours, #exercice, #qcm, #questions, #avis, .fil, .cours h2, .cours h3 { scroll-margin-top: 124px; }
+  /* le champ où l'on écrit ne passe jamais sous la barre du bas ; elle s'efface pendant la saisie
+     (clavier ouvert, elle mangerait la moitié de l'écran restant) */
+  html { scroll-padding-bottom: 88px; }
+  body:has(.module-corps :is(textarea, input[type="text"], input:not([type])):focus) .barre-mobile { display: none; }
   .module-contenu .card { padding: 18px; }
   .prev-next { flex-direction: column; }
   .prev-next a { max-width: none; }
