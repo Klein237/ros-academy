@@ -145,3 +145,24 @@ def test_same_question_counts_and_notifies_on_team_answer(client, env):
     assert sorted((e, s) for e, _, s in env["sent"]) == [("alice@exemple.fr", "nouvelle_reponse"),
                                                           ("bob@exemple.fr", "meme_question")]
     assert json.loads(bob.get("/compte/donnees").text)["meme_question"] == [qid]
+
+
+def test_team_question_is_listed_apart(client, env):
+    # un formateur qui teste la formation pose une question : à part de celles des étudiants
+    alice = browser(client, env, "alice@exemple.fr", nom="Alice")
+    prof = browser(client, env, "admin@exemple.fr", nom="Prof")
+    post(alice, "/api/comptes/questions/01-a", Q)
+    post(prof, "/api/comptes/questions/01-a", {**Q, "titre": "Question de test du formateur"})
+    etudiants = prof.get("/compte/formateur/questions").text
+    assert "Le robot ne bouge pas" in etudiants and "Question de test du formateur" not in etudiants
+    assert "Équipe (1 sans réponse)" in etudiants
+    equipe = prof.get("/compte/formateur/questions", params={"qui": "equipe"}).text
+    assert "Question de test du formateur" in equipe and "Le robot ne bouge pas" not in equipe
+    assert "Questions de l&#39;équipe" in equipe and "Étudiants (1 sans réponse)" in equipe
+    assert "Questions (1 sans réponse)" in prof.get("/compte/formateur").text  # étudiants seulement
+    tableau = prof.get("/compte/formateur", params={"qui": "equipe"}).text
+    assert 'href="/compte/formateur/questions?qui=equipe">Questions (1 sans réponse)' in tableau
+    # sur la page du module, elle est visible de tous, comme une autre
+    titres = [q["titre"] for q in alice.get("/api/comptes/questions/01-a").json()["questions"]]
+    assert "Question de test du formateur" in titres
+    assert alice.get("/compte/formateur/questions", params={"qui": "equipe"}).status_code == 403
