@@ -21,7 +21,7 @@ def test_parse_output_failure_is_reported():
     out = "::etape:: setup ok\n::etape:: bug echec check.sh réussit alors que le bug est présent\n"
     r = parse_output("01-demo", out, 1)
     assert not r.ok
-    assert "✘ check.sh échoue tant que le bug est présent — check.sh réussit alors que le bug est présent" in r.resume()
+    assert "✘ check.sh échoue tant que le bug est présent : check.sh réussit alors que le bug est présent" in r.resume()
 
 
 def test_parse_output_needs_end_marker():

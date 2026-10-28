@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}RoboForge{% endblock %}</title>
   <meta name="description" content="{% block description %}Apprenez à développer le logiciel d'un robot avec ROS 2, dans un lab où vous pouvez expérimenter, vous tromper et recommencer : terminal, éditeur et simulateur Gazebo dans votre navigateur.{% endblock %}">
-  <link rel="icon" href="data:,">
+  <link rel="icon" href="/favicon.ico" sizes="32x32">
+  <link rel="icon" href="{{ statique('icones/favicon.svg') }}" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="{{ statique('icones/apple-touch-icon.png') }}">
+  <link rel="manifest" href="{{ statique('icones/site.webmanifest') }}">
   <link rel="preload" href="/static/contenus/polices/ibm-plex-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{{ statique('site.css') }}">
   {% block head %}{% endblock %}

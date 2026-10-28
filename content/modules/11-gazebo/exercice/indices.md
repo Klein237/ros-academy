@@ -1,6 +1,6 @@
 ## Indice 1
 
-Le robot avance et recule correctement : les deux roues tournent. Seul le sens de rotation est inversé — et l'odométrie (`/odom`, celle de la vue 2D) ne s'en aperçoit pas. Quel élément décide quelle roue doit tourner plus vite pour un virage à gauche, **et** calcule l'odométrie à partir des roues ?
+Le robot avance et recule correctement : les deux roues tournent. Seul le sens de rotation est inversé, et l'odométrie (`/odom`, celle de la vue 2D) ne s'en aperçoit pas. Quel élément décide quelle roue doit tourner plus vite pour un virage à gauche, **et** calcule l'odométrie à partir des roues ?
 
 ## Indice 2
 

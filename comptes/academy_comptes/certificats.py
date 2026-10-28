@@ -131,7 +131,7 @@ def render_pdf(cert, verify_url):
     buf = io.BytesIO()
     w, h = landscape(A4)
     c = canvas.Canvas(buf, pagesize=(w, h), invariant=1)
-    c.setTitle(f"Certificat RoboForge — {cert.nom}")
+    c.setTitle(f"Certificat RoboForge · {cert.nom}")
     c.setAuthor("RoboForge")
     c.setSubject(cert.parcours_titre)
 
@@ -162,7 +162,7 @@ def render_pdf(cert, verify_url):
     c.setFillColor(ink)
     c.setFont("Helvetica-Bold", 18)
     c.drawCentredString(w / 2, h - 264, cert.parcours_titre)
-    result = f"Note finale : {fr(cert.note)} / 20" + (f" — mention {cert.mention}" if cert.mention else "")
+    result = f"Note finale : {fr(cert.note)} / 20" + (f", mention {cert.mention}" if cert.mention else "")
     c.setFont("Helvetica", 14)
     c.drawCentredString(w / 2, h - 292, result)
 

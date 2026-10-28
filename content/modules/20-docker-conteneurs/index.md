@@ -1,6 +1,6 @@
 ---
 titre: Pourquoi des conteneurs en robotique
-resume: "« Ça marche sur ma machine » : ce que Docker apporte au logiciel d'un robot — image, conteneur, couches, registres, images officielles de ROS 2 — et ce qu'il ne fait pas."
+resume: "« Ça marche sur ma machine » : ce que Docker apporte au logiciel d'un robot (image, conteneur, couches, registres, images officielles de ROS 2), et ce qu'il ne fait pas."
 duree: 45 min
 ---
 # Pourquoi des conteneurs en robotique

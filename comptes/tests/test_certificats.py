@@ -121,7 +121,7 @@ def test_public_page_and_pdf(client, env):
     assert pdf.status_code == 200 and pdf.headers["content-type"] == "application/pdf"
     text = PdfReader(io.BytesIO(pdf.content)).pages[0].extract_text()
     for expected in ("Certificat de réussite", "Élodie N'Diaye-Martin", "ROS 2 Fondamentaux",
-                     "Note finale : 18,50 / 20 — mention Très bien", format_code(code),
+                     "Note finale : 18,50 / 20, mention Très bien", format_code(code),
                      f"{BASE}/certificats/{code}", "Module B (coef. 3)"):
         assert expected in text, expected
 

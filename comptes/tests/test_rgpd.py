@@ -82,7 +82,7 @@ def test_legal_pages(env):  # noqa: F811
         return c.get("/mentions-legales").text, c.get("/confidentialite").text
 
     mentions, conf = pages(env["settings"])
-    assert "[à compléter : nom ou raison sociale — EDITEUR_NOM]" in mentions
+    assert "[à compléter : nom ou raison sociale (EDITEUR_NOM)]" in mentions
     assert "Mentions légales" in mentions and "Confidentialité" in mentions  # liens du pied de page
     assert "/compte/supprimer" in conf and "14 jours" in conf and "cnil.fr" in conf
     filled = replace(env["settings"], editeur_nom="Klein Formation", editeur_adresse="1 rue de la Paix, Paris",

@@ -37,8 +37,8 @@
   <h2>Messages signalés</h2>
   <p class="muted small">Signalés par des étudiants. Depuis la page du module, « Masquer » les retire de la vue des étudiants.</p>
   <ul>
-    {% for q in signales_q %}<li><a href="/modules/{{ q.module }}/#question-{{ q.id }}">Question « {{ q.titre }} »</a> — {{ q.signalements }} signalement{{ 's' if q.signalements > 1 }}</li>{% endfor %}
-    {% for a in signales_r %}{% set q = questions_de[a.id] %}<li><a href="/modules/{{ q.module }}/#question-{{ q.id }}">Réponse à « {{ q.titre }} »</a> — {{ a.signalements }} signalement{{ 's' if a.signalements > 1 }}</li>{% endfor %}
+    {% for q in signales_q %}<li><a href="/modules/{{ q.module }}/#question-{{ q.id }}">Question « {{ q.titre }} »</a> · {{ q.signalements }} signalement{{ 's' if q.signalements > 1 }}</li>{% endfor %}
+    {% for a in signales_r %}{% set q = questions_de[a.id] %}<li><a href="/modules/{{ q.module }}/#question-{{ q.id }}">Réponse à « {{ q.titre }} »</a> · {{ a.signalements }} signalement{{ 's' if a.signalements > 1 }}</li>{% endfor %}
   </ul>
 </section>
 {% endif %}

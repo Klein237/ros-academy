@@ -10,10 +10,10 @@ questions:
   - id: parties
     question: Combien de parties comporte un fichier .action, et lesquelles ?
     choix:
-      - texte: Trois — goal, résultat, feedback.
+      - texte: "Trois : goal, résultat, feedback."
         correct: true
-      - texte: Deux — requête et réponse.
-      - texte: Trois — goal, feedback, annulation.
+      - texte: "Deux : requête et réponse."
+      - texte: "Trois : goal, feedback, annulation."
     explication: Goal, result et feedback, séparés par deux lignes ---. L'annulation est fournie par ROS 2, pas déclarée dans le fichier.
   - id: etat
     question: Que se passe-t-il si execute_callback renvoie un résultat sans appeler goal_handle.succeed() ?

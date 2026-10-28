@@ -1,6 +1,6 @@
 ---
 titre: Pourquoi ROS 2 ?
-resume: Ce qu'un middleware apporte à un robot, et le vocabulaire de ROS 2 — nœuds, graphe, topics, services, actions, interfaces — observé sur le robot qui tourne.
+resume: Ce qu'un middleware apporte à un robot, et le vocabulaire de ROS 2 (nœuds, graphe, topics, services, actions, interfaces), observé sur le robot qui tourne.
 duree: 1 h 15
 ---
 # Pourquoi ROS 2 ?

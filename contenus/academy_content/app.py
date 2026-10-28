@@ -42,7 +42,8 @@ from .verification import Busy, InvalidStudent
 
 # Types des fichiers statiques : Python ne connaît pas tous ceux du site sans /etc/mime.types
 # (image Python minimale, CI) ; sans eux, les images d'attente partiraient en application/octet-stream.
-for _type, _ext in (("image/webp", ".webp"), ("video/webm", ".webm"), ("video/mp4", ".mp4"), ("font/woff2", ".woff2")):
+for _type, _ext in (("image/webp", ".webp"), ("video/webm", ".webm"), ("video/mp4", ".mp4"), ("font/woff2", ".woff2"),
+                    ("image/x-icon", ".ico"), ("application/manifest+json", ".webmanifest")):
     mimetypes.add_type(_type, _ext)
 
 log = logging.getLogger("contenus")
@@ -378,6 +379,15 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
             enonce_html=render_markdown(module.exercice.enonce) if module.exercice else "", qcm=_public_qcm(module),
             parcours=parcours, prev=prev, next=nxt, numero=numero, apercu=apercu,
         )
+
+    # demandés à la racine par les navigateurs (et iOS) même sans <link> : les icônes Umoja Roboti
+    @app.get("/favicon.ico", include_in_schema=False)
+    def favicon():
+        return FileResponse(HERE / "static" / "icones" / "favicon.ico", media_type="image/x-icon")
+
+    @app.get("/apple-touch-icon.png", include_in_schema=False)
+    def apple_touch_icon():
+        return FileResponse(HERE / "static" / "icones" / "apple-touch-icon.png", media_type="image/png")
 
     @app.get("/", response_class=HTMLResponse)
     def accueil(request: Request):

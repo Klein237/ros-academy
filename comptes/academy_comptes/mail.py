@@ -25,56 +25,56 @@ def _message(settings, email, subject, body):
 MAILS = {
     # sorte : (libellé dans les journaux, objet, texte avant le lien, texte après le lien)
     "confirmation": (
-        "lien de confirmation", "Confirmez votre adresse — RoboForge",
+        "lien de confirmation", "Confirmez votre adresse · RoboForge",
         "Bonjour,\n\nBienvenue sur RoboForge ! Pour activer votre compte, confirmez votre adresse en ouvrant "
         "ce lien (valable 24 heures, une seule fois) :",
         "Si vous n'avez pas créé de compte, ignorez ce message.",
     ),
     "reinitialisation": (
-        "lien de réinitialisation", "Choisissez un nouveau mot de passe — RoboForge",
+        "lien de réinitialisation", "Choisissez un nouveau mot de passe · RoboForge",
         "Bonjour,\n\nPour choisir un nouveau mot de passe, ouvrez ce lien (valable 30 minutes, une seule fois) :",
         "Si vous n'avez rien demandé, ignorez ce message : votre mot de passe actuel reste valable.",
     ),
     "compte_existant": (
-        "lien de réinitialisation", "Vous avez déjà un compte — RoboForge",
+        "lien de réinitialisation", "Vous avez déjà un compte · RoboForge",
         "Bonjour,\n\nQuelqu'un (vous, sans doute) a voulu créer un compte avec cette adresse, mais elle en a déjà "
         "un. Connectez-vous avec votre mot de passe ; si vous l'avez oublié ou n'en avez jamais choisi, ouvrez ce "
         "lien (valable 30 minutes, une seule fois) :",
         "Si vous n'avez rien demandé, ignorez ce message.",
     ),
     "attente": (
-        "liste d'attente", "Vous êtes sur la liste d'attente — RoboForge",
+        "liste d'attente", "Vous êtes sur la liste d'attente · RoboForge",
         "Bonjour,\n\nMerci pour votre inscription ! RoboForge est en phase de test et les places de la vague "
         "en cours sont toutes prises : vous êtes inscrit sur la liste d'attente. Nous vous écrirons dès "
         "qu'une place s'ouvre pour vous.\n\nEn attendant, le site reste consultable :",
         "Pour quitter la liste d'attente, connectez-vous : la page qui s'affiche vous le propose.",
     ),
     "activation": (
-        "invitation", "Votre place est ouverte — RoboForge",
+        "invitation", "Votre place est ouverte · RoboForge",
         "Bonjour,\n\nBonne nouvelle : une place s'est ouverte pour vous dans la phase de test de RoboForge. "
         "Votre compte est activé ; connectez-vous avec votre adresse et votre mot de passe :",
         "Bonne découverte, et n'hésitez pas à nous faire part de vos remarques.",
     ),
     "nouvelle_reponse": (
-        "réponse à une question", "On a répondu à votre question — RoboForge",
+        "réponse à une question", "On a répondu à votre question · RoboForge",
         "Bonjour,\n\nVotre question sur RoboForge a reçu une réponse. Pour la lire (et la marquer comme "
         "résolue si elle vous a débloqué) :",
         "Bonne continuation !",
     ),
     "meme_question": (
-        "réponse à une question suivie", "L'équipe a répondu à une question que vous aviez aussi — RoboForge",
+        "réponse à une question suivie", "L'équipe a répondu à une question que vous aviez aussi · RoboForge",
         "Bonjour,\n\nL'équipe des formateurs a répondu à une question que vous aviez aussi (« J'ai la même "
         "question ») :",
         "Bonne continuation !",
     ),
     "questions": (
-        "nouvelles questions", "Des étudiants attendent une réponse — RoboForge",
+        "nouvelles questions", "Des étudiants attendent une réponse · RoboForge",
         "Bonjour,\n\nDe nouvelles questions ont été posées sur les modules. Les questions sans réponse de "
         "l'équipe, de la plus ancienne à la plus récente :",
         "Vous recevez au plus un message par heure, seulement quand de nouvelles questions arrivent.",
     ),
     "formateur": (
-        "ajout à l'équipe", "Vous rejoignez l'équipe des formateurs — RoboForge",
+        "ajout à l'équipe", "Vous rejoignez l'équipe des formateurs · RoboForge",
         "Bonjour,\n\nVous avez été ajouté à l'équipe des formateurs de RoboForge : tableau de bord des "
         "étudiants, inscriptions et accès offerts. Connectez-vous (ou créez votre compte avec cette adresse) :",
         "Si vous ne vous attendiez pas à ce message, ignorez-le.",
@@ -87,7 +87,7 @@ def send_account_mail(settings, email, sorte, link):
     msg = _message(settings, email, subject, f"{before}\n\n{link}\n\n{after}\n")
     if not settings.smtp_host:
         # Développement : pas de serveur d'envoi, le lien est lisible dans les journaux.
-        log.warning("SMTP non configuré — %s pour %s : %s", label, email, link)
+        log.warning("SMTP non configuré, %s pour %s : %s", label, email, link)
         return
     deliver(settings, msg)
 

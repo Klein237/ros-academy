@@ -1,6 +1,6 @@
 ---
 titre: Linux pour la robotique
-resume: Les commandes de terminal que vous utiliserez dans tout le parcours — se déplacer, manipuler des fichiers, chercher, droits d'exécution, variables d'environnement, source et processus.
+resume: "Les commandes de terminal que vous utiliserez dans tout le parcours : se déplacer, manipuler des fichiers, chercher, droits d'exécution, variables d'environnement, source et processus."
 duree: 1 h 15
 ---
 # Linux pour la robotique

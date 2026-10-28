@@ -1,6 +1,6 @@
 ---
 titre: Les outils de débogage
-resume: Une méthode et les outils pour comprendre un robot qui ne fait pas ce qu'on attend — graphe, données, journaux et niveaux de log, enregistrement et rejeu avec ros2 bag, repères TF2.
+resume: "Une méthode et les outils pour comprendre un robot qui ne fait pas ce qu'on attend : graphe, données, journaux et niveaux de log, enregistrement et rejeu avec ros2 bag, repères TF2."
 duree: 1 h
 ---
 # Les outils de débogage

@@ -25,7 +25,7 @@ Les transformations forment un **arbre** : chaque repère a un seul parent. Les 
 
 | Repère | Ce qu'il représente | Publié par |
 |---|---|---|
-| `odom` | le point de départ du robot : fixe dans la pièce | — (racine de l'arbre) |
+| `odom` | le point de départ du robot : fixe dans la pièce | aucun (racine de l'arbre) |
 | `base_link` | le robot lui-même, entre ses roues | `diff_drive_node` (mobile) |
 | `laser` | le capteur, 15 cm devant et 12 cm au-dessus de `base_link` | `static_transform_publisher` (fixe) |
 

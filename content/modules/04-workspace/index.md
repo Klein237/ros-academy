@@ -1,6 +1,6 @@
 ---
 titre: Organiser son code
-resume: Où vit le code d'un robot ROS 2 — workspace, packages Python et C++, package.xml, exécutables, compilation avec colcon et overlay — et votre premier package, créé, compilé et lancé.
+resume: Où vit le code d'un robot ROS 2 (workspace, packages Python et C++, package.xml, exécutables, compilation avec colcon et overlay), et votre premier package, créé, compilé et lancé.
 duree: 1 h 15
 ---
 # Organiser son code

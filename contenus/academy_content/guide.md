@@ -69,7 +69,7 @@ Conseils, tirés des modules existants :
 La page d'un parcours (tableau de bord → parcours) règle aussi sa place dans le catalogue :
 
 - **Statut** : « Disponible » (au moins un module, page ouverte) ou « Bientôt » (annoncé sur l'accueil et le catalogue, sans lien ni module) ;
-- **Niveau** : débutant, intermédiaire ou avancé — il range le parcours dans la feuille de route ;
+- **Niveau** : débutant, intermédiaire ou avancé (il range le parcours dans la feuille de route) ;
 - **Accroche** : une phrase pour la carte du catalogue ;
 - **Ordre** : plus petit = plus haut dans le catalogue ;
 - **Vous saurez** et **Prérequis** : une ligne par élément, affichés sur la page du parcours ;

@@ -6,7 +6,7 @@ questions:
         correct: true
       - texte: Ce sont deux interfaces du même simulateur, l'une en 3D, l'autre en 2D.
       - texte: RViz2 simule le robot, Gazebo n'est qu'un éditeur de mondes.
-    explication: On utilise les deux ensemble — Gazebo produit /odom et /scan, RViz2 les dessine.
+    explication: "On utilise les deux ensemble : Gazebo produit /odom et /scan, RViz2 les dessine."
   - id: inertie
     question: Que se passe-t-il dans Gazebo pour un link sans balise inertial ?
     choix:
