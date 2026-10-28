@@ -150,14 +150,15 @@ def followers(db, question):
                            .where(QuestionVote.question_id == question.id)))
 
 
-def unanswered(db, staff_emails):
-    """Questions sans réponse de l'équipe ni résolution, la plus ancienne d'abord (tableau de bord)."""
+def unanswered(db, staff_emails, equipe=False):
+    """Questions sans réponse de l'équipe ni résolution, la plus ancienne d'abord (tableau de bord).
+    equipe : celles posées par l'équipe (formateurs qui testent la formation), listées à part."""
     answered = select(Answer.question_id).where(Answer.equipe.is_(True))
     rows = db.execute(select(Question, User).join(User, User.id == Question.user_id)
                       .where(Question.resolue_le.is_(None), Question.masquee_le.is_(None),
                              Question.id.not_in(answered))
                       .order_by(Question.cree_le)).all()
-    return [(q, u) for q, u in rows if u.email not in staff_emails]
+    return [(q, u) for q, u in rows if (u.email in staff_emails) == equipe]
 
 
 def reported(db):

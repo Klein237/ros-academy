@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Questions des étudiants{% endblock %}
+{% block title %}{{ "Questions de l'équipe" if equipe else "Questions des étudiants" }}{% endblock %}
 {% block main_class %}page wide{% endblock %}
 {% macro duree(d) -%}
 {%- set h = (d.total_seconds() // 3600) | int -%}
@@ -7,15 +7,20 @@
 {%- endmacro %}
 {% block content %}
 <div class="trainer-head">
-  <h1>Questions des étudiants</h1>
-  <a class="button" href="/compte/formateur">← Tableau de bord</a>
+  <h1>{{ "Questions de l'équipe" if equipe else "Questions des étudiants" }}</h1>
+  <a class="button" href="/compte/formateur{{ '?qui=equipe' if equipe else '' }}">← Tableau de bord</a>
 </div>
+<nav class="row" aria-label="Questions de qui">
+  <a href="/compte/formateur/questions"{% if not equipe %} aria-current="page"{% endif %}>Étudiants{% if equipe and autres %} ({{ autres }} sans réponse){% endif %}</a>
+  · <a href="/compte/formateur/questions?qui=equipe"{% if equipe %} aria-current="page"{% endif %}>Équipe{% if not equipe and autres %} ({{ autres }} sans réponse){% endif %}</a>
+</nav>
+{% if equipe %}<p class="muted small">Questions posées par les formateurs et administrateurs qui testent la formation : à part des étudiants, elles ne comptent pas dans le tableau de bord des étudiants.</p>{% endif %}
 <section class="card">
   <h2>Sans réponse de l'équipe</h2>
   <p class="muted small">De la plus ancienne à la plus récente. Répondez depuis la page du module : votre réponse y est mise en avant et l'étudiant est prévenu par e-mail. En rouge : plus de 24 h d'attente.</p>
   <div class="table-scroll">
   <table class="results">
-    <thead><tr><th>Attente</th><th>Module</th><th>Question</th><th>Étudiant</th><th></th></tr></thead>
+    <thead><tr><th>Attente</th><th>Module</th><th>Question</th><th>{{ "Membre de l'équipe" if equipe else "Étudiant" }}</th><th></th></tr></thead>
     <tbody>
     {% for l in attente %}
       <tr>

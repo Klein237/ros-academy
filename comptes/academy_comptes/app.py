@@ -793,7 +793,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
                     students=sorted((st for st in students if formateur.matches(st, q)),
                                     key=lambda st: st.derniere_activite or datetime.min, reverse=True),
                     total=len(students), en_attente=inscriptions.waiting_count(db),
-                    sans_reponse=len(questions.unanswered(db, inscriptions.staff_emails(db, settings))),
+                    sans_reponse=len(questions.unanswered(db, inscriptions.staff_emails(db, settings), equipe)),
                     admin=inscriptions.is_admin(settings, user.email),
                     stuck_after=formateur.STUCK_AFTER)
 
@@ -901,17 +901,20 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
     # --- Questions des étudiants : formateurs
 
     @app.get("/compte/formateur/questions", response_class=HTMLResponse)
-    def trainer_questions(request: Request, user=Depends(current_user), db=Depends(get_db)):
+    def trainer_questions(request: Request, qui: str = "", user=Depends(current_user), db=Depends(get_db)):
         if not user:
             return login_redirect("/compte/formateur/questions")
         require_trainer(db, user)
         now = utcnow()
-        rows = questions.unanswered(db, inscriptions.staff_emails(db, settings))
+        staff, equipe = inscriptions.staff_emails(db, settings), qui == "equipe"
+        rows = questions.unanswered(db, staff, equipe)
+        autres = len(questions.unanswered(db, staff, not equipe))
         votes, _ = questions.votes_of(db, [q.id for q, _u in rows])
         attente = [{"q": q, "u": u, "attente": now - q.cree_le, "alerte": now - q.cree_le > questions.ATTENTE_ALERTE,
                     "meme": votes.get(q.id, 0)} for q, u in rows]
         signales_q, signales_r = questions.reported(db)
         return page(request, "formateur_questions.html", user=user, attente=attente, titres=module_titles(),
+                    equipe=equipe, autres=autres,
                     signales_q=signales_q, signales_r=signales_r,
                     questions_de={a.id: db.get(Question, a.question_id) for a in signales_r})
 
