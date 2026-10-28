@@ -17,7 +17,7 @@ const app = document.getElementById("app")!;
 const waiting = new WaitingScreen(() => void session.launch());
 const page = h("main", { class: "bureau-seul" });
 app.append(page, waiting.el);
-document.title = "Bureau — Lab ROS 2";
+document.title = "Bureau · Lab ROS 2";
 
 let desktop: DesktopPanel | null = null;
 

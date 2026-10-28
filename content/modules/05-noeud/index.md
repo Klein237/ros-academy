@@ -1,6 +1,6 @@
 ---
 titre: Écrire un nœud
-resume: Le fil rouge commence — un robot à conduite différentielle qui reçoit des commandes de vitesse et publie sa position.
+resume: "Le fil rouge commence : un robot à conduite différentielle qui reçoit des commandes de vitesse et publie sa position."
 duree: 1 h 15
 ---
 # Écrire un nœud

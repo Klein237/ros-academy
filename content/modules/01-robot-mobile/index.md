@@ -1,6 +1,6 @@
 ---
 titre: Le robot mobile
-resume: Le minimum de robotique pour comprendre ce que ROS 2 va piloter — capteurs et actionneurs, position et orientation, vitesses v et ω, et ce qu'elles font faire au robot.
+resume: "Le minimum de robotique pour comprendre ce que ROS 2 va piloter : capteurs et actionneurs, position et orientation, vitesses v et ω, et ce qu'elles font faire au robot."
 duree: 1 h 15
 ---
 # Le robot mobile
@@ -169,7 +169,7 @@ x ← x + v·cos(θ)·dt
 y ← y + v·sin(θ)·dt
 ```
 
-C'est l'**odométrie** : la pose estimée à partir des seules vitesses (ou des encodeurs). Elle est immédiate, mais chaque petite erreur s'**accumule** — une roue qui patine, un sol inégal — et la pose estimée **dérive** peu à peu de la réalité.
+C'est l'**odométrie** : la pose estimée à partir des seules vitesses (ou des encodeurs). Elle est immédiate, mais chaque petite erreur s'**accumule** (une roue qui patine, un sol inégal) et la pose estimée **dérive** peu à peu de la réalité.
 
 ## 9. Commander le robot avec v et ω
 
@@ -181,11 +181,11 @@ academy-diffbot
 
 Ouvrez la **vue 2D** : le robot y apparaît, sur une grille de 1 m. En dessous, la vue affiche sa pose `x`, `y` et `θ`. Les flèches de la vue 2D (ou du clavier, quand la vue a le focus) envoient des commandes de vitesse tant qu'on les maintient : **↑** donne `v` = 0,3 m/s, **←** donne `ω` = 1 rad/s.
 
-**Expérience 1 — avancer.** Maintenez **↑** environ 3 secondes. Le robot avance en ligne droite d'à peu près 0,9 m (3 s × 0,3 m/s) : `x` augmente, `θ` ne change pas.
+**Expérience 1 : avancer.** Maintenez **↑** environ 3 secondes. Le robot avance en ligne droite d'à peu près 0,9 m (3 s × 0,3 m/s) : `x` augmente, `θ` ne change pas.
 
-**Expérience 2 — tourner sur place.** Maintenez **←**. Le robot pivote sans avancer et `θ` augmente : la rotation vers la gauche est positive. Il faut environ 1,6 s pour un quart de tour (π/2 ≈ 1,57 rad à 1 rad/s).
+**Expérience 2 : tourner sur place.** Maintenez **←**. Le robot pivote sans avancer et `θ` augmente : la rotation vers la gauche est positive. Il faut environ 1,6 s pour un quart de tour (π/2 ≈ 1,57 rad à 1 rad/s).
 
-**Expérience 3 — un arc de cercle.** Cliquez sur « Effacer la trace », ouvrez un deuxième terminal avec **+**, et envoyez une commande constante, `v` = 0,2 m/s et `ω` = 0,4 rad/s :
+**Expérience 3 : un arc de cercle.** Cliquez sur « Effacer la trace », ouvrez un deuxième terminal avec **+**, et envoyez une commande constante, `v` = 0,2 m/s et `ω` = 0,4 rad/s :
 
 ```bash
 ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.2}, angular: {z: 0.4}}"

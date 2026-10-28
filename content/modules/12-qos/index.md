@@ -1,6 +1,6 @@
 ---
 titre: La qualité de service (QoS)
-resume: Régler la façon dont les messages voyagent — fiabilité, durabilité, historique —, choisir le bon profil pour chaque topic et reconnaître une incompatibilité qui coupe la communication sans erreur.
+resume: Régler la façon dont les messages voyagent (fiabilité, durabilité, historique), choisir le bon profil pour chaque topic et reconnaître une incompatibilité qui coupe la communication sans erreur.
 duree: 1 h
 ---
 # La qualité de service (QoS)

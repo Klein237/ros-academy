@@ -89,7 +89,7 @@ async function tableau() {
     document.getElementById("parcours").replaceChildren(
       ...etat.parcours.map((p) =>
         el("li", {}, el("a", { href: `/admin/parcours/${encodeURIComponent(p.id)}/`, text: p.titre }),
-          el("span", { class: "muted small", text: ` — ${p.modules.length} module(s) : ${p.modules.join(", ")}` })),
+          el("span", { class: "muted small", text: ` · ${p.modules.length} module(s) : ${p.modules.join(", ")}` })),
       ),
     );
     renderPublication(etat.publication, etat.a_publier);
@@ -251,7 +251,7 @@ async function editeur() {
       const data = await api("PUT", `/modules/${moduleId}/fichier?chemin=${encodeURIComponent(current)}`, { content: area.value });
       saved = area.value;
       showErrors(data.erreurs);
-      setStatus(data.erreurs.length ? "Enregistré — le module contient des erreurs" : "Enregistré");
+      setStatus(data.erreurs.length ? "Enregistré, mais le module contient des erreurs" : "Enregistré");
     } catch (e) {
       setStatus(`Échec : ${e.message}`);
     }
@@ -424,7 +424,7 @@ async function parcours() {
     );
     const select = document.getElementById("ajout-module");
     const used = new Set(modules.map((m) => m.id));
-    select.replaceChildren(...etat.modules.filter((m) => !used.has(m.id)).map((m) => el("option", { value: m.id, text: `${m.id} — ${m.titre}` })));
+    select.replaceChildren(...etat.modules.filter((m) => !used.has(m.id)).map((m) => el("option", { value: m.id, text: `${m.id} · ${m.titre}` })));
     document.getElementById("ajouter").disabled = select.options.length === 0;
   }
   document.getElementById("ajouter").addEventListener("click", () => {

@@ -1,6 +1,6 @@
 ---
 titre: Paramètres et fichiers launch
-resume: Rendre le robot configurable sans recompiler — paramètres déclarés, validés et modifiables à chaud, fichier YAML et fichier launch qui démarre le tout.
+resume: "Rendre le robot configurable sans recompiler : paramètres déclarés, validés et modifiables à chaud, fichier YAML et fichier launch qui démarre le tout."
 duree: 1 h 15
 ---
 # Paramètres et fichiers launch

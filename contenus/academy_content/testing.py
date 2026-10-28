@@ -94,7 +94,7 @@ class Rapport:
     journal: str = ""
 
     def resume(self):
-        lignes = [f"{'✔' if e.ok else '✘'} {e.libelle}" + (f" — {e.detail}" if e.detail else "") for e in self.etapes]
+        lignes = [f"{'✔' if e.ok else '✘'} {e.libelle}" + (f" : {e.detail}" if e.detail else "") for e in self.etapes]
         if not self.ok and (not self.etapes or self.etapes[-1].ok):
             lignes.append("✘ tests interrompus (voir le journal)")
         return "\n".join(lignes)

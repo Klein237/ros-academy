@@ -1,6 +1,6 @@
 ---
 titre: Simuler le robot dans Gazebo
-resume: Faire rouler le robot de la description URDF dans un monde simulé avec Gazebo Harmonic (gz sim) — physique, roues motrices et laser — et le visualiser dans RViz2.
+resume: Faire rouler le robot de la description URDF dans un monde simulé par Gazebo Harmonic (gz sim), avec sa physique, ses roues motrices et son laser, puis le visualiser dans RViz2.
 duree: 1 h 45
 ---
 # Simuler le robot dans Gazebo

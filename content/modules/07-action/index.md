@@ -1,6 +1,6 @@
 ---
 titre: Créer une action
-resume: Envoyer le robot vers un point avec une action goto — goal, feedback pendant le trajet, résultat et annulation.
+resume: "Envoyer le robot vers un point avec une action goto : goal, feedback pendant le trajet, résultat et annulation."
 duree: 1 h 30
 ---
 # Créer une action

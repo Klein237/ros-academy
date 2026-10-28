@@ -32,7 +32,7 @@
   · <a href="?{% if parcours %}parcours={{ parcours.id | urlencode }}&{% endif %}qui=equipe"{% if equipe %} aria-current="page"{% endif %}>Équipe</a>
 </nav>
 {% if equipe %}<p class="muted small">Les formateurs et administrateurs qui testent la formation : leur progression et leurs avis, comptés à part des étudiants. Visible seulement par l'équipe.</p>{% endif %}
-{% if parcours %}<p class="muted">{{ parcours.titre }} — {{ parcours.modules | length }} modules.</p>{% endif %}
+{% if parcours %}<p class="muted">{{ parcours.titre }} · {{ parcours.modules | length }} modules.</p>{% endif %}
 
 <section class="tiles" aria-label="Chiffres clés">
   <div class="tile"><span class="tile-value">{{ resume.inscrits }}</span><span class="tile-label">{{ "membres de l'équipe" if equipe else "étudiants inscrits" }}</span></div>

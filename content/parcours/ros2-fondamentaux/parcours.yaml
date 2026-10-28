@@ -2,7 +2,7 @@ titre: Apprendre ROS 2 avec un robot mobile
 description: >-
   Les bases de ROS 2 Jazzy, en pratique, autour d'un fil rouge : un robot de
   livraison à conduite différentielle. On commence par le robot lui-même et
-  le terminal Linux, puis vous l'enrichissez module après module — nœud,
+  le terminal Linux, puis vous l'enrichissez module après module : nœud,
   service, action, paramètres et fichiers launch, repères TF2, description
   URDF, puis simulation dans Gazebo. Chaque module se termine par un QCM, et
   les modules pratiques par une vraie panne à diagnostiquer. Trois modules

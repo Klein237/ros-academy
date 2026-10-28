@@ -1,6 +1,6 @@
 ---
 titre: De la simulation au robot réel
-resume: "Ce qui change quand le logiciel quitte le simulateur — capteurs bruités, roues qui glissent, latence, calibration — et la couche de sécurité qui protège le robot : limites, rampe, chien de garde et arrêt d'urgence."
+resume: "Ce qui change quand le logiciel quitte le simulateur (capteurs bruités, roues qui glissent, latence, calibration), et la couche de sécurité qui protège le robot : limites, rampe, chien de garde et arrêt d'urgence."
 duree: 1 h
 ---
 # De la simulation au robot réel

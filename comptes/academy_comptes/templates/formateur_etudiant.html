@@ -39,7 +39,7 @@
   <h2>Certificats</h2>
   {% for c in certificats %}
   <div class="row cert-row">
-    <p><a href="/certificats/{{ c.code }}">n° {{ numero(c.code) }}</a> — {{ c.parcours_titre }}, {{ '%.2f' | format(c.note) | replace('.', ',') }} / 20, délivré le {{ c.emis_le.strftime('%d/%m/%Y') }} au nom de « {{ c.nom }} »
+    <p><a href="/certificats/{{ c.code }}">n° {{ numero(c.code) }}</a> · {{ c.parcours_titre }}, {{ '%.2f' | format(c.note) | replace('.', ',') }} / 20, délivré le {{ c.emis_le.strftime('%d/%m/%Y') }} au nom de « {{ c.nom }} »
     {% if c.revoque_le %}<br><strong class="warn">révoqué le {{ c.revoque_le.strftime('%d/%m/%Y') }}</strong>{% if c.revoque_motif %} : {{ c.revoque_motif }}{% endif %}{% endif %}</p>
     {% if not c.revoque_le %}
     <form method="post" action="/compte/formateur/certificats/{{ c.code }}/revoquer" class="row">

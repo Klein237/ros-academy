@@ -75,9 +75,9 @@ Deux composants principaux :
 
 Chaque link peut contenir trois parties :
 
-- **visual** : ce qu'on voit dans RViz ou Gazebo — `geometry` (box, cylinder, sphere, mesh), `origin` (décalage de la géométrie), `material` (couleur) ;
+- **visual** : ce qu'on voit dans RViz ou Gazebo, décrit par `geometry` (box, cylinder, sphere, mesh), `origin` (décalage de la géométrie) et `material` (couleur) ;
 - **collision** : la géométrie utilisée pour la physique, souvent une copie simplifiée du visual ;
-- **inertial** : les propriétés physiques — `mass`, `origin` (centre de masse) et `inertia` (matrice d'inertie, qui décrit la répartition des masses).
+- **inertial** : les propriétés physiques, soit `mass`, `origin` (centre de masse) et `inertia` (matrice d'inertie, qui décrit la répartition des masses).
 
 Exemple, le châssis du robot :
 
