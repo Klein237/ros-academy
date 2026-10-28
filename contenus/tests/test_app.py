@@ -607,3 +607,18 @@ def test_scripts_and_styles_have_versioned_urls(client):
         assert m, nom
         r = client.get(f"/static/contenus/{nom}")
         assert m.group(1) == hashlib.sha256(r.content).hexdigest()[:12]
+
+
+def test_favicon_umoja_roboti(client):
+    html = client.get("/").text
+    for lien in ('rel="icon" href="/favicon.ico"', 'rel="apple-touch-icon"', 'rel="manifest"'):
+        assert lien in html
+    assert "une formation Umoja Roboti" in html
+    for chemin, type_ in [("/favicon.ico", "image/x-icon"), ("/apple-touch-icon.png", "image/png"),
+                          ("/static/contenus/icones/favicon.svg", "image/svg+xml"),
+                          ("/static/contenus/icones/site.webmanifest", "application/manifest+json")]:
+        r = client.get(chemin)
+        assert r.status_code == 200 and r.headers["content-type"].startswith(type_), chemin
+    manifeste = client.get("/static/contenus/icones/site.webmanifest").json()
+    for icone in manifeste["icons"]:
+        assert client.get(icone["src"]).status_code == 200
