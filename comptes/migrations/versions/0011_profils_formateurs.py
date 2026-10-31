@@ -22,6 +22,8 @@ def upgrade():
     sa.Column('titre', sa.String(length=120), nullable=False),
     sa.Column('linkedin', sa.String(length=300), nullable=False),
     sa.Column('visible', sa.Boolean(), nullable=False),
+    sa.Column('photo', sa.LargeBinary(), nullable=True),
+    sa.Column('photo_version', sa.Integer(), nullable=False),
     sa.Column('cree_le', sa.DateTime(), nullable=False),
     sa.Column('modifie_le', sa.DateTime(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),

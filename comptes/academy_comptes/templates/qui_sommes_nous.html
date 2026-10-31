@@ -29,7 +29,7 @@
   <ul class="equipe">
     {% for m in equipe %}
     <li class="membre">
-      <span class="membre-initiales" aria-hidden="true">{{ m.initiales }}</span>
+      {% if m.photo %}<img class="membre-photo" src="{{ m.photo }}" alt="Photo de {{ m.nom }}" width="104" height="104" loading="lazy">{% else %}<span class="membre-initiales" aria-hidden="true">{{ m.initiales }}</span>{% endif %}
       <strong class="membre-nom">{{ m.nom }}</strong>
       {% if m.titre %}<span class="membre-titre">{{ m.titre }}</span>{% endif %}
       <a class="lien-fort" href="{{ m.linkedin }}" rel="noopener" target="_blank">Profil LinkedIn<span class="sr-only"> de {{ m.nom }}</span></a>

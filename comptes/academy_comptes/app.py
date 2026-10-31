@@ -15,7 +15,7 @@ from urllib.parse import quote, urlsplit
 import httpx
 import jwt
 from itsdangerous import BadSignature as BadToken, SignatureExpired, URLSafeTimedSerializer
-from fastapi import Depends, FastAPI, Form, HTTPException, Request
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -57,6 +57,7 @@ from .db import (
     SessionRow,
     StripeEvent,
     Trainer,
+    TrainerProfile,
     User,
     make_engine,
     make_sessionmaker,
@@ -199,7 +200,10 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         response.headers.setdefault("Content-Security-Policy", page_csp)
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("Referrer-Policy", "same-origin")
-        response.headers["Cache-Control"] = "no-store"
+        if request.url.path.startswith("/compte/equipe/photos/"):  # adresse versionnée : se garde en cache
+            response.headers.setdefault("Cache-Control", "no-store")
+        else:
+            response.headers["Cache-Control"] = "no-store"
         return response
 
     def get_db():
@@ -1101,7 +1105,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         p = equipe.get(db, user)
         valeurs = ctx.pop("valeurs", None) or {"nom": p.nom if p else user.nom, "titre": p.titre if p else "",
                                                 "linkedin": p.linkedin if p else "", "visible": p.visible if p else False}
-        return page(request, "formateur_profil.html", status, user=user, v=valeurs,
+        return page(request, "formateur_profil.html", status, user=user, v=valeurs, photo=equipe.photo_url(p),
                     initiales=equipe.initiales(valeurs["nom"]), **ctx)
 
     @app.get("/compte/formateur/profil", response_class=HTMLResponse)
@@ -1112,17 +1116,30 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         return profile_page(request, user, db)
 
     @app.post("/compte/formateur/profil", response_class=HTMLResponse)
-    def trainer_profile_save(request: Request, nom: str = Form(""), titre: str = Form(""), linkedin: str = Form(""),
-                             visible: str = Form(""), user=Depends(require_user), db=Depends(get_db),
-                             _=Depends(same_origin)):
+    def trainer_profile_save(request: Request, nom: str = Form(""), titre: str = Form(""),
+                             linkedin: str = Form(""), visible: str = Form(""), retirer_photo: str = Form(""),
+                             photo: UploadFile | None = File(None), user=Depends(require_user),
+                             db=Depends(get_db), _=Depends(same_origin)):
         require_trainer(db, user)
+        # lecture bornée : au-delà de la limite, inutile de tout charger en mémoire
+        data = photo.file.read(equipe.PHOTO_MAX_OCTETS + 1) if photo is not None and photo.filename else b""
         try:
-            equipe.save(db, user, nom, titre, linkedin, visible == "1")
+            equipe.save(db, user, nom, titre, linkedin, visible == "1", data or None, retirer_photo == "1")
         except equipe.ProfileError as exc:
             return profile_page(request, user, db, 400, erreur=str(exc),
                                 valeurs={"nom": nom, "titre": titre, "linkedin": linkedin, "visible": visible == "1"})
         log.info("Profil public de u%s mis à jour", user.id)
         return profile_page(request, user, db, info="Profil enregistré.")
+
+    @app.get("/compte/equipe/photos/{user_id}.webp", include_in_schema=False)
+    def trainer_photo(user_id: int, user=Depends(current_user), db=Depends(get_db)):
+        p = db.get(TrainerProfile, user_id)
+        if not equipe.photo_visible(db, p, inscriptions.staff_emails(db, settings), user):
+            raise HTTPException(404, "Photo introuvable")
+        # l'adresse change à chaque envoi (?v=) : la copie en cache n'est jamais périmée
+        return Response(p.photo, media_type="image/webp",
+                        headers={"Cache-Control": "public, max-age=31536000, immutable" if p.visible else "private, no-cache",
+                                 "X-Content-Type-Options": "nosniff"})
 
     @app.get("/qui-sommes-nous/", response_class=HTMLResponse)
     def about(request: Request, db=Depends(get_db)):

@@ -45,7 +45,8 @@ def export_data(db, user):
         "reponses": [{"question": a.question_id, "texte": a.texte, "le": _iso(a.cree_le)}
                      for a in db.scalars(select(Answer).where(Answer.user_id == user.id).order_by(Answer.cree_le))],
         "meme_question": sorted(v.question_id for v in db.scalars(select(QuestionVote).where(QuestionVote.user_id == user.id))),
-        "profil_formateur": ({"nom": p.nom, "titre": p.titre, "linkedin": p.linkedin, "visible": p.visible}
+        "profil_formateur": ({"nom": p.nom, "titre": p.titre, "linkedin": p.linkedin, "visible": p.visible,
+                              "photo": p.photo is not None}
                              if (p := db.get(TrainerProfile, user.id)) else None),
         "certificats": [{"numero": certificats.format_code(c.code), "parcours": c.parcours_titre, "nom": c.nom,
                          "note": c.note, "mention": c.mention, "emis_le": _iso(c.emis_le),

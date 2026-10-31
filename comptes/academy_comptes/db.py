@@ -8,6 +8,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
+    LargeBinary,
     String,
     Text,
     UniqueConstraint,
@@ -205,6 +206,9 @@ class TrainerProfile(Base):
     titre: Mapped[str] = mapped_column(String(120), default="")
     linkedin: Mapped[str] = mapped_column(String(300), default="")
     visible: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Photo recadrée et réencodée en WebP (sans métadonnées) ; la version change l'adresse à chaque envoi
+    photo: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    photo_version: Mapped[int] = mapped_column(Integer, default=0)
     cree_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     modifie_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
