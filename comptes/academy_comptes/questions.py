@@ -161,6 +161,33 @@ def unanswered(db, staff_emails, equipe=False):
     return [(q, u) for q, u in rows if (u.email in staff_emails) == equipe]
 
 
+def history(db, staff_emails, equipe=False, limit=200):
+    """Questions traitées (réponse de l'équipe ou résolues), les plus récemment actives d'abord : l'historique
+    du tableau de bord. Chaque ligne : (question, auteur, réponse de l'équipe ?, nombre de réponses)."""
+    team = set(db.scalars(select(Answer.question_id).where(Answer.equipe.is_(True))))
+    counts = dict(db.execute(select(Answer.question_id, func.count()).group_by(Answer.question_id)).all())
+    rows = db.execute(select(Question, User).join(User, User.id == Question.user_id)
+                      .order_by(Question.activite_le.desc())).all()
+    out = []
+    for q, u in rows:
+        if (u.email in staff_emails) != equipe or (q.id not in team and q.resolue_le is None):
+            continue
+        out.append((q, u, q.id in team, counts.get(q.id, 0)))
+        if len(out) >= limit:
+            break
+    return out
+
+
+def delete(db, question):
+    """Supprime la question, ses réponses et ses « J'ai la même question » (décision de l'équipe)."""
+    for a in db.scalars(select(Answer).where(Answer.question_id == question.id)):
+        db.delete(a)
+    for v in db.scalars(select(QuestionVote).where(QuestionVote.question_id == question.id)):
+        db.delete(v)
+    db.delete(question)
+    db.commit()
+
+
 def reported(db):
     """Messages signalés et encore visibles, pour la modération."""
     qs = list(db.scalars(select(Question).where(Question.signalements > 0, Question.masquee_le.is_(None))))

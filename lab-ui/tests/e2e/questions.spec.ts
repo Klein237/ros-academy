@@ -85,7 +85,9 @@ test("question publique : même question, réponses, réponse de l'équipe prév
   const trainer = await browser.newPage({ ignoreHTTPSErrors: true });
   await loginStudent(trainer, trainerEmail!, "/compte/formateur/questions");
   await trainer.goto("/compte/formateur/questions");
-  const row = trainer.getByRole("row", { name: new RegExp(title) });
+  const waiting = trainer.locator("section", { has: trainer.getByRole("heading", { name: "Sans réponse de l'équipe" }) });
+  const history = trainer.locator("section", { has: trainer.getByRole("heading", { name: "Historique" }) });
+  const row = waiting.getByRole("row", { name: new RegExp(title) });
   await expect(row).toContainText("1 étudiant de plus a la même question");
   await row.getByRole("link", { name: "Répondre" }).click();
   t = thread(trainer, title);
@@ -98,7 +100,8 @@ test("question publique : même question, réponses, réponse de l'équipe prév
   await expect(thread(trainer, title).locator(".fil-reponse.validee")).toHaveCount(1);
   await expect.poll(() => mailed("réponse à une question suivie", bobEmail)).toBe(true);
   await trainer.goto("/compte/formateur/questions");
-  await expect(trainer.getByRole("row", { name: new RegExp(title) })).toHaveCount(0);
+  await expect(waiting.getByRole("row", { name: new RegExp(title) })).toHaveCount(0);
+  await expect(history.getByRole("row", { name: new RegExp(title) })).toContainText("Réponse de l'équipe"); // gardée
 
   // Alice : lien de l'e-mail (#question-…), solution repliée, résolue
   await openQuestions(alice, `#question-${qid}`);
@@ -109,6 +112,15 @@ test("question publique : même question, réponses, réponse de l'équipe prév
   await expect(t.locator(".fil-badge", { hasText: "Validée par l'équipe" })).toHaveCount(1);
   await t.getByRole("button", { name: "Marquer comme résolue" }).click();
   await expect(thread(alice, title).locator(":scope > summary")).toContainText("Résolue");
+  // l'équipe la supprime depuis l'historique (deux clics) : elle disparaît du module
+  await trainer.goto("/compte/formateur/questions");
+  const traitee = history.getByRole("row", { name: new RegExp(title) });
+  await expect(traitee).toContainText("Résolue");
+  await traitee.getByText("Supprimer", { exact: true }).click();
+  await traitee.getByRole("button", { name: "Supprimer définitivement" }).click();
+  await expect(history.getByRole("row", { name: new RegExp(title) })).toHaveCount(0);
+  await openQuestions(bob);
+  await expect(thread(bob, title)).toHaveCount(0);
   for (const p of [alice, bob, trainer]) await p.close();
 });
 
