@@ -1,8 +1,7 @@
 {% extends "base.html" %}
-{% from "partiels/icones.html" import objet %}
-{% set nav_actif = "qui" %}
-{% block title %}Qui sommes-nous · RoboForge{% endblock %}
-{% block description %}RoboForge est une formation Umoja Roboti, conçue et suivie par des ingénieurs qui développent des robots.{% endblock %}
+{% from "icones.html" import objet %}
+{% block title %}Qui sommes-nous{% endblock %}
+{% block head %}<meta name="description" content="RoboForge est une formation Umoja Roboti, conçue et suivie par des ingénieurs qui développent des robots.">{% endblock %}
 {% block main_class %}page plein{% endblock %}
 {% block content %}
 <section class="bande-sombre">

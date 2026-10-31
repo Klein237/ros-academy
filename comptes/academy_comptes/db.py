@@ -196,6 +196,19 @@ class ModuleFeedback(Base):
     modifie_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
+class TrainerProfile(Base):
+    """Profil public d'un formateur, qu'il modifie lui-même : affiché sur « Qui sommes-nous » s'il le choisit."""
+
+    __tablename__ = "trainer_profiles"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    nom: Mapped[str] = mapped_column(String(80), default="")
+    titre: Mapped[str] = mapped_column(String(120), default="")
+    linkedin: Mapped[str] = mapped_column(String(300), default="")
+    visible: Mapped[bool] = mapped_column(Boolean, default=False)
+    cree_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    modifie_le: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
 class Question(Base):
     """Question d'un étudiant sur un module, à laquelle répondent les formateurs (et les étudiants)."""
 

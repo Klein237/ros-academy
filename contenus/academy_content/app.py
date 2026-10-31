@@ -128,14 +128,6 @@ def format_prix(prix):
     return f"{euros} €" if not rest else f"{euros},{rest:02d} €"
 
 
-# L'équipe de la page « Qui sommes-nous » : nom, titre (affiché s'il est renseigné) et profil LinkedIn
-EQUIPE = [
-    {"nom": "Ivan", "initiales": "I", "titre": "", "linkedin": "https://www.linkedin.com/in/ivan-tk0122/"},
-    {"nom": "Yves Thoukam", "initiales": "YT", "titre": "", "linkedin": "https://www.linkedin.com/in/yves-thoukam-a57635207/"},
-    {"nom": "Franklin Yangoua", "initiales": "FY", "titre": "", "linkedin": "https://www.linkedin.com/in/franklin-yangoua/"},
-]
-
-
 def _parcours_list(root):
     """Tous les parcours lisibles, dans l'ordre du catalogue (disponibles et annoncés)."""
     out = []
@@ -409,10 +401,6 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
     @app.get("/decouvrir/", response_class=HTMLResponse)
     def decouvrir(request: Request):
         return page(request, "decouvrir.html", parcours=_parcours_disponibles(published()))
-
-    @app.get("/qui-sommes-nous/", response_class=HTMLResponse)
-    def qui_sommes_nous(request: Request):
-        return page(request, "qui_sommes_nous.html", equipe=EQUIPE)
 
     @app.get("/tarifs/", response_class=HTMLResponse)
     def tarifs(request: Request):

@@ -15,6 +15,7 @@
     <a class="button" href="/compte/formateur/avis{{ '?qui=equipe' if equipe else '' }}">Avis</a>
     <a class="button" href="/compte/formateur/inscriptions">Inscriptions{% if en_attente %} ({{ en_attente }} en attente){% endif %}</a>
     <a class="button" href="/compte/formateur/acces">Accès offerts et achats</a>
+    <a class="button" href="/compte/formateur/profil">Mon profil public</a>
     {% if admin %}<a class="button" href="/compte/formateur/equipe">Gérer l&#39;équipe</a>{% endif %}
   </span>
   {% if all_parcours | length > 1 %}

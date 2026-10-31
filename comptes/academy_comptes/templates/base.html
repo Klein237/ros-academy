@@ -10,6 +10,7 @@
   <link rel="manifest" href="/static/contenus/icones/site.webmanifest?v={{ version_statique }}">
   <link rel="stylesheet" href="/static/contenus/site.css?v={{ version_statique }}">
   <link rel="stylesheet" href="/static/comptes/comptes.css">
+  {% block head %}{% endblock %}
 </head>
 <body{% block body_class %}{% endblock %}>
   {# Même en-tête et pied de page que Contenus (contenus/academy_content/templates/base.html) #}
@@ -27,7 +28,7 @@
         <a href="/catalogue/"{% if nav_actif == "catalogue" %} aria-current="page"{% endif %}>Parcours</a>
         <a href="/decouvrir/"{% if nav_actif == "decouvrir" %} aria-current="page"{% endif %}>Découvrir gratuitement</a>
         <a href="/tarifs/"{% if nav_actif == "tarifs" %} aria-current="page"{% endif %}>Tarifs</a>
-        <a href="/qui-sommes-nous/">Qui sommes-nous</a>
+        <a href="/qui-sommes-nous/"{% if nav_actif == "qui" %} aria-current="page"{% endif %}>Qui sommes-nous</a>
         <a href="/compte/apprentissage"{% if nav_actif == "apprentissage" %} aria-current="page"{% endif %}>Mon apprentissage</a>
       </nav>
       <div class="site-account" data-compte>

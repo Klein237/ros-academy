@@ -645,14 +645,8 @@ def test_parcours_cards_show_fil_rouge_and_notion(store, client):
         ParcoursDef(titre="x", statut="bientot", fil_rouge="a" * 301)
 
 
-def test_qui_sommes_nous_page_and_navigation(client):
-    page = client.get("/qui-sommes-nous/").text
-    assert "RoboForge est une formation Umoja Roboti" in page
-    for nom, lien in [("Yves Thoukam", "https://www.linkedin.com/in/yves-thoukam-a57635207/"),
-                      ("Franklin Yangoua", "https://www.linkedin.com/in/franklin-yangoua/"),
-                      ("Ivan", "https://www.linkedin.com/in/ivan-tk0122/")]:
-        assert nom in page and f'href="{lien}"' in page
-    assert 'href="/qui-sommes-nous/" aria-current="page">Qui sommes-nous' in page
+def test_navigation_and_accueil_v2(client):
+    # « Qui sommes-nous » est servie par Comptes (profils des formateurs)
     accueil = client.get("/").text
     for lien in ('href="/catalogue/">Parcours', 'href="/decouvrir/">Découvrir gratuitement', 'href="/tarifs/">Tarifs',
                  'href="/qui-sommes-nous/">Qui sommes-nous'):

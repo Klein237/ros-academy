@@ -717,7 +717,7 @@ button.lien.actif { font-weight: 600; text-decoration: none; }
 .qui-hero .chapeau { margin-bottom: 0; }
 .qui-logo { flex: none; width: 200px; height: 200px; border-radius: 24px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); display: grid; place-items: center; }
 .qui-bloc .eyebrow { margin-bottom: 4px; }
-.equipe { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+.equipe { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
 .membre { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 26px 20px 14px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; }
 .membre-initiales { width: 104px; height: 104px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-soft-ink); display: grid; place-items: center; font-family: var(--font-titre); font-weight: 700; font-size: 2rem; margin-bottom: 8px; }
 .membre-nom { font-family: var(--font-titre); font-size: 1.2rem; }

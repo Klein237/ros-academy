@@ -22,7 +22,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from sqlalchemy import select
 
-from . import acces, avis, certificats, formateur, grading, inscriptions, questions, rgpd, tableau
+from . import acces, avis, certificats, equipe, formateur, grading, inscriptions, questions, rgpd, tableau
 from .billing import BadSignature, StripeClient, StripeError, format_amount, price_cents, verify_signature
 from .auth import (
     OAUTH_COOKIE,
@@ -1094,6 +1094,44 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         db.commit()
         log.info("Formateur %s retiré par %s", row.email, user.email)
         return RedirectResponse("/compte/formateur/equipe", status_code=303)
+
+    # --- Profil public des formateurs (page « Qui sommes-nous ») : chacun modifie le sien
+
+    def profile_page(request, user, db, status=200, **ctx):
+        p = equipe.get(db, user)
+        valeurs = ctx.pop("valeurs", None) or {"nom": p.nom if p else user.nom, "titre": p.titre if p else "",
+                                                "linkedin": p.linkedin if p else "", "visible": p.visible if p else False}
+        return page(request, "formateur_profil.html", status, user=user, v=valeurs,
+                    initiales=equipe.initiales(valeurs["nom"]), **ctx)
+
+    @app.get("/compte/formateur/profil", response_class=HTMLResponse)
+    def trainer_profile(request: Request, user=Depends(current_user), db=Depends(get_db)):
+        if not user:
+            return login_redirect("/compte/formateur/profil")
+        require_trainer(db, user)
+        return profile_page(request, user, db)
+
+    @app.post("/compte/formateur/profil", response_class=HTMLResponse)
+    def trainer_profile_save(request: Request, nom: str = Form(""), titre: str = Form(""), linkedin: str = Form(""),
+                             visible: str = Form(""), user=Depends(require_user), db=Depends(get_db),
+                             _=Depends(same_origin)):
+        require_trainer(db, user)
+        try:
+            equipe.save(db, user, nom, titre, linkedin, visible == "1")
+        except equipe.ProfileError as exc:
+            return profile_page(request, user, db, 400, erreur=str(exc),
+                                valeurs={"nom": nom, "titre": titre, "linkedin": linkedin, "visible": visible == "1"})
+        log.info("Profil public de u%s mis à jour", user.id)
+        return profile_page(request, user, db, info="Profil enregistré.")
+
+    @app.get("/qui-sommes-nous/", response_class=HTMLResponse)
+    def about(request: Request, db=Depends(get_db)):
+        return page(request, "qui_sommes_nous.html", nav_actif="qui",
+                    equipe=equipe.team(db, inscriptions.staff_emails(db, settings)))
+
+    @app.get("/qui-sommes-nous", include_in_schema=False)
+    def about_slash():
+        return RedirectResponse("/qui-sommes-nous/", status_code=308)
 
     # --- Résultats
 
