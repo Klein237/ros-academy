@@ -114,7 +114,8 @@ def test_trainer_page_digest_and_rgpd(client, env):
     assert client.app.state.questions_digest(now + timedelta(minutes=30)) == 0
     assert client.app.state.questions_digest(now + timedelta(hours=2)) == 0  # rien de nouveau
     post(prof, f"/api/comptes/questions/{qid}/reponses", {"texte": "Réponse"})
-    assert "Le robot ne bouge pas" not in prof.get("/compte/formateur/questions").text
+    attente = prof.get("/compte/formateur/questions").text.split("<h2>Historique</h2>")[0]
+    assert "Le robot ne bouge pas" not in attente  # répondue : passe dans l'historique
     export = json.loads(alice.get("/compte/donnees").text)
     assert len(export["questions"]) == 2 and export["reponses"] == []
     assert re.search(r"Aucune question en attente|Autre question", prof.get("/compte/formateur/questions").text)
@@ -166,3 +167,34 @@ def test_team_question_is_listed_apart(client, env):
     titres = [q["titre"] for q in alice.get("/api/comptes/questions/01-a").json()["questions"]]
     assert "Question de test du formateur" in titres
     assert alice.get("/compte/formateur/questions", params={"qui": "equipe"}).status_code == 403
+
+
+def test_history_keeps_handled_questions_and_trainer_deletes(client, env):
+    alice = browser(client, env, "alice@exemple.fr", nom="Alice")
+    bob = browser(client, env, "bob@exemple.fr", nom="Bob")
+    prof = browser(client, env, "admin@exemple.fr", nom="Prof")
+    q1 = post(alice, "/api/comptes/questions/01-a", Q).json()["question"]["id"]
+    q2 = post(alice, "/api/comptes/questions/01-a", {**Q, "titre": "Résolue toute seule"}).json()["question"]["id"]
+    post(bob, f"/api/comptes/questions/{q1}/meme", {"valeur": True})
+    post(bob, f"/api/comptes/questions/{q1}/reponses", {"texte": "Essaie ceci."})
+    post(prof, f"/api/comptes/questions/{q1}/reponses", {"texte": "Réponse de l'équipe"})
+    post(alice, f"/api/comptes/questions/{q2}/resolue", {"valeur": True})
+    page = prof.get("/compte/formateur/questions").text
+    attente, historique = page.split("<h2>Historique</h2>")
+    # traitées : plus en attente, mais dans l'historique, avec leur état
+    assert "Le robot ne bouge pas" not in attente and "Résolue toute seule" not in attente
+    assert "Le robot ne bouge pas" in historique and "Réponse de l'équipe" in historique
+    assert "Résolue toute seule" in historique and "Résolue" in historique and "2 réponses" in historique
+    # suppression : réservée à l'équipe, protégée contre une requête d'un autre site, définitive
+    assert alice.post(f"/compte/formateur/questions/{q1}/supprimer", headers=ORIGIN).status_code == 403
+    assert prof.post(f"/compte/formateur/questions/{q1}/supprimer").status_code == 403  # sans Origin
+    r = prof.post(f"/compte/formateur/questions/{q1}/supprimer", headers=ORIGIN, follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/compte/formateur/questions"
+    assert "Le robot ne bouge pas" not in prof.get("/compte/formateur/questions").text
+    titres = [q["titre"] for q in bob.get("/api/comptes/questions/01-a").json()["questions"]]
+    assert titres == ["Résolue toute seule"]
+    with db(client) as s:
+        from academy_comptes.db import Answer, QuestionVote
+        assert s.query(Answer).filter_by(question_id=q1).count() == 0
+        assert s.query(QuestionVote).filter_by(question_id=q1).count() == 0
+    assert prof.post(f"/compte/formateur/questions/{q1}/supprimer", headers=ORIGIN).status_code == 404

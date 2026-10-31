@@ -914,9 +914,21 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
                     "meme": votes.get(q.id, 0)} for q, u in rows]
         signales_q, signales_r = questions.reported(db)
         return page(request, "formateur_questions.html", user=user, attente=attente, titres=module_titles(),
-                    equipe=equipe, autres=autres,
+                    equipe=equipe, autres=autres, historique=questions.history(db, staff, equipe),
                     signales_q=signales_q, signales_r=signales_r,
                     questions_de={a.id: db.get(Question, a.question_id) for a in signales_r})
+
+    @app.post("/compte/formateur/questions/{question_id}/supprimer")
+    def trainer_question_delete(question_id: int, qui: str = Form(""), user=Depends(require_user),
+                                db=Depends(get_db), _=Depends(same_origin)):
+        require_trainer(db, user)
+        q = db.get(Question, question_id)
+        if not q:
+            raise HTTPException(404, "Question introuvable")
+        titre, module = q.titre, q.module
+        questions.delete(db, q)
+        log.info("Question %s (%s, « %s ») supprimée par %s", question_id, module, titre, user.email)
+        return RedirectResponse("/compte/formateur/questions" + ("?qui=equipe" if qui == "equipe" else ""), status_code=303)
 
     # --- Avis des étudiants : formateurs
 

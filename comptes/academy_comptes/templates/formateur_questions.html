@@ -37,6 +37,38 @@
   </table>
   </div>
 </section>
+<section class="card">
+  <h2>Historique</h2>
+  <p class="muted small">Questions qui ont une réponse de l'équipe ou que leur auteur a marquées résolues, de la plus récemment active à la plus ancienne. Elles restent sur la page du module pour ceux qui suivent ; « Supprimer » les efface définitivement, avec leurs réponses.</p>
+  <div class="table-scroll">
+  <table class="results">
+    <thead><tr><th>Dernière activité</th><th>Module</th><th>Question</th><th>{{ "Membre de l'équipe" if equipe else "Étudiant" }}</th><th>État</th><th></th></tr></thead>
+    <tbody>
+    {% for q, u, rep_equipe, nb in historique %}
+      <tr>
+        <td>{{ q.activite_le.strftime('%d/%m/%Y') }}</td>
+        <td>{{ titres.get(q.module, q.module) }}</td>
+        <td><a href="/modules/{{ q.module }}/#question-{{ q.id }}">{{ q.titre }}</a>{% if q.prive %} <span class="muted small">(privée)</span>{% endif %} <span class="muted small">· {{ nb or 'aucune' }} réponse{{ 's' if nb > 1 }}</span></td>
+        <td>{{ u.nom or u.email }}</td>
+        <td>{% if q.resolue_le %}Résolue{% if rep_equipe %}, réponse de l'équipe{% endif %}{% else %}Réponse de l'équipe{% endif %}{% if q.masquee_le %} · <span class="warn">masquée</span>{% endif %}</td>
+        <td>
+          <details class="supprimer">
+            <summary class="button small">Supprimer</summary>
+            <form method="post" action="/compte/formateur/questions/{{ q.id }}/supprimer">
+              {% if equipe %}<input type="hidden" name="qui" value="equipe">{% endif %}
+              <p class="small">{% if nb %}La question et ses {{ nb }} réponse{{ 's' if nb > 1 }} disparaissent{% else %}La question disparaît{% endif %} pour tous.</p>
+              <button class="button small danger" type="submit">Supprimer définitivement</button>
+            </form>
+          </details>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">Aucune question traitée pour l'instant.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
 {% if signales_q or signales_r %}
 <section class="card">
   <h2>Messages signalés</h2>
