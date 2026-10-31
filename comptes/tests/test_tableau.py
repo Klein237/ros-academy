@@ -38,6 +38,8 @@ def test_dashboard_page(client, env):
     assert page.count('class="badge badge-a_faire"') == 2 and "Mes badges" in page
     assert "/static/contenus/icones/noeuds.webp" in page  # parcours sans objet dédié : le graphe de nœuds
     assert "style=" not in page  # CSP : aucun style en ligne
+    # le lab s'ouvre depuis un module, pas depuis le tableau de bord ni la page du compte
+    assert 'href="/compte/lab"' not in page and 'href="/compte/lab"' not in client.get("/compte/").text
     client.post("/api/comptes/qcm/01-a", json={"reponses": {"q1": [0], "q2": [1]}}, headers=ORIGIN)
     succeed(env, "01-a")
     client.post("/api/comptes/exercices/01-a/verification", headers=ORIGIN)
