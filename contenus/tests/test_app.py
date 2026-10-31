@@ -236,8 +236,8 @@ def test_catalogue_shows_tools_and_offered_parcours(store, client):
                                     "outils": ["Docker", "Docker Compose"], "offert": True})
     store.publish(Runner())
     page = client.get("/catalogue/").text
-    assert "<span>Docker Compose</span>" in page and "Offert après un parcours validé" in page
-    assert "docker compose" in page  # la recherche porte aussi sur les outils
+    assert "Offert après un parcours validé" in page
+    assert "docker compose" in page  # la recherche porte aussi sur les outils (plus affichés en badges)
 
 
 def test_parcours_page_and_discover_page(client):
@@ -501,7 +501,8 @@ def test_prices_on_the_catalogue_parcours_and_pricing_pages(store, client):
     for path in ("/", "/catalogue/"):
         assert "29,50 €" not in client.get(path).text, path
     page = client.get("/parcours/demo/").text
-    assert "29,50 €" in page and 'href="/compte/acheter/demo"' in page
+    # la page du parcours renvoie vers Tarifs ; l'achat se fait depuis Tarifs ou la page d'achat
+    assert "29,50 €" not in page and 'href="/tarifs/">Tarifs</a>' in page
     page = client.get("/tarifs/").text
     assert "29,50 €" in page and 'href="/compte/acheter/demo"' in page and "12 mois" in page
     assert "Docker pour la robotique" in page and "/compte/acheter/docker" not in page
@@ -652,3 +653,18 @@ def test_navigation_and_accueil_v2(client):
                  'href="/qui-sommes-nous/">Qui sommes-nous'):
         assert lien in accueil, lien
     assert "Devenez ingénieur logiciel robotique" in accueil and "tous programmés avec ROS" not in accueil
+
+
+def test_catalogue_v2_free_available_and_upcoming(store, client):
+    store.write_parcours("demo", {"titre": "Parcours démo", "fil_rouge": "Un robot de livraison", "notion": "Découper en nœuds",
+                                  "modules": [{"id": "01-demo"}]})
+    store.write_parcours("nav", {"titre": "Planifier un trajet", "statut": "bientot", "fil_rouge": "Le cœur de la navigation",
+                                 "notion": "A* et Dijkstra"})
+    store.publish(Runner())
+    page = client.get("/catalogue/").text
+    gratuit, dispo, bientot = page.index("Gratuit, sans compte"), page.index(">Disponibles<"), page.index(">Bientôt<")
+    assert gratuit < dispo < bientot and 'href="/decouvrir/"' in page[gratuit:dispo]
+    assert "Parcours démo" in page[dispo:bientot] and "Planifier un trajet" in page[bientot:]
+    assert "Notion : A* et Dijkstra" in page and "feuille de route" not in page.lower()
+    page = client.get("/parcours/demo/").text
+    assert "Fil rouge :</strong> Un robot de livraison" in page and "Notion de génie logiciel :</strong> Découper en nœuds" in page

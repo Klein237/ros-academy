@@ -311,7 +311,7 @@ body.cote-a-cote main.page:not(.plein) { padding: 24px 24px 48px; }
 .encart { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 28px 32px; }
 .encart h2 { margin: 0 0 10px; font-size: 1.6rem; }
 .encart p { margin: 0; color: var(--text-2); line-height: 1.6; }
-.encart-navigateur, .encart-commencer, .encart-sombre, .encart-primaire, .feuille-de-route { display: flex; flex-wrap: wrap; gap: 24px 28px; align-items: center; justify-content: space-between; }
+.encart-navigateur, .encart-commencer, .encart-sombre, .encart-primaire { display: flex; flex-wrap: wrap; gap: 24px 28px; align-items: center; justify-content: space-between; }
 .encart-navigateur > div, .encart-commencer > div, .encart-sombre > div, .encart-primaire > div { flex: 1 1 360px; min-width: 0; }
 .encart-ambre { background: var(--amber-soft); border-color: var(--amber-line); }
 .encart-commencer .pastille { margin-bottom: 12px; }
@@ -361,12 +361,6 @@ body.cote-a-cote main.page:not(.plein) { padding: 24px 24px 48px; }
 }
 
 /* Catalogue */
-.feuille-de-route > div { flex: 1 1 240px; min-width: 0; }
-.niveaux { flex: 3 1 560px; min-width: 0; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
-.niveau { border: 1px dashed var(--line-strong); border-radius: 12px; padding: 16px; }
-.niveau ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
-.niveau .bientot { color: var(--text-2); font-weight: 500; }
-.niveau-debutant { border-style: solid; border-color: var(--accent); background: var(--accent-soft); }
 .filtres { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 20px; }
 .recherche { flex: 1 1 280px; }
 .recherche input { width: 100%; font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 12px; padding: 11px 14px; }
@@ -724,3 +718,33 @@ button.lien.actif { font-weight: 600; text-decoration: none; }
 .membre-nom { font-family: var(--font-titre); font-size: 1.2rem; }
 .membre-titre { color: var(--accent); font-weight: 600; }
 @media (prefers-color-scheme: dark) { .bande-sombre { background: #101114; } }
+
+/* Catalogue v2 : gratuit, parcours disponibles en lignes, parcours à venir */
+.titre-section { font-size: clamp(1.4rem, 3vw, 1.75rem); margin: 0 0 16px; }
+.page-titre .filtres { margin: 8px 0 24px; }
+.lignes-parcours { display: flex; flex-direction: column; gap: 16px; }
+.ligne-parcours { flex-direction: row; align-items: center; gap: 24px; padding: 22px 26px; }
+.ligne-parcours:hover { border-color: var(--accent); }
+.ligne-parcours:has(.lien-carte:focus-visible) { outline: 2px solid var(--accent); outline-offset: 3px; }
+.ligne-objet { flex: none; width: 112px; height: 112px; border-radius: 16px; background: var(--bg); display: grid; place-items: center; }
+.ligne-texte { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.ligne-texte .pastilles { align-items: center; }
+.pastille-texte { font-size: 0.875rem; color: var(--muted); }
+.ligne-texte h3 { font-size: 1.35rem; }
+.carte-parcours .notion { font-size: 0.9rem; color: var(--muted); }
+.ligne-action { flex: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--accent); }
+.grille-bientot { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: 16px; }
+.grille-bientot .carte-parcours { flex-direction: row; align-items: flex-start; gap: 16px; padding: 20px; }
+.grille-bientot .carte-parcours > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.grille-bientot h3 { font-size: 1.15rem; }
+.grille-bientot .objet-verre { flex: none; opacity: 0.85; }
+@media (max-width: 640px) {
+  .ligne-parcours { flex-direction: column; align-items: flex-start; gap: 14px; padding: 20px; }
+  .ligne-objet { width: 80px; height: 80px; }
+  .ligne-objet .objet-verre { width: 72px; height: 72px; }
+}
+/* Page d'un parcours : fil rouge et notion dans le bandeau */
+.fil-rouge-encart { border-left: 3px solid var(--amber); padding: 4px 0 4px 16px; margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+.bandeau-texte .fil-rouge-encart p { font-size: 0.98rem; }
+.fil-rouge-encart strong { color: var(--amber); }
+@media (prefers-color-scheme: dark) { .fil-rouge-encart strong { color: var(--accent); } }

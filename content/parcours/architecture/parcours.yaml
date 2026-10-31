@@ -6,6 +6,7 @@ description: >-
   les nœuds à cycle de vie, et regrouper des nœuds par composition.
 accroche: Découpage en nœuds, interfaces, machines à états et arbres de comportement.
 fil_rouge: "Passer de « ça marche » à « c'est maintenable »."
+notion: "Découpage, interfaces, machines à états, arbres de comportement."
 statut: bientot
 niveau: intermediaire
 ordre: 35

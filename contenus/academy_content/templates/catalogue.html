@@ -1,49 +1,76 @@
 {% extends "base.html" %}
+{% from "partiels/icones.html" import fleche, objet %}
 {% set nav_actif = "catalogue" %}
-{% block title %}Catalogue · RoboForge{% endblock %}
+{% block title %}Les parcours · RoboForge{% endblock %}
+{% block description %}Les parcours RoboForge : chacun suit un fil rouge, un robot et une situation concrète, pour aborder une notion du génie logiciel robotique.{% endblock %}
 {% block main_class %}page plein{% endblock %}
 {% block content %}
+{% set disponibles = parcours | selectattr("statut", "equalto", "disponible") | list %}
+{% set bientot = parcours | rejectattr("statut", "equalto", "disponible") | list %}
+{% macro recherche(p) %}{{ (p.titre ~ ' ' ~ p.accroche ~ ' ' ~ p.description ~ ' ' ~ p.fil_rouge ~ ' ' ~ p.notion ~ ' ' ~ p.outils | join(' ')) | lower }}{% endmacro %}
 <div class="conteneur page-titre">
-  <h1>Catalogue</h1>
-  <p class="sous-titre">Apprenez à développer le logiciel d'un robot, avec ROS 2. Chaque parcours part de cas concrets et se pratique dans le lab, sans rien installer : cours, exercices vérifiés, QCM et certificat.</p>
-</div>
-
-<section class="conteneur bloc-serre" aria-labelledby="feuille-de-route">
-  <div class="encart feuille-de-route">
-    <div>
-      <h2 id="feuille-de-route">La feuille de route</h2>
-      <p>Commencez par ROS 2, puis choisissez votre spécialité. Le même robot de livraison vous suit d'un parcours à l'autre : il apprend à rouler, puis à trier ses colis avec un bras, à se fiabiliser, à filtrer ses capteurs et à planifier son trajet.</p>
-    </div>
-    <ol class="niveaux">
-      {% for cle, nom in niveaux.items() %}
-      {% set du_niveau = parcours | selectattr("niveau", "equalto", cle) | list %}
-      {% if du_niveau %}
-      <li class="niveau niveau-{{ cle }}">
-        <span class="eyebrow">{{ nom }}</span>
-        <ul>
-          {% for p in du_niveau %}
-          <li class="{{ p.statut }}">{% if p.statut == "disponible" %}<a href="/parcours/{{ p.id }}/">{{ p.titre }}</a>{% else %}{{ p.titre }} <span class="muted small">· bientôt</span>{% endif %}</li>
-          {% endfor %}
-        </ul>
-      </li>
-      {% endif %}
-      {% endfor %}
-    </ol>
-  </div>
-</section>
-
-<section class="conteneur bloc-serre" aria-labelledby="tous">
-  <h2 id="tous" class="sr-only">Tous les parcours</h2>
+  <h1>Les parcours</h1>
+  <p class="sous-titre">Chaque parcours suit un fil rouge, un robot et une situation concrète, pour aborder une notion du génie logiciel robotique. Cours, lab en ligne, exercices corrigés, QCM et certificat.</p>
   <form class="filtres" role="search" data-filtres hidden>
     <label class="recherche"><span class="sr-only">Rechercher un parcours</span><input type="search" name="q" placeholder="Rechercher un parcours (urdf, tests, docker…)"></label>
     <div class="segments" role="group" aria-label="Niveau">
       <button type="button" data-niveau="" aria-pressed="true">Tous</button>
-      {% for cle, nom in niveaux.items() %}<button type="button" data-niveau="{{ cle }}" aria-pressed="false">{{ nom }}</button>{% endfor %}
+      {% for cle, nom in niveaux.items() %}{% if parcours | selectattr("niveau", "equalto", cle) | list %}<button type="button" data-niveau="{{ cle }}" aria-pressed="false">{{ nom }}</button>{% endif %}{% endfor %}
     </div>
   </form>
-  <div class="grille-parcours" data-cartes>
-    {% for p in parcours %}{% include "partiels/carte_parcours.html" %}{% endfor %}
+</div>
+
+<section class="conteneur bloc-serre" aria-labelledby="gratuit">
+  <h2 id="gratuit" class="titre-section">Gratuit, sans compte</h2>
+  <div class="grille-gratuit">
+    <a class="carte-gratuite" href="/decouvrir/">
+      {{ objet("robot", 72) }}
+      <span>
+        <span class="eyebrow">Introduction · 20 min</span>
+        <strong>Découvrir ROS 2</strong>
+        <span>Comment fonctionne ROS 2, le parcours qui l'enseigne et les liens utiles.</span>
+      </span>
+    </a>
   </div>
-  <p class="muted" data-aucun hidden>Aucun parcours ne correspond à cette recherche.</p>
 </section>
+
+<section class="conteneur bloc-serre" aria-labelledby="disponibles">
+  <h2 id="disponibles" class="titre-section">Disponibles</h2>
+  <div class="lignes-parcours" data-cartes>
+    {% for p in disponibles %}
+    <article class="carte-parcours ligne-parcours" data-niveau="{{ p.niveau }}" data-recherche="{{ recherche(p) }}">
+      <span class="ligne-objet">{{ objet(icone_parcours(p.id), 100) }}</span>
+      <div class="ligne-texte">
+        <div class="pastilles"><span class="pastille douce">{{ p.niveau_texte }}</span><span class="pastille-texte">{{ p.modules | length }} module{{ "s" if p.modules | length > 1 }}{% if p.duree_totale %} · {{ p.duree_totale }}{% endif %}{% if loop.first and p.niveau == "debutant" %} · conseillé en premier{% endif %}</span>{% if p.offert %}<span class="pastille ambre">Offert après un parcours validé</span>{% endif %}</div>
+        <h3><a class="lien-carte" href="/parcours/{{ p.id }}/">{{ p.titre }}</a></h3>
+        {% if p.fil_rouge %}<p><strong>Fil rouge :</strong> {{ p.fil_rouge }}</p>{% else %}<p>{{ p.accroche }}</p>{% endif %}
+        {% if p.notion %}<p class="notion"><strong>Notion de génie logiciel :</strong> {{ p.notion }}</p>{% endif %}
+      </div>
+      <span class="ligne-action" aria-hidden="true">Voir le programme {{ fleche() }}</span>
+    </article>
+    {% else %}
+    <p class="muted">Aucun parcours publié pour le moment.</p>
+    {% endfor %}
+  </div>
+</section>
+
+{% if bientot %}
+<section class="conteneur bloc" aria-labelledby="a-venir">
+  <h2 id="a-venir" class="titre-section">Bientôt</h2>
+  <div class="grille-bientot" data-cartes>
+    {% for p in bientot %}
+    <article class="carte-parcours bientot" data-niveau="{{ p.niveau }}" data-recherche="{{ recherche(p) }}">
+      {{ objet(icone_parcours(p.id), 64) }}
+      <div>
+        <div class="pastilles"><span class="pastille douce">Bientôt · {{ p.niveau_texte }}</span>{% if p.offert %}<span class="pastille ambre">Offert après un parcours validé</span>{% endif %}</div>
+        <h3>{{ p.titre }}</h3>
+        {% if p.fil_rouge %}<p><strong>Fil rouge :</strong> {{ p.fil_rouge }}</p>{% else %}<p>{{ p.accroche }}</p>{% endif %}
+        {% if p.notion %}<p class="notion">Notion : {{ p.notion }}</p>{% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+<p class="conteneur muted bloc" data-aucun hidden>Aucun parcours ne correspond à cette recherche.</p>
 {% endblock %}

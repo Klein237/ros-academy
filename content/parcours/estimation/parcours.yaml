@@ -6,6 +6,7 @@ description: >-
   données enregistrées du robot de livraison, rejouées avec ros2 bag.
 accroche: Filtrer, fusionner des capteurs et écrire son filtre de Kalman.
 fil_rouge: "Un capteur ne dit jamais tout à fait la vérité."
+notion: "Filtrage, fusion de capteurs, filtre de Kalman."
 statut: bientot
 niveau: intermediaire
 ordre: 40
