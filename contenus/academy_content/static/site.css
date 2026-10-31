@@ -748,3 +748,33 @@ button.lien.actif { font-weight: 600; text-decoration: none; }
 .bandeau-texte .fil-rouge-encart p { font-size: 0.98rem; }
 .fil-rouge-encart strong { color: var(--amber); }
 @media (prefers-color-scheme: dark) { .fil-rouge-encart strong { color: var(--accent); } }
+
+/* Middlewares et robotique (introduction gratuite) */
+.texte-long { margin: 0 0 18px; color: var(--text-2); line-height: 1.7; max-width: 46em; }
+.couches { margin: 0 0 18px; }
+.couches ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.couches li { display: grid; grid-template-columns: 150px 1fr; gap: 4px 16px; align-items: center; padding: 14px 18px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); }
+.couches li strong { font-family: var(--font-titre); }
+.couches li span { color: var(--text-2); }
+.couches .couche-middleware { background: var(--ink); border-color: var(--ink); color: #ffffff; padding: 18px; }
+.couches .couche-middleware strong { color: var(--amber); font-size: 1.1rem; }
+.couches .couche-middleware span { color: var(--ink-text); }
+.couches .couche-materiel { background: var(--accent-soft); border-color: var(--amber-line); }
+.couches figcaption { margin-top: 10px; font-size: 0.9rem; color: var(--muted); }
+@media (max-width: 560px) { .couches li { grid-template-columns: 1fr; } }
+@media (prefers-color-scheme: dark) { .couches .couche-middleware { background: #101114; border-color: var(--amber-line); } }
+.apport { margin-top: 4px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.a-retenir { margin: 16px 0 0; padding: 14px 18px; border-radius: 12px; background: var(--accent-soft); color: var(--accent-soft-ink); line-height: 1.6; }
+.table-defilante { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }
+.table-robots { width: 100%; border-collapse: collapse; font-size: 0.95rem; min-width: 560px; }
+.table-robots th, .table-robots td { text-align: left; padding: 13px 16px; border-top: 1px solid var(--line); vertical-align: top; }
+.table-robots thead th { border-top: 0; background: var(--ink); color: #ffffff; font-weight: 600; }
+.table-robots tbody th { font-weight: 600; white-space: nowrap; }
+.table-robots td:last-child { color: var(--text-2); }
+.sources { margin-top: 14px; font-size: 0.9rem; color: var(--muted); }
+.sources p { margin: 0 0 6px; }
+.sources ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.sommaire-intro ol { margin: 0 0 12px; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.sommaire-intro a { text-decoration: none; }
+.sommaire-intro a:hover { text-decoration: underline; }
+#pourquoi, #histoire, #paysage, #robots { scroll-margin-top: 16px; }

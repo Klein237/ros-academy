@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% from "partiels/icones.html" import objet %}
+{% set nav_actif = "decouvrir" %}
+{% block title %}Middlewares et robotique · RoboForge{% endblock %}
+{% block description %}Comment les middlewares (ROS 2, Cyber RT, micro-ROS, PX4, YARP, OROCOS) font tenir ensemble le logiciel des robots mobiles, des drones, des véhicules et des bras.{% endblock %}
+{% block main_class %}page plein{% endblock %}
+{% block content %}
+<div class="conteneur page-titre avec-objet">
+  {{ objet("noeuds", 150, "page-titre-objet") }}
+  <p class="eyebrow">Gratuit · sans prérequis · 4 chapitres</p>
+  <h1 class="titre-xl">Middlewares et robotique : ce qui relie le logiciel au robot</h1>
+  <p class="chapeau">Un robot mobile, un drone ou une voiture autonome sont faits de dizaines de programmes qui doivent se parler en temps réel. Le middleware est la couche qui rend cela possible. Voici comment on en est arrivé à ROS 2, Cyber RT et les autres, et pourquoi chaque famille de robots a ses habitudes.</p>
+</div>
+
+<div class="conteneur deux-colonnes">
+  <div class="colonne-principale">
+    <section id="pourquoi" aria-labelledby="pourquoi-titre">
+      <p class="eyebrow">Chapitre 1</p>
+      <h2 id="pourquoi-titre">Pourquoi un middleware ?</h2>
+      <p class="texte-long">Un robot n'est pas un programme : c'est un ensemble de programmes. Un pilote lit le lidar, un autre la caméra, un troisième estime la position, un quatrième planifie la trajectoire et un dernier envoie les consignes aux moteurs. Le middleware leur donne une façon commune de s'échanger des messages, de se découvrir sur le réseau et de tenir des délais, sans que chacun connaisse les autres.</p>
+      <figure class="couches">
+        <ol aria-label="Les couches du logiciel d'un robot, de la mission au matériel">
+          <li><strong>Mission</strong><span>livrer un colis, inspecter un champ, suivre une voie</span></li>
+          <li><strong>Fonctions</strong><span>perception · localisation · planification · contrôle</span></li>
+          <li class="couche-middleware"><strong>Middleware</strong><span>messages (topics), requêtes (services), découverte, qualité de service, enregistrement et rejeu</span></li>
+          <li><strong>Pilotes</strong><span>lidar, caméra, IMU, GPS, variateurs</span></li>
+          <li class="couche-materiel"><strong>Matériel</strong><span>capteurs, moteurs, calculateur embarqué</span></li>
+        </ol>
+        <figcaption>Le middleware sépare ce que fait le robot de la façon dont ses programmes communiquent. On peut changer de lidar sans réécrire la planification.</figcaption>
+      </figure>
+      <div class="grille-petite grille-3 apport">
+        <div class="carte-simple"><strong>Découpler</strong><p>Chaque programme publie ce qu'il sait et lit ce dont il a besoin.</p></div>
+        <div class="carte-simple"><strong>Réutiliser</strong><p>Un pilote ou un planificateur écrit une fois sert sur plusieurs robots.</p></div>
+        <div class="carte-simple"><strong>Tester</strong><p>On enregistre les messages, on les rejoue, on simule avant de rouler.</p></div>
+      </div>
+    </section>
+
+    <section id="histoire" aria-labelledby="histoire-titre">
+      <p class="eyebrow">Chapitre 2</p>
+      <h2 id="histoire-titre">Une courte histoire</h2>
+      <ol class="frise">
+        <li><strong>Début des années 2000 · Player/Stage</strong><p>Un serveur qui expose les capteurs et les moteurs d'un robot sur le réseau, et un simulateur 2D. Les laboratoires commencent à partager du code d'un robot à l'autre.</p></li>
+        <li><strong>2007 · ROS</strong><p>Né à Stanford puis développé chez Willow Garage. Nœuds, topics, services et un écosystème de packages ouvert : ROS devient la référence de la recherche.</p></li>
+        <li><strong>2017 · ROS 2</strong><p>Après des versions alpha dès 2015, la première distribution, Ardent Apalone, sort en décembre 2017. ROS 2 repose sur DDS, un standard industriel de communication : plus de serveur central, qualité de service réglable, plusieurs robots sur un même réseau. Pensé pour les produits, pas seulement les labos.</p></li>
+        <li><strong>Apollo 3.5 · Cyber RT</strong><p>Avec la version 3.5 de sa plateforme de conduite autonome Apollo, Baidu introduit Cyber RT, un nouveau cadre d'exécution « conçu spécifiquement pour la conduite autonome ».</p></li>
+        <li class="maintenant"><strong>Aujourd'hui</strong><p>Les distributions ROS 2 maintenues incluent Jazzy Jalisco (2024) et Lyrical Luth (2026). ROS 2 s'étend jusqu'aux microcontrôleurs avec micro-ROS et, depuis PX4 v1.14, dialogue avec l'autopilote de drone via uXRCE-DDS. Les middlewares spécialisés restent là où ils excellent.</p></li>
+      </ol>
+    </section>
+
+    <section id="paysage" aria-labelledby="paysage-titre">
+      <p class="eyebrow">Chapitre 3</p>
+      <h2 id="paysage-titre">Le paysage aujourd'hui</h2>
+      <div class="grille-petite">
+        <div class="carte-simple"><strong>ROS 2</strong><p>Le standard ouvert le plus répandu. Communication DDS, outils (RViz, rosbag), et de grandes briques comme Nav2 pour la navigation et MoveIt 2 pour les bras.</p></div>
+        <div class="carte-simple"><strong>Cyber RT</strong><p>Le cadre d'exécution open source d'Apollo, pensé pour la conduite autonome : calcul centralisé, forte concurrence, faible latence et débit de données élevé.</p></div>
+        <div class="carte-simple"><strong>micro-ROS</strong><p>ROS 2 sur microcontrôleur (FreeRTOS, Zephyr) : un agent micro-ROS relie la carte moteur ou capteur au reste du graphe.</p></div>
+        <div class="carte-simple"><strong>PX4 et uORB</strong><p>uORB est l'API asynchrone publier / s'abonner interne à l'autopilote. Depuis la v1.14, uXRCE-DDS publie ses messages comme des topics ROS 2 sur l'ordinateur de bord.</p></div>
+        <div class="carte-simple"><strong>YARP</strong><p>« Yet Another Robot Platform » : bibliothèque de communication et d'interfaces matérielles, issue de l'IIT et du consortium RobotCub (iCub), utilisée des humanoïdes aux systèmes embarqués.</p></div>
+        <div class="carte-simple"><strong>OROCOS RTT</strong><p>Orocos Real-Time Toolkit : des composants temps réel pour la commande de machines et de bras.</p></div>
+      </div>
+      <p class="a-retenir"><strong>À retenir :</strong> les concepts se ressemblent partout (publier, s'abonner, appeler un service, régler la qualité de service). Celui qui les maîtrise dans ROS 2 s'adapte vite aux autres.</p>
+    </section>
+
+    <section id="robots" aria-labelledby="robots-titre">
+      <p class="eyebrow">Chapitre 4</p>
+      <h2 id="robots-titre">Un middleware par type de robot</h2>
+      <p class="texte-long">Le choix dépend des contraintes : temps réel, puissance de calcul embarquée, certification, taille de l'écosystème. Voici les associations les plus courantes.</p>
+      <div class="table-defilante">
+        <table class="table-robots">
+          <thead><tr><th scope="col">Robot</th><th scope="col">Middleware courant</th><th scope="col">Ce qui compte</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Robot mobile</th><td>ROS 2 et Nav2</td><td>cartographie, localisation, évitement d'obstacles</td></tr>
+            <tr><th scope="row">Drone</th><td>PX4 (uORB), relié à ROS 2</td><td>boucle de vol temps réel séparée de la mission</td></tr>
+            <tr><th scope="row">Véhicule autonome</th><td>Cyber RT (Apollo), Autoware sur ROS 2</td><td>latence, volumes de données, sûreté</td></tr>
+            <tr><th scope="row">Bras robotique</th><td>ROS 2 et MoveIt 2, OROCOS pour la commande</td><td>cinématique, planification de trajectoire, boucles rapides</td></tr>
+            <tr><th scope="row">Humanoïde</th><td>YARP (iCub), ROS 2 et ros2_control</td><td>beaucoup d'articulations, équilibre, synchronisation</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="sources">
+        <p><strong>Sources officielles</strong></p>
+        <ul>
+          <li><a href="https://docs.ros.org/en/rolling/Releases.html" rel="noopener">Distributions ROS 2</a></li>
+          <li><a href="https://github.com/ApolloAuto/apollo/tree/master/cyber" rel="noopener">Apollo Cyber RT</a></li>
+          <li><a href="https://micro.ros.org/" rel="noopener">micro-ROS</a></li>
+          <li><a href="https://docs.px4.io/main/en/middleware/uorb.html" rel="noopener">PX4 uORB</a></li>
+          <li><a href="https://docs.px4.io/main/en/middleware/uxrce_dds.html" rel="noopener">PX4 uXRCE-DDS</a></li>
+          <li><a href="https://github.com/robotology/yarp" rel="noopener">YARP</a></li>
+          <li><a href="https://github.com/orocos-toolchain/rtt" rel="noopener">OROCOS RTT</a></li>
+          <li><a href="https://github.com/autowarefoundation/autoware" rel="noopener">Autoware</a></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="encart encart-sombre" aria-labelledby="suite">
+      <div>
+        <h2 id="suite">Voir ROS 2 de près, gratuitement</h2>
+        <p>La deuxième introduction gratuite présente ROS 2 : d'où il vient, ses idées clés, le parcours qui l'enseigne et les liens utiles pour aller plus loin.</p>
+      </div>
+      <a class="button amber grand" href="/decouvrir/">Découvrir ROS 2</a>
+    </section>
+  </div>
+
+  <aside class="colonne-laterale">
+    <nav class="encart sommaire-intro" aria-label="Sommaire">
+      <h2>Sommaire</h2>
+      <ol>
+        <li><a href="#pourquoi">Pourquoi un middleware ?</a></li>
+        <li><a href="#histoire">Une courte histoire</a></li>
+        <li><a href="#paysage">Le paysage aujourd'hui</a></li>
+        <li><a href="#robots">Un middleware par type de robot</a></li>
+      </ol>
+      <p class="muted small">Lecture libre, sans compte.</p>
+    </nav>
+    <section class="encart encart-ambre" aria-labelledby="ensuite">
+      <h2 id="ensuite">Et ensuite ?</h2>
+      <p>Les parcours mettent ces idées en pratique dans un lab en ligne, sur un robot mobile, un bras et leur déploiement.</p>
+      <p><a class="lien-fort" href="/catalogue/">Voir les parcours</a></p>
+    </section>
+  </aside>
+</div>
+{% endblock %}
