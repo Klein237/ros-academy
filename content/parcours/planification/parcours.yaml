@@ -6,6 +6,7 @@ description: >-
   voyez à l'œuvre dans la vue 2D, avant de reconnaître ces étapes dans Nav2.
 accroche: Grilles d'occupation, Dijkstra, A* et suivi de trajectoire, codés par vous.
 fil_rouge: "Le cœur d'un système de navigation, compris de l'intérieur."
+notion: "Grilles d'occupation, Dijkstra, A*, suivi de trajectoire."
 statut: bientot
 niveau: intermediaire
 ordre: 45

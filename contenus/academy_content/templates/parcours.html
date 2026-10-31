@@ -9,7 +9,7 @@
   <div class="conteneur bandeau-parcours-inner">
     <img class="bandeau-objet" src="/static/contenus/icones/{{ icone_parcours(parcours.id) }}.webp" alt="" width="150" height="150">
     <div class="bandeau-texte">
-      <nav class="breadcrumb" aria-label="Fil d'Ariane"><a href="/catalogue/">Catalogue</a> › {{ parcours.titre }}</nav>
+      <nav class="breadcrumb" aria-label="Fil d'Ariane"><a href="/catalogue/">Parcours</a> › {{ parcours.titre }}</nav>
       <div class="pastilles">
         <span class="pastille translucide">{{ parcours.niveau_texte }}</span>
         <span class="pastille translucide">{{ parcours.modules | length }} module{{ "s" if parcours.modules | length > 1 }}{% if parcours.duree_totale %} · {{ parcours.duree_totale }}{% endif %}</span>
@@ -17,6 +17,12 @@
       </div>
       <h1>{{ parcours.titre }}</h1>
       <p>{{ parcours.description }}</p>
+      {% if parcours.fil_rouge or parcours.notion %}
+      <div class="fil-rouge-encart">
+        {% if parcours.fil_rouge %}<p><strong>Fil rouge :</strong> {{ parcours.fil_rouge }}</p>{% endif %}
+        {% if parcours.notion %}<p><strong>Notion de génie logiciel :</strong> {{ parcours.notion }}</p>{% endif %}
+      </div>
+      {% endif %}
       {% if parcours.outils %}<p class="outils-parcours translucide" aria-label="Outils">{% for o in parcours.outils %}<span>{{ o }}</span>{% endfor %}</p>{% endif %}
     </div>
     {# Remplie avec la progression de l'étudiant quand une session est ouverte (site.js) #}
@@ -24,10 +30,10 @@
       <span class="carte-reprise-titre">Tout se passe dans le navigateur</span>
       <p>Cours, terminal, éditeur et simulateur : rien à installer.</p>
       <a class="button primary" href="/modules/{{ premier.id }}/">Commencer le module 1</a>
-      {% if parcours.prix_texte %}
-      <p class="carte-prix"><strong>{{ parcours.prix_texte }}</strong> · 12 mois d'accès, paiement unique · <a href="/compte/acheter/{{ parcours.id }}">Acheter le parcours</a></p>
-      {% elif parcours.offert %}
+      {% if parcours.offert %}
       <p class="carte-prix">Offert aux étudiants qui ont obtenu un certificat sur un autre parcours</p>
+      {% elif parcours.prix_texte %}
+      <p class="carte-prix">Accès au parcours : le prix et le fonctionnement sont sur la page <a href="/tarifs/">Tarifs</a></p>
       {% endif %}
     </div>
   </div>

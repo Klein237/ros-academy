@@ -293,7 +293,8 @@ class RestoreBody(BaseModel):
 
 
 # objet en verre de chaque parcours (static/icones/, généré par scripts/icones-3d/) ; les autres : le graphe de nœuds
-ICONES_PARCOURS = {"ros2-fondamentaux": "robot", "bras-robotique": "bras", "docker-robotique": "conteneur"}
+ICONES_PARCOURS = {"ros2-fondamentaux": "robot", "bras-robotique": "bras", "docker-robotique": "conteneur",
+                   "tests-logiciel": "bouclier", "estimation": "ampoule", "planification": "robot"}
 
 
 def icone_parcours(parcours_id):
