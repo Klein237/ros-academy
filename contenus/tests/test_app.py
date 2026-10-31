@@ -668,3 +668,14 @@ def test_catalogue_v2_free_available_and_upcoming(store, client):
     assert "Notion : A* et Dijkstra" in page and "feuille de route" not in page.lower()
     page = client.get("/parcours/demo/").text
     assert "Fil rouge :</strong> Un robot de livraison" in page and "Notion de génie logiciel :</strong> Découper en nœuds" in page
+
+
+def test_middlewares_free_page_and_links(client):
+    page = client.get("/decouvrir/middlewares/").text
+    assert "Middlewares et robotique" in page and 'aria-current="page">Découvrir gratuitement' in page
+    for mot in ("Cyber RT", "micro-ROS", "uORB", "YARP", "OROCOS", "Ardent Apalone", "Apollo 3.5"):
+        assert mot in page, mot
+    assert 'href="https://docs.px4.io/main/en/middleware/uxrce_dds.html"' in page and 'href="/decouvrir/"' in page
+    # ouverte à tous, et annoncée là où se trouvent les contenus gratuits
+    for path in ("/", "/catalogue/", "/decouvrir/"):
+        assert 'href="/decouvrir/middlewares/"' in client.get(path).text, path

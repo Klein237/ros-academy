@@ -403,6 +403,10 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
     def decouvrir(request: Request):
         return page(request, "decouvrir.html", parcours=_parcours_disponibles(published()))
 
+    @app.get("/decouvrir/middlewares/", response_class=HTMLResponse)
+    def middlewares(request: Request):
+        return page(request, "middlewares.html")
+
     @app.get("/tarifs/", response_class=HTMLResponse)
     def tarifs(request: Request):
         tous = _parcours_list(published())
