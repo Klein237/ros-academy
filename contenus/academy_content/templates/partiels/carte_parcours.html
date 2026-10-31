@@ -1,20 +1,22 @@
-{# Carte d'un parcours (accueil et catalogue). p : entrée de _parcours_list #}
+{# Carte d'un parcours (accueil et catalogue). p : entrée de _parcours_list.
+   Pas de prix ici : il est expliqué sur la page Tarifs ; la carte montre le fil rouge et la notion abordée #}
+{% set recherche = (p.titre ~ ' ' ~ p.accroche ~ ' ' ~ p.description ~ ' ' ~ p.fil_rouge ~ ' ' ~ p.notion ~ ' ' ~ p.outils | join(' ')) | lower %}
 {% if p.statut == "disponible" %}
-<article class="carte-parcours disponible" data-niveau="{{ p.niveau }}" data-recherche="{{ (p.titre ~ ' ' ~ p.accroche ~ ' ' ~ p.description ~ ' ' ~ p.outils | join(' ')) | lower }}">
+<article class="carte-parcours disponible" data-niveau="{{ p.niveau }}" data-recherche="{{ recherche }}">
   <img class="carte-objet" src="/static/contenus/icones/{{ icone_parcours(p.id) }}.webp" alt="" width="160" height="160" loading="lazy">
-  <div class="pastilles"><span class="pastille ambre">{{ "Offert après un parcours validé" if p.offert else ("Disponible · " ~ p.prix_texte if p.prix_texte else "Disponible") }}</span><span class="pastille claire">{{ p.niveau_texte }}</span></div>
+  <div class="pastilles"><span class="pastille claire">{{ p.niveau_texte }}</span><span class="pastille claire">{{ p.modules | length }} module{{ "s" if p.modules | length > 1 }}{% if p.duree_totale %} · {{ p.duree_totale }}{% endif %}</span>{% if p.offert %}<span class="pastille ambre">Offert après un parcours validé</span>{% endif %}</div>
   <h3><a class="lien-carte" href="/parcours/{{ p.id }}/">{{ p.titre }}</a></h3>
-  <p>{{ p.accroche }}</p>
+  {% if p.fil_rouge %}<p class="fil-rouge"><strong>Fil rouge :</strong> {{ p.fil_rouge }}</p>{% else %}<p>{{ p.accroche }}</p>{% endif %}
+  {% if p.notion %}<p class="notion"><strong>Notion de génie logiciel :</strong> {{ p.notion }}</p>{% endif %}
   {% if p.outils %}<p class="outils-parcours" aria-label="Outils">{% for o in p.outils %}<span>{{ o }}</span>{% endfor %}</p>{% endif %}
   {% if p.prerequis %}<p class="prerequis">Prérequis : {{ p.prerequis | join(", ") }}</p>{% endif %}
-  <p class="meta">{{ p.modules | length }} module{{ "s" if p.modules | length > 1 }}{% if p.duree_totale %} · {{ p.duree_totale }}{% endif %} · certificat</p>
 </article>
 {% else %}
-<article class="carte-parcours bientot" data-niveau="{{ p.niveau }}" data-recherche="{{ (p.titre ~ ' ' ~ p.accroche ~ ' ' ~ p.description ~ ' ' ~ p.outils | join(' ')) | lower }}">
+<article class="carte-parcours bientot" data-niveau="{{ p.niveau }}" data-recherche="{{ recherche }}">
   <div class="pastilles"><span class="pastille douce">Bientôt · {{ p.niveau_texte }}</span>{% if p.offert %}<span class="pastille ambre">Offert après un parcours validé</span>{% endif %}</div>
   <h3>{{ p.titre }}</h3>
   <p>{{ p.accroche }}</p>
+  {% if p.fil_rouge %}<p class="fil-rouge"><strong>Fil rouge :</strong> {{ p.fil_rouge }}</p>{% endif %}
   {% if p.outils %}<p class="outils-parcours" aria-label="Outils">{% for o in p.outils %}<span>{{ o }}</span>{% endfor %}</p>{% endif %}
-  {% if p.prerequis %}<p class="prerequis">Prérequis : {{ p.prerequis | join(", ") }}</p>{% endif %}
 </article>
 {% endif %}

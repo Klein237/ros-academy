@@ -128,3 +128,8 @@ nav.row a[aria-current] { font-weight: 600; }
 .certificate-page .carte-objet-haut { width: 110px; height: 110px; }
 .titre-objet { display: flex; align-items: center; gap: 14px; }
 .titre-objet h1 { margin: 0; }
+
+/* Profil public d'un formateur : formulaire et aperçu de la carte de « Qui sommes-nous » */
+.profil-grille { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.profil-grille .membre { margin: 12px 0; }
+@media (max-width: 760px) { .profil-grille { grid-template-columns: 1fr; } }

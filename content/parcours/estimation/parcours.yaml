@@ -5,6 +5,7 @@ description: >-
   propre filtre de Kalman avant de découvrir robot_localization. Sur des
   données enregistrées du robot de livraison, rejouées avec ros2 bag.
 accroche: Filtrer, fusionner des capteurs et écrire son filtre de Kalman.
+fil_rouge: "Un capteur ne dit jamais tout à fait la vérité."
 statut: bientot
 niveau: intermediaire
 ordre: 40

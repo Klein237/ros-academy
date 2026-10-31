@@ -5,6 +5,7 @@ description: >-
   A*, le lisser, et le faire suivre au robot. Vous codez chaque algorithme et le
   voyez à l'œuvre dans la vue 2D, avant de reconnaître ces étapes dans Nav2.
 accroche: Grilles d'occupation, Dijkstra, A* et suivi de trajectoire, codés par vous.
+fil_rouge: "Le cœur d'un système de navigation, compris de l'intérieur."
 statut: bientot
 niveau: intermediaire
 ordre: 45

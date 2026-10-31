@@ -81,8 +81,9 @@
 		}
 	}
 
-	# Connexion, compte, accès au lab, progression, notes et certificats (pages publiques de vérification)
-	@comptes path /connexion /connexion/* /deconnexion /compte /compte/* /api/comptes/* /static/comptes/* /certificats/* /mentions-legales /confidentialite
+	# Connexion, compte, accès au lab, progression, notes et certificats (pages publiques de vérification),
+	# et « Qui sommes-nous » (profils publics des formateurs)
+	@comptes path /connexion /connexion/* /deconnexion /compte /compte/* /api/comptes/* /static/comptes/* /certificats/* /mentions-legales /confidentialite /qui-sommes-nous /qui-sommes-nous/
 	handle @comptes {
 		reverse_proxy comptes:8300
 	}

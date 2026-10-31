@@ -151,6 +151,7 @@ def _parcours_list(root):
         out.append({"id": p.id, "titre": p.titre, "description": p.description, "modules": mods,
                     "statut": p.statut, "niveau": p.niveau, "niveau_texte": NIVEAUX[p.niveau],
                     "accroche": p.accroche or p.description, "ordre": p.ordre,
+                    "fil_rouge": p.fil_rouge, "notion": p.notion,
                     "objectifs": p.objectifs, "prerequis": p.prerequis, "outils": p.outils, "offert": p.offert,
                     "prix": p.prix, "prix_texte": format_prix(p.prix) if p.prix and not p.offert else "",
                     "duree_totale": format_minutes(total) if total else ""})

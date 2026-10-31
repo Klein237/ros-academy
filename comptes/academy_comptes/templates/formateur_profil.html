@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Mon profil public{% endblock %}
+{% block main_class %}page wide{% endblock %}
+{% block content %}
+<div class="trainer-head">
+  <h1>Mon profil public</h1>
+  <a class="button" href="/compte/formateur">← Tableau de bord</a>
+</div>
+<div class="profil-grille">
+  <section class="card">
+    <p class="muted small">Ces informations apparaissent sur la page <a href="/qui-sommes-nous/">Qui sommes-nous</a> si vous cochez la case. Votre adresse e-mail n'y figure jamais.</p>
+    {% if erreur %}<p class="form-error" role="alert">{{ erreur }}</p>{% endif %}
+    {% if info %}<p class="verdict ok" role="status">{{ info }}</p>{% endif %}
+    <form method="post" action="/compte/formateur/profil" class="stack" enctype="multipart/form-data">
+      <label>Nom affiché <input name="nom" maxlength="80" value="{{ v.nom }}" autocomplete="name"></label>
+      <label>Titre <span class="muted small">(par exemple : Ingénieur logiciel robotique, fondateur d'Umoja Roboti)</span> <input name="titre" maxlength="120" value="{{ v.titre }}"></label>
+      <label>Profil LinkedIn <input name="linkedin" type="url" maxlength="300" value="{{ v.linkedin }}" placeholder="https://www.linkedin.com/in/votre-profil/"></label>
+      <label>Photo <span class="muted small">(JPEG, PNG ou WebP, 5 Mo au plus ; recadrée au carré, de préférence un portrait)</span> <input name="photo" type="file" accept="image/jpeg,image/png,image/webp"></label>
+      {% if photo %}<label class="check"><input type="checkbox" name="retirer_photo" value="1"> Retirer ma photo</label>{% endif %}
+      <label class="check"><input type="checkbox" name="visible" value="1"{% if v.visible %} checked{% endif %}> Afficher mon profil sur la page « Qui sommes-nous »</label>
+      <p><button class="button primary" type="submit">Enregistrer</button></p>
+    </form>
+  </section>
+  <section class="card" aria-labelledby="apercu">
+    <h2 id="apercu">Aperçu</h2>
+    <div class="membre">
+      {% if photo %}<img class="membre-photo" src="{{ photo }}" alt="" width="104" height="104">{% else %}<span class="membre-initiales" aria-hidden="true">{{ initiales }}</span>{% endif %}
+      <strong class="membre-nom">{{ v.nom or "Votre nom" }}</strong>
+      {% if v.titre %}<span class="membre-titre">{{ v.titre }}</span>{% endif %}
+      {% if v.linkedin %}<span class="lien-fort">Profil LinkedIn</span>{% endif %}
+    </div>
+    <p class="muted small">{% if v.visible %}Affiché sur la page publique.{% else %}Non affiché pour le moment.{% endif %}</p>
+  </section>
+</div>
+{% endblock %}
