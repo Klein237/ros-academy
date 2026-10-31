@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "partiels/icones.html" import objet %}
+{% set nav_actif = "qui" %}
+{% block title %}Qui sommes-nous · RoboForge{% endblock %}
+{% block description %}RoboForge est une formation Umoja Roboti, conçue et suivie par des ingénieurs qui développent des robots.{% endblock %}
+{% block main_class %}page plein{% endblock %}
+{% block content %}
+<section class="bande-sombre">
+  <div class="conteneur qui-hero">
+    <div>
+      <p class="eyebrow">Qui sommes-nous</p>
+      <h1 class="titre-xl">RoboForge est une formation Umoja Roboti</h1>
+      <p class="chapeau">Nous formons des ingénieurs logiciel robotique capables de concevoir, tester et déployer le logiciel d'un robot réel, avec les méthodes que nous utilisons au quotidien.</p>
+    </div>
+    <div class="qui-logo"><img src="/static/contenus/icones/favicon.svg" alt="Umoja Roboti" width="140" height="140"></div>
+  </div>
+</section>
+
+<section class="conteneur bloc qui-bloc" aria-label="Notre démarche">
+  <div class="grille-petite grille-3">
+    <div class="carte-simple"><span class="eyebrow">Notre mission</span><p>Former des ingénieurs logiciel robotique capables de concevoir, tester et déployer le logiciel d'un robot réel.</p></div>
+    <div class="carte-simple"><span class="eyebrow">Notre méthode</span><p>Un fil rouge par parcours, un lab en ligne, des exercices vérifiés automatiquement et des formateurs qui répondent.</p></div>
+    <div class="carte-simple"><span class="eyebrow">Le format</span><p>Une formation 100 % en ligne, en français, à suivre à votre rythme.</p></div>
+  </div>
+</section>
+
+<section class="conteneur bloc" aria-labelledby="equipe">
+  <h2 id="equipe">L'équipe</h2>
+  <p class="sous-titre">Les cours sont écrits et suivis par des ingénieurs qui développent des robots. Ce sont eux qui répondent à vos questions dans les modules.</p>
+  <ul class="equipe">
+    {% for m in equipe %}
+    <li class="membre">
+      <span class="membre-initiales" aria-hidden="true">{{ m.initiales }}</span>
+      <strong class="membre-nom">{{ m.nom }}</strong>
+      {% if m.titre %}<span class="membre-titre">{{ m.titre }}</span>{% endif %}
+      <a class="lien-fort" href="{{ m.linkedin }}" rel="noopener" target="_blank">Profil LinkedIn<span class="sr-only"> de {{ m.nom }}</span></a>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="conteneur bloc" aria-labelledby="engagements">
+  <h2 id="engagements">Nos engagements</h2>
+  <div class="grille-metier">
+    <div class="carte-simple">{{ objet("bras", 56) }}<h3>Des robots réels</h3><p>Les fils rouges reprennent des problèmes rencontrés sur de vrais projets.</p></div>
+    <div class="carte-simple">{{ objet("terminal", 56) }}<h3>Pratiquer d'abord</h3><p>Chaque module pratique se termine par un exercice vérifié dans le lab.</p></div>
+    <div class="carte-simple">{{ objet("ampoule", 56) }}<h3>Une vraie réponse</h3><p>Vos questions sont lues et traitées par l'équipe des formateurs.</p></div>
+    <div class="carte-simple">{{ objet("medaille", 56) }}<h3>Un certificat vérifiable</h3><p>La note finale et le numéro du certificat se vérifient en ligne.</p></div>
+  </div>
+</section>
+
+<section class="conteneur bloc" aria-labelledby="contact">
+  <div class="encart encart-sombre">
+    <div>
+      <h2 id="contact">Une école, une entreprise, un projet ?</h2>
+      <p>Umoja Roboti accompagne aussi les équipes qui veulent former leurs ingénieurs.</p>
+    </div>
+    <a class="button amber grand" href="/catalogue/">Voir les parcours</a>
+  </div>
+</section>
+{% endblock %}

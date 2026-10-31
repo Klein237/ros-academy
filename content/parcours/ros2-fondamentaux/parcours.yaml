@@ -11,6 +11,8 @@ description: >-
 accroche: >-
   Nœuds, topics, services, actions, paramètres, TF2, URDF et simulation dans
   Gazebo, autour d'un même robot que vous faites rouler.
+fil_rouge: "Un robot de livraison à conduite différentielle, du premier tour de roue à sa simulation dans Gazebo."
+notion: "Structurer le logiciel d'un robot en nœuds qui communiquent, l'organiser en packages, le simuler avant de le faire rouler."
 statut: disponible
 niveau: debutant
 ordre: 10

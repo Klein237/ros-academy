@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}RoboForge{% endblock %}</title>
-  <meta name="description" content="{% block description %}Apprenez à développer le logiciel d'un robot avec ROS 2, dans un lab où vous pouvez expérimenter, vous tromper et recommencer : terminal, éditeur et simulateur Gazebo dans votre navigateur.{% endblock %}">
+  <meta name="description" content="{% block description %}Devenez ingénieur logiciel robotique : concevez, codez, testez et livrez le logiciel de vrais robots, dans un lab en ligne, sans matériel ni installation.{% endblock %}">
   <link rel="icon" href="/favicon.ico" sizes="32x32">
   <link rel="icon" href="{{ statique('icones/favicon.svg') }}" type="image/svg+xml">
   <link rel="apple-touch-icon" href="{{ statique('icones/apple-touch-icon.png') }}">
@@ -26,9 +26,10 @@
       </button>
       <nav class="site-nav" id="site-nav" aria-label="Navigation principale">
         {% block nav %}
-        <a href="/catalogue/"{% if nav_actif == "catalogue" %} aria-current="page"{% endif %}>Catalogue</a>
-        <a href="/decouvrir/"{% if nav_actif == "decouvrir" %} aria-current="page"{% endif %}>Découvrir ROS 2</a>
+        <a href="/catalogue/"{% if nav_actif == "catalogue" %} aria-current="page"{% endif %}>Parcours</a>
+        <a href="/decouvrir/"{% if nav_actif == "decouvrir" %} aria-current="page"{% endif %}>Découvrir gratuitement</a>
         <a href="/tarifs/"{% if nav_actif == "tarifs" %} aria-current="page"{% endif %}>Tarifs</a>
+        <a href="/qui-sommes-nous/"{% if nav_actif == "qui" %} aria-current="page"{% endif %}>Qui sommes-nous</a>
         <a href="/compte/apprentissage"{% if nav_actif == "apprentissage" %} aria-current="page"{% endif %}>Mon apprentissage</a>
         {% endblock %}
       </nav>

@@ -223,8 +223,10 @@ def test_catalogue_announces_upcoming_parcours(store, client):
     store.publish(Runner())
     for path in ("/", "/catalogue/"):
         page = client.get(path).text
-        assert "Navigation avec Nav2" in page and "Bientôt · Intermédiaire" in page, path
-        assert 'href="/parcours/demo/"' in page and "/parcours/nav2/" not in page, path
+        assert "Navigation avec Nav2" in page and 'href="/parcours/demo/"' in page and "/parcours/nav2/" not in page, path
+    # l'accueil les cite sur une ligne, le catalogue les présente en cartes
+    assert "Bientôt :</strong> Navigation avec Nav2" in client.get("/").text
+    assert "Bientôt · Intermédiaire" in client.get("/catalogue/").text
     assert client.get("/parcours/nav2/").status_code == 404  # annoncé, pas encore ouvert
     assert [p["id"] for p in client.get("/api/contenus/parcours").json()["parcours"]] == ["demo"]
 
@@ -495,14 +497,18 @@ def test_prices_on_the_catalogue_parcours_and_pricing_pages(store, client):
     store.write_parcours("docker", {"titre": "Docker pour la robotique", "offert": True, "modules": [{"id": "01-demo"}]})
     store.write_parcours("nav", {"titre": "Navigation", "statut": "bientot"})
     store.publish(Runner())
-    assert "Disponible · 29,50 €" in client.get("/catalogue/").text
+    # le prix n'est pas sur les cartes (accueil, catalogue) : la page Tarifs l'explique
+    for path in ("/", "/catalogue/"):
+        assert "29,50 €" not in client.get(path).text, path
     page = client.get("/parcours/demo/").text
     assert "29,50 €" in page and 'href="/compte/acheter/demo"' in page
     page = client.get("/tarifs/").text
     assert "29,50 €" in page and 'href="/compte/acheter/demo"' in page and "12 mois" in page
     assert "Docker pour la robotique" in page and "/compte/acheter/docker" not in page
     assert "Navigation" in page and 'href="/decouvrir/"' in page and 'href="/tarifs/"' in page
-    assert "gratuit" not in client.get("/").text.lower().replace("gratuit, sans compte", "")
+    # « gratuit » ne désigne que l'introduction ouverte à tous, jamais un parcours
+    accueil = client.get("/").text
+    assert 'href="/decouvrir/">Commencer gratuitement' in accueil and "essai gratuit" not in accueil.lower()
 
 
 def test_parcours_price_is_validated_and_editable(admin, store):
@@ -622,3 +628,33 @@ def test_favicon_umoja_roboti(client):
     manifeste = client.get("/static/contenus/icones/site.webmanifest").json()
     for icone in manifeste["icons"]:
         assert client.get(icone["src"]).status_code == 200
+
+
+def test_parcours_cards_show_fil_rouge_and_notion(store, client):
+    store.write_parcours("demo", {"titre": "Parcours démo", "fil_rouge": "Un robot de livraison", "notion": "Découper en nœuds",
+                                  "modules": [{"id": "01-demo"}]})
+    store.publish(Runner())
+    for path in ("/", "/catalogue/"):
+        page = client.get(path).text
+        assert "Fil rouge :</strong> Un robot de livraison" in page and "Notion de génie logiciel :</strong> Découper en nœuds" in page, path
+    # le modèle borne leur longueur
+    import pydantic
+    import pytest
+    from academy_content.model import ParcoursDef
+    with pytest.raises(pydantic.ValidationError):
+        ParcoursDef(titre="x", statut="bientot", fil_rouge="a" * 301)
+
+
+def test_qui_sommes_nous_page_and_navigation(client):
+    page = client.get("/qui-sommes-nous/").text
+    assert "RoboForge est une formation Umoja Roboti" in page
+    for nom, lien in [("Yves Thoukam", "https://www.linkedin.com/in/yves-thoukam-a57635207/"),
+                      ("Franklin Yangoua", "https://www.linkedin.com/in/franklin-yangoua/"),
+                      ("Ivan", "https://www.linkedin.com/in/ivan-tk0122/")]:
+        assert nom in page and f'href="{lien}"' in page
+    assert 'href="/qui-sommes-nous/" aria-current="page">Qui sommes-nous' in page
+    accueil = client.get("/").text
+    for lien in ('href="/catalogue/">Parcours', 'href="/decouvrir/">Découvrir gratuitement', 'href="/tarifs/">Tarifs',
+                 'href="/qui-sommes-nous/">Qui sommes-nous'):
+        assert lien in accueil, lien
+    assert "Devenez ingénieur logiciel robotique" in accueil and "tous programmés avec ROS" not in accueil

@@ -24,9 +24,10 @@
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
       <nav class="site-nav" id="site-nav" aria-label="Navigation principale">
-        <a href="/catalogue/"{% if nav_actif == "catalogue" %} aria-current="page"{% endif %}>Catalogue</a>
-        <a href="/decouvrir/"{% if nav_actif == "decouvrir" %} aria-current="page"{% endif %}>Découvrir ROS 2</a>
+        <a href="/catalogue/"{% if nav_actif == "catalogue" %} aria-current="page"{% endif %}>Parcours</a>
+        <a href="/decouvrir/"{% if nav_actif == "decouvrir" %} aria-current="page"{% endif %}>Découvrir gratuitement</a>
         <a href="/tarifs/"{% if nav_actif == "tarifs" %} aria-current="page"{% endif %}>Tarifs</a>
+        <a href="/qui-sommes-nous/">Qui sommes-nous</a>
         <a href="/compte/apprentissage"{% if nav_actif == "apprentissage" %} aria-current="page"{% endif %}>Mon apprentissage</a>
       </nav>
       <div class="site-account" data-compte>
@@ -40,8 +41,8 @@
   </main>
   <footer class="site-footer">
     <div class="site-footer-inner">
-      <span>RoboForge · le logiciel robotique par la pratique, avec ROS 2 · <span class="editeur"><img src="/static/contenus/icones/favicon.svg" alt="" width="18" height="18">une formation Umoja Roboti</span></span>
-      <nav aria-label="Pied de page"><a href="/decouvrir/">Découvrir ROS 2</a><a href="/mentions-legales">Mentions légales</a><a href="/confidentialite">Confidentialité</a></nav>
+      <span>RoboForge · former des ingénieurs logiciel robotique · <span class="editeur"><img src="/static/contenus/icones/favicon.svg" alt="" width="18" height="18">une formation Umoja Roboti</span></span>
+      <nav aria-label="Pied de page"><a href="/qui-sommes-nous/">Qui sommes-nous</a><a href="/decouvrir/">Découvrir ROS 2</a><a href="/mentions-legales">Mentions légales</a><a href="/confidentialite">Confidentialité</a></nav>
     </div>
   </footer>
   <script type="module" src="/static/contenus/entete.js?v={{ version_statique }}"></script>

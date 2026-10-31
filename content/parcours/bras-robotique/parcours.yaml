@@ -7,6 +7,8 @@ description: >-
   ros2_control et la séquence complète de prise et de dépose arrivent dans les
   prochains modules.
 accroche: Décrire un bras en URDF et calculer sa cinématique, directe et inverse, en 3D dans le navigateur.
+fil_rouge: "Un bras qui trie les colis du robot de livraison."
+notion: "Modéliser un système (URDF) et séparer le modèle du calcul (cinématique directe et inverse)."
 statut: disponible
 niveau: intermediaire
 ordre: 20

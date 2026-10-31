@@ -301,13 +301,11 @@ body.cote-a-cote main.page:not(.plein) { padding: 24px 24px 48px; }
 .outils-lab li { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); font-size: 0.875rem; color: var(--text-2); }
 .outils-lab .outil-icone { margin: 0; }
 @media (max-width: 720px) { .lab-videos { grid-template-columns: 1fr; } }
-.hero-legende { position: absolute; right: 20px; bottom: 14px; margin: 0; font-size: 0.8rem; color: var(--muted); }
 @media (max-width: 720px) {
   .hero-fond { filter: brightness(0.6); }
   .hero-scene .accueil-hero { min-height: 0; }
   .hero-voile { background: linear-gradient(180deg, rgba(11, 11, 13, 0.55) 0%, rgba(11, 11, 13, 0.8) 60%, #0b0b0d 100%); }
   .hero-scene .accueil-hero { padding-top: 40px; padding-bottom: 56px; }
-  .hero-legende { display: none; }
 }
 
 .encart { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 28px 32px; }
@@ -675,3 +673,53 @@ button.lien.actif { font-weight: 600; text-decoration: none; }
   .page-titre.avec-objet { padding-right: 20px; }
   .page-titre-objet { position: static; transform: none; width: 96px; height: 96px; margin-bottom: 4px; }
 }
+
+/* Accueil v2 : le métier, les parcours en cartes compactes, le gratuit, la FAQ */
+.metier { padding-top: 64px; }
+.bloc > h2, .metier h2 { font-size: clamp(1.7rem, 4vw, 2.2rem); margin: 0 0 8px; }
+.grille-metier { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+.grille-metier .carte-simple { padding: 22px; display: flex; flex-direction: column; gap: 8px; }
+.grille-metier h3 { margin: 4px 0 0; font-size: 1.15rem; }
+.grille-metier .carte-simple p { margin: 0; }
+.grille-parcours.compacte { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.grille-parcours.compacte .carte-parcours.disponible { grid-column: auto; padding: 24px; }
+.grille-parcours.compacte .carte-parcours.disponible h3 { font-size: 1.3rem; }
+.grille-parcours.compacte .carte-objet { width: 72px; height: 72px; top: 18px; right: 18px; }
+.grille-parcours.compacte .carte-parcours.disponible > :not(.carte-objet) { max-width: none; }
+.grille-parcours.compacte .carte-parcours.disponible :is(.pastilles, h3) { padding-right: 84px; }
+.grille-parcours.compacte .outils-parcours, .grille-parcours.compacte .prerequis { display: none; }
+.carte-parcours .fil-rouge strong { color: inherit; }
+.carte-parcours .notion { font-size: 0.9rem; }
+.carte-parcours.disponible .fil-rouge strong { color: var(--amber); }
+.bientot-ligne { margin: 18px 0 0; color: var(--text-2); }
+.grille-gratuit { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+.carte-gratuite { display: flex; gap: 20px; align-items: center; padding: 26px; border-radius: var(--radius-lg); background: var(--ink); color: #ffffff; text-decoration: none; border: 1px solid var(--ink); }
+.carte-gratuite:hover { color: #ffffff; border-color: var(--amber); }
+.carte-gratuite > span { display: flex; flex-direction: column; gap: 6px; }
+.carte-gratuite .eyebrow { margin: 0; color: var(--amber); }
+.carte-gratuite strong { font-family: var(--font-titre); font-size: 1.35rem; }
+.carte-gratuite > span > span:last-child { color: var(--ink-text); line-height: 1.55; }
+.comment-videos { margin-top: 28px; }
+.faq { display: flex; flex-direction: column; gap: 10px; max-width: 860px; }
+.faq details { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 0 20px; }
+.faq summary { cursor: pointer; font-weight: 600; padding: 16px 0; }
+.faq details p { margin: 0 0 16px; color: var(--text-2); line-height: 1.6; }
+@media (prefers-color-scheme: dark) {
+  .carte-gratuite { background: var(--accent-soft); border-color: var(--accent-soft); }
+}
+
+/* Qui sommes-nous */
+.bande-sombre { background: var(--ink); color: #ffffff; margin-bottom: 56px; }
+.bande-sombre .chapeau { color: var(--ink-text); }
+.bande-sombre .eyebrow { color: var(--amber); }
+.qui-hero { display: flex; flex-wrap: wrap; gap: 32px 48px; align-items: center; justify-content: space-between; padding-top: 64px; padding-bottom: 56px; }
+.qui-hero > div:first-child { flex: 1 1 520px; min-width: 0; }
+.qui-hero .chapeau { margin-bottom: 0; }
+.qui-logo { flex: none; width: 200px; height: 200px; border-radius: 24px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); display: grid; place-items: center; }
+.qui-bloc .eyebrow { margin-bottom: 4px; }
+.equipe { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+.membre { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 26px 20px 14px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; }
+.membre-initiales { width: 104px; height: 104px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-soft-ink); display: grid; place-items: center; font-family: var(--font-titre); font-weight: 700; font-size: 2rem; margin-bottom: 8px; }
+.membre-nom { font-family: var(--font-titre); font-size: 1.2rem; }
+.membre-titre { color: var(--accent); font-weight: 600; }
+@media (prefers-color-scheme: dark) { .bande-sombre { background: #101114; } }

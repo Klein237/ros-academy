@@ -396,6 +396,8 @@ async function parcours() {
   form.titre.value = data.titre || "";
   form.description.value = data.description || "";
   form.accroche.value = data.accroche || "";
+  form.fil_rouge.value = data.fil_rouge || "";
+  form.notion.value = data.notion || "";
   form.statut.value = data.statut || "disponible";
   form.niveau.value = data.niveau || "debutant";
   form.ordre.value = data.ordre ?? 100;
@@ -437,6 +439,7 @@ async function parcours() {
     try {
       await api("PUT", `/parcours/${pid}`, {
         titre: form.titre.value, description: form.description.value, accroche: form.accroche.value,
+        fil_rouge: form.fil_rouge.value, notion: form.notion.value,
         statut: form.statut.value, niveau: form.niveau.value, ordre: Number(form.ordre.value || 100),
         objectifs: lignes(form.objectifs.value), prerequis: lignes(form.prerequis.value),
         outils: lignes(form.outils.value), offert: form.offert.checked,

@@ -2,7 +2,8 @@
 {% from "partiels/icones.html" import coche, fleche, objet %}
 {% block main_class %}page plein{% endblock %}
 {% block content %}
-{% set premier = (parcours | selectattr("statut", "equalto", "disponible") | first) %}
+{% set disponibles = parcours | selectattr("statut", "equalto", "disponible") | list %}
+{% set bientot = parcours | rejectattr("statut", "equalto", "disponible") | list %}
 {% set v = "/static/contenus/videos/" %}
 <section class="hero-scene">
   {# Vidéos muettes en boucle : l'image d'attente s'affiche d'abord ; site.js ne lance la lecture
@@ -15,49 +16,74 @@
   <div class="hero-voile" aria-hidden="true"></div>
   <div class="conteneur accueil-hero">
   <div class="accueil-hero-texte">
-    <p class="pastille douce">ROS 2 Jazzy · Gazebo Harmonic · 100 % dans le navigateur</p>
-    <h1>Apprenez à développer le logiciel d'un robot</h1>
-    <p class="chapeau">Avec ROS 2, le standard de la robotique, dans un lab où vous pouvez expérimenter, vous tromper et recommencer, sans matériel à gérer ni rien à installer.</p>
+    <p class="pastille douce">Formation en génie logiciel robotique · 100 % en ligne</p>
+    <h1>Devenez ingénieur logiciel robotique</h1>
+    <p class="chapeau">Concevez, codez, testez et livrez le logiciel de vrais robots. Chaque parcours suit un robot, de son premier tour de roue à sa mise en service, dans un lab en ligne, sans matériel ni installation.</p>
     <div class="actions">
-      {% if premier %}<a class="button primary grand" href="/parcours/{{ premier.id }}/">Commencer</a>{% endif %}
-      <a class="button grand" href="/decouvrir/">Découvrir ROS 2 en 20 min</a>
+      <a class="button primary grand" href="/catalogue/">Voir les parcours</a>
+      <a class="button grand" href="/decouvrir/">Commencer gratuitement</a>
     </div>
     <ul class="avantages">
       <li>{{ coche() }}Aucune installation</li>
-      <li>{{ coche() }}Aucun matériel</li>
-      <li>{{ coche() }}Paiement unique, sans abonnement</li>
+      <li>{{ coche() }}Exercices corrigés automatiquement</li>
       <li>{{ coche() }}Certificat vérifiable</li>
+      <li>{{ coche() }}Paiement unique par parcours</li>
     </ul>
   </div>
   </div>
-  <p class="hero-legende">Drone agricole, quadrupède, bras, robot de livraison, humanoïde, robot sous-marin : tous programmés avec ROS</p>
 </section>
 
-<section class="bande" aria-labelledby="se-tromper">
-  <div class="conteneur">
-    <h2 id="se-tromper">Se tromper sans rien casser</h2>
-    <p class="sous-titre">Sur un vrai robot, une erreur coûte une pièce, une batterie ou une journée. Ici, elle fait partie de l'apprentissage.</p>
-    <ol class="etapes">
-      <li><span class="numero">01</span><h3>Une vraie panne</h3><p>Chaque module pratique se termine par un robot qui ne fait pas ce qu'on attend. Vous cherchez, comme sur un vrai projet.</p></li>
-      <li><span class="numero">02</span><h3>Des indices</h3><p>Bloqué ? Les indices vous mettent sur la piste, pas à pas, sans donner la réponse d'un coup.</p></li>
-      <li><span class="numero">03</span><h3>Réinitialiser</h3><p>Un clic remet le workspace de départ. Votre version est mise de côté : rien n'est jamais perdu.</p></li>
-      <li><span class="numero">04</span><h3>Recommencer</h3><p>Pas de robot à réparer, pas d'installation à refaire. Vous relancez, vous essayez autre chose.</p></li>
-    </ol>
+<section class="conteneur bloc metier" aria-labelledby="le-metier">
+  <h2 id="le-metier">Le métier que vous apprenez</h2>
+  <p class="sous-titre">Un ingénieur logiciel robotique ne fait pas que coder un robot : il conçoit son logiciel, le teste, le livre et le maintient, en équipe.</p>
+  <div class="grille-metier">
+    <div class="carte-simple">{{ objet("noeuds", 64) }}<h3>Concevoir</h3><p>Découper un robot en nœuds, définir ses interfaces, choisir une architecture maintenable.</p></div>
+    <div class="carte-simple">{{ objet("terminal", 64) }}<h3>Développer</h3><p>Écrire en Python et en C++ des programmes qui communiquent entre eux, sous Linux, avec les middlewares du métier.</p></div>
+    <div class="carte-simple">{{ objet("bouclier", 64) }}<h3>Tester</h3><p>Diagnostiquer une panne, simuler avant de rouler, écrire des tests et rejouer des données.</p></div>
+    <div class="carte-simple">{{ objet("conteneur", 64) }}<h3>Livrer</h3><p>Empaqueter avec Docker, passer de la simulation au robot réel, en sécurité.</p></div>
   </div>
 </section>
 
-<section class="conteneur bloc" aria-labelledby="navigateur">
-  <div class="encart encart-navigateur">
+<section class="conteneur bloc" aria-labelledby="les-parcours">
+  <div class="entete-section">
     <div>
-      <h2 id="navigateur">Votre navigateur suffit</h2>
-      <p>Pas d'Ubuntu à installer, pas de machine virtuelle, pas de dépendances qui cassent. Chaque étudiant reçoit son propre environnement ROS 2, prêt en quelques secondes, et retrouve ses fichiers à chaque connexion.</p>
-      <ul class="outils-lab">
-        <li><span class="outil-icone">$_</span>Terminal · ros2, colcon</li>
-        <li><span class="outil-icone">{ }</span>Éditeur · Python, C++, URDF</li>
-        <li><span class="outil-icone">◎</span>Gazebo, RViz et Vue 3D</li>
-      </ul>
+      <h2 id="les-parcours">Les parcours</h2>
+      <p class="sous-titre">Chaque parcours suit un fil rouge, un robot et une situation concrète, pour aborder une notion du génie logiciel robotique.</p>
     </div>
-    <div class="lab-videos">
+    <a class="lien-fort" href="/catalogue/">Tous les parcours {{ fleche() }}</a>
+  </div>
+  <div class="grille-parcours compacte">
+    {% for p in disponibles %}{% include "partiels/carte_parcours.html" %}{% else %}
+    <p class="muted">Aucun parcours publié pour le moment.</p>
+    {% endfor %}
+  </div>
+  {% if bientot %}<p class="bientot-ligne"><strong>Bientôt :</strong> {{ bientot | map(attribute="titre") | join(" · ") }}</p>{% endif %}
+</section>
+
+<section class="conteneur bloc" aria-labelledby="gratuit">
+  <h2 id="gratuit">Commencer gratuitement</h2>
+  <p class="sous-titre">Sans compte, pour savoir dans quoi vous vous lancez.</p>
+  <div class="grille-gratuit">
+    <a class="carte-gratuite" href="/decouvrir/">
+      {{ objet("robot", 88) }}
+      <span>
+        <span class="eyebrow">Gratuit · 20 min</span>
+        <strong>Découvrir ROS 2</strong>
+        <span>D'où vient ROS, comment fonctionne ROS 2, le parcours qui l'enseigne et les liens à garder sous la main.</span>
+      </span>
+    </a>
+  </div>
+</section>
+
+<section class="bande" id="comment" aria-labelledby="comment-titre">
+  <div class="conteneur">
+    <h2 id="comment-titre">Comment ça marche</h2>
+    <ol class="etapes">
+      <li><span class="numero">01</span><h3>Un cours court</h3><p>Ce qu'il faut comprendre pour un cas concret, avec des schémas et du code en Python et en C++.</p></li>
+      <li><span class="numero">02</span><h3>La pratique dans le lab</h3><p>Terminal, éditeur, Gazebo, RViz et Vue 3D, ouverts à côté du cours. Puis un robot en panne à réparer.</p></li>
+      <li><span class="numero">03</span><h3>Validé</h3><p>Votre code est vérifié automatiquement, un QCM fait la note, et le parcours se termine par un certificat.</p></li>
+    </ol>
+    <div class="lab-videos comment-videos">
       <figure class="apercu apercu-video">
         <div class="apercu-barre"><span></span><span></span><span></span><span class="apercu-titre-lab">Robot mobile et laser</span></div>
         <video muted loop playsinline preload="none" poster="{{ v }}patrouille.webp" data-video-auto aria-label="Dans le lab, le robot mobile du parcours patrouille dans sa salle, son laser en doré">
@@ -76,85 +102,34 @@
   </div>
 </section>
 
-<section class="conteneur bloc" aria-labelledby="savoir-faire">
-  <div class="entete-section">
-    <div>
-      <h2 id="savoir-faire">Ce que vous saurez faire</h2>
-      <p class="sous-titre">Les compétences d'un développeur logiciel en robotique, acquises sur un même robot, de son premier tour de roue à sa simulation.</p>
-    </div>
-  </div>
-  <div class="grille-petite grille-3">
-    <div class="carte-simple"><strong>Comprendre un robot mobile</strong><p>Capteurs et actionneurs, repères, vitesses linéaire et angulaire, cinématique.</p></div>
-    <div class="carte-simple"><strong>Travailler sous Linux</strong><p>Le terminal, les fichiers, les droits et les processus, au quotidien.</p></div>
-    <div class="carte-simple"><strong>Organiser son code</strong><p>Workspace, packages et compilation avec colcon, comme dans une équipe.</p></div>
-    <div class="carte-simple"><strong>Programmer avec ROS 2</strong><p>Nœuds, topics, services, actions, paramètres et fichiers launch, en Python et en C++.</p></div>
-    <div class="carte-simple"><strong>Décrire et simuler le robot</strong><p>Ses repères avec TF2, sa forme en URDF, sa simulation dans Gazebo et RViz.</p></div>
-    <div class="carte-simple"><strong>Diagnostiquer une panne</strong><p>Interroger le graphe, lire les journaux, enregistrer et rejouer avec ros2 bag.</p></div>
-  </div>
-</section>
-
-<section class="conteneur bloc" aria-labelledby="commencer-ici">
-  <div class="encart encart-ambre encart-commencer">
-    {{ objet("noeuds", 110, "encart-objet") }}
-    <div>
-      <span class="pastille ambre">Commencez ici · gratuit, sans compte</span>
-      <h2 id="commencer-ici">Découvrir ROS 2</h2>
-      <p>D'où vient ROS, pourquoi ROS 2, qui l'utilise aujourd'hui, et les liens à garder sous la main. 20 minutes pour savoir dans quoi vous vous lancez.</p>
-    </div>
-    <a class="button sombre grand" href="/decouvrir/">Lire l'introduction {{ fleche() }}</a>
-  </div>
-</section>
-
-<section class="bande" aria-labelledby="chemin">
-  <div class="conteneur">
-    <h2 id="chemin">Du problème au robot qui marche</h2>
-    <p class="sous-titre">Chaque module raconte une situation concrète, et vous la résolvez vous-même.</p>
-    <ol class="etapes">
-      <li>{{ objet("robot", 88, "etape-objet") }}<span class="numero">01</span><h3>Un cas réel</h3><p>Un robot doit avancer, répondre à une question, rejoindre un point. On part toujours d'un besoin concret.</p></li>
-      <li>{{ objet("ampoule", 88, "etape-objet") }}<span class="numero">02</span><h3>L'essentiel en théorie</h3><p>Un cours court qui explique ce qu'il faut comprendre pour ce cas, avec des schémas et des exemples en Python et en C++.</p></li>
-      <li>{{ objet("terminal", 88, "etape-objet") }}<span class="numero">03</span><h3>Les mains dedans</h3><p>Vous codez, lancez et observez dans le lab, ouvert à côté du cours. Puis vous corrigez un robot en panne.</p></li>
-      <li>{{ objet("bouclier", 88, "etape-objet") }}<span class="numero">04</span><h3>Validé</h3><p>Votre code est vérifié automatiquement. Un QCM, une note, et un certificat à la fin du parcours.</p></li>
-    </ol>
-  </div>
-</section>
-
 <section class="conteneur bloc" aria-labelledby="pour-qui">
-  <div class="entete-section">
-    <div>
-      <h2 id="pour-qui">Pour qui ?</h2>
-      <p class="sous-titre">Prérequis : les bases de Python. Le reste, Linux compris, s'apprend dans le parcours.</p>
-    </div>
-  </div>
+  <h2 id="pour-qui">Pour qui ?</h2>
+  <p class="sous-titre">Prérequis : les bases de Python. Le reste, Linux compris, s'apprend en chemin.</p>
   <div class="grille-petite grille-3">
-    <div class="carte-simple"><strong>Étudiants</strong><p>En école d'ingénieurs, à l'université ou en BTS : la pratique logicielle qui complète vos cours de robotique.</p></div>
-    <div class="carte-simple"><strong>Développeurs</strong><p>Vous savez programmer et voulez passer à la robotique, sans acheter de robot pour commencer.</p></div>
-    <div class="carte-simple"><strong>Enseignants et formateurs</strong><p>Un environnement prêt pour toute une classe, des exercices corrigés automatiquement et le suivi de chacun.</p></div>
+    <div class="carte-simple"><strong>Étudiants</strong><p>École d'ingénieurs, université ou BTS : la pratique logicielle qui prépare au métier.</p></div>
+    <div class="carte-simple"><strong>Développeurs</strong><p>Vous savez programmer et voulez passer à la robotique, sans acheter de robot.</p></div>
+    <div class="carte-simple"><strong>Écoles et formateurs</strong><p>Un lab prêt pour toute une classe, des exercices corrigés et le suivi de chacun.</p></div>
   </div>
 </section>
 
-<section class="conteneur bloc" aria-labelledby="les-parcours">
-  <div class="entete-section">
-    <div>
-      <h2 id="les-parcours">Les parcours</h2>
-      <p class="sous-titre">ROS 2 aujourd'hui ; le bras robotique, les tests, l'architecture, l'estimation et la planification ensuite.</p>
-    </div>
-    <a class="lien-fort" href="/catalogue/">Tout le catalogue {{ fleche() }}</a>
-  </div>
-  <div class="grille-parcours">
-    {% for p in parcours %}{% include "partiels/carte_parcours.html" %}{% else %}
-    <p class="muted">Aucun parcours publié pour le moment.</p>
-    {% endfor %}
+<section class="conteneur bloc" aria-labelledby="faq">
+  <h2 id="faq">Questions fréquentes</h2>
+  <div class="faq">
+    <details><summary>Faut-il installer quelque chose ?</summary><p>Non. Le lab (terminal, éditeur, simulateur) s'ouvre depuis chaque module, dans le navigateur, et vos fichiers sont conservés entre deux connexions.</p></details>
+    <details><summary>Pourquoi ROS 2 dans plusieurs parcours ?</summary><p>C'est le middleware le plus utilisé en robotique, dans l'industrie comme dans la recherche. L'introduction gratuite explique d'où il vient et comment il fonctionne.</p></details>
+    <details><summary>Combien ça coûte ?</summary><p>Un paiement unique par parcours, sans abonnement. Le détail est sur la page <a href="/tarifs/">Tarifs</a>.</p></details>
+    <details><summary>Le certificat est-il reconnu ?</summary><p>Il porte un numéro vérifiable en ligne par un employeur ou une école, avec la note finale du parcours.</p></details>
   </div>
 </section>
 
-<section class="conteneur bloc" aria-labelledby="formateurs">
+<section class="conteneur bloc" aria-labelledby="createurs">
   <div class="encart encart-sombre">
     {{ objet("medaille", 110, "encart-objet") }}
     <div>
-      <h2 id="formateurs">Vous formez une classe ou une équipe ?</h2>
-      <p>Suivez la progression de chacun, repérez qui bloque sur quel exercice et délivrez des certificats vérifiables.</p>
+      <h2 id="createurs">Une formation créée par des ingénieurs du métier</h2>
+      <p>RoboForge est conçue par l'équipe d'Umoja Roboti, des ingénieurs qui développent des robots au quotidien.</p>
     </div>
-    <a class="button amber grand" href="/compte/formateur">Espace formateur</a>
+    <a class="button amber grand" href="/qui-sommes-nous/">Qui sommes-nous</a>
   </div>
 </section>
 {% endblock %}

@@ -116,6 +116,9 @@ class ParcoursDef(_Strict):
     statut: Literal["disponible", "bientot"] = "disponible"
     niveau: Literal["debutant", "intermediaire", "avance"] = "debutant"
     accroche: str = Field(default="", max_length=200)
+    # Le robot et la situation que le parcours suit d'un bout à l'autre, et la notion de génie logiciel abordée
+    fil_rouge: str = Field(default="", max_length=300)
+    notion: str = Field(default="", max_length=300)
     ordre: int = Field(default=100, ge=0, le=1000)
     objectifs: list[str] = Field(default_factory=list, max_length=12)
     prerequis: list[str] = Field(default_factory=list, max_length=12)
@@ -168,6 +171,8 @@ class Parcours:
     statut: str = "disponible"
     niveau: str = "debutant"
     accroche: str = ""
+    fil_rouge: str = ""
+    notion: str = ""
     ordre: int = 100
     objectifs: list[str] = field(default_factory=list)
     prerequis: list[str] = field(default_factory=list)

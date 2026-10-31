@@ -8,6 +8,8 @@ description: >-
   partir de vos fichiers, et chaque module donne les commandes à refaire chez
   vous. Offert aux étudiants qui ont validé un parcours.
 accroche: Images ROS, compose et réseau DDS, pour un logiciel qui tourne partout pareil.
+fil_rouge: "Le logiciel du robot, du poste de développement au robot, sans « ça marche sur ma machine »."
+notion: "Environnements reproductibles, conteneurs et déploiement."
 statut: disponible
 niveau: intermediaire
 ordre: 50
