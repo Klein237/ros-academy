@@ -1,4 +1,4 @@
-"""Schémas du parcours « Tester et fiabiliser » : tests unitaires (module 40), tests d'intégration (module 41), rejeu de données (module 42), intégration continue (module 43)."""
+"""Schémas du parcours « Tester et fiabiliser » : tests unitaires (module 40), tests d'intégration (module 41), rejeu de données (module 42), intégration continue (module 43), qualité du code (module 44)."""
 
 import math
 
@@ -8,6 +8,7 @@ UNITAIRES = "40-tests-unitaires"
 INTEGRATION = "41-tests-integration"
 REJEU = "42-rejeu-donnees"
 CI = "43-integration-continue"
+QUALITE = "44-qualite-code"
 
 
 def separation():
@@ -308,6 +309,78 @@ def codes_sortie():
                "doit devenir rouge.", "\n".join(b))
 
 
+def filets():
+    b = [rect(20, 20, 880, 280, "fond", 12), text(40, 48, "LES FILETS D'UNE PULL REQUEST", "t-sur")]
+    etapes = [("formatage", "ament_uncrustify", "--reformat", "automatique", "boite"),
+              ("linters", "cpplint, copyright,", "lint_cmake…", "la forme", "boite"),
+              ("CI", "compilation et", "tests, gtest", "le comportement testé", "calcul"),
+              ("revue", "un relecteur", "humain", "le fond, les cas oubliés", "capteur")]
+    for i, (nom, l1, l2, voit, cls) in enumerate(etapes):
+        x = 40 + i * 214
+        b += [rect(x, 80, 190, 116, cls, 8), text(x + 95, 112, nom, "t-gras", "middle"),
+              text(x + 95, 142, l1, "t-petit", "middle"), text(x + 95, 162, l2, "t-petit", "middle"),
+              text(x + 95, 228, voit, "t-accent" if i < 3 else "t-ambre", "middle")]
+        if i < 3:
+            b.append(line(x + 192, 138, x + 212, 138, fin="trait"))
+    b += [line(60, 256, 860, 256, "tirets", fin="trait"),
+          text(60, 280, "outils : rapides, sans fatigue", "t-petit"),
+          text(860, 280, "humain : ce que les outils ne voient pas", "t-petit", "end")]
+    return svg(920, 320, "Les filets successifs d'une pull request",
+               "Quatre filets, de gauche à droite : le formatage automatique avec ament_uncrustify --reformat ; les "
+               "linters, cpplint, copyright, lint_cmake, qui vérifient la forme ; la CI, qui compile et lance les tests, "
+               "gtest compris, et vérifie le comportement testé ; la revue par un relecteur humain, qui vérifie le fond "
+               "et les cas oubliés. Les outils sont rapides et sans fatigue ; l'humain voit ce que les outils ne voient "
+               "pas.", "\n".join(b))
+
+
+def linters():
+    b = [rect(20, 20, 880, 340, "fond", 12), text(40, 48, "AMENT_LINT_COMMON : UN TEST PAR LINTER", "t-sur")]
+    outils = [("cpplint", "C++ : gardes d'en-tête, includes, namespaces"),
+              ("uncrustify", "C++ : indentation, accolades, espaces"),
+              ("copyright", "une licence en tête de chaque fichier"),
+              ("cppcheck", "C++ : analyse statique (sautée en 2.x)"),
+              ("lint_cmake", "le style de CMakeLists.txt"),
+              ("xmllint", "package.xml bien formé"),
+              ("flake8", "Python : style et erreurs simples"),
+              ("pep257", "Python : docstrings")]
+    for i, (nom, role) in enumerate(outils):
+        col, ligne = i % 2, i // 2
+        x, y = 40 + col * 430, 72 + ligne * 66
+        b += [rect(x, y, 410, 52, "calcul" if nom in ("cpplint", "uncrustify") else "boite", 8),
+              text(x + 16, y + 22, nom, "t-code"), text(x + 16, y + 42, role, "t-petit")]
+    b.append(text(460, 344, "ament_lint_auto_find_test_dependencies() les ajoute tous à colcon test", "t-petit", "middle"))
+    return svg(920, 380, "Les linters d'ament_lint_common",
+               "Huit linters, chacun devient un test de colcon test : cpplint vérifie en C++ les gardes d'en-tête, les "
+               "includes et les namespaces ; uncrustify l'indentation, les accolades et les espaces ; copyright une "
+               "licence en tête de chaque fichier ; cppcheck fait une analyse statique du C++, sautée par défaut en "
+               "version 2.x ; lint_cmake vérifie le style de CMakeLists.txt ; xmllint que package.xml est bien formé ; "
+               "flake8 le style et les erreurs simples du Python ; pep257 ses docstrings. "
+               "ament_lint_auto_find_test_dependencies() les ajoute tous à colcon test.", "\n".join(b))
+
+
+def revue():
+    b = [rect(20, 20, 880, 300, "fond", 12), text(40, 48, "LE CYCLE D'UNE REVUE", "t-sur")]
+    etapes = [("auteur", "ouvre la", "pull request", "boite"),
+              ("CI", "linters, compilation,", "tests", "calcul"),
+              ("relecteur", "lit, commente :", "précis, expliqué", "capteur"),
+              ("auteur", "corrige, ou", "explique son choix", "boite"),
+              ("approbation", "puis fusion", "dans main", "calcul")]
+    for i, (nom, l1, l2, cls) in enumerate(etapes):
+        x = 40 + i * 172
+        b += [rect(x, 80, 152, 110, cls, 8), text(x + 76, 112, nom, "t-gras", "middle"),
+              text(x + 76, 142, l1, "t-petit", "middle"), text(x + 76, 162, l2, "t-petit", "middle")]
+        if i < 4:
+            b.append(line(x + 154, 135, x + 170, 135, fin="trait"))
+    b += [path("M592 192 C 592 252, 252 252, 252 192", "tirets", fin="trait"),
+          text(422, 270, "nouveau push : la CI repasse, le relecteur relit", "t-petit", "middle"),
+          text(460, 302, "on relit le code, pas la personne", "t-ambre", "middle")]
+    return svg(920, 340, "Le cycle d'une revue de code",
+               "Cinq étapes : l'auteur ouvre la pull request ; la CI passe les linters, la compilation et les tests ; le "
+               "relecteur lit et commente, de façon précise et expliquée ; l'auteur corrige, ou explique son choix ; "
+               "puis l'approbation et la fusion dans main. Après chaque nouveau push, la CI repasse et le relecteur "
+               "relit. On relit le code, pas la personne.", "\n".join(b))
+
+
 SCHEMAS = {
     f"{UNITAIRES}/images/separation.svg": separation,
     f"{UNITAIRES}/images/pyramide.svg": pyramide,
@@ -321,4 +394,7 @@ SCHEMAS = {
     f"{CI}/images/pipeline.svg": pipeline,
     f"{CI}/images/workflow.svg": workflow,
     f"{CI}/images/codes-sortie.svg": codes_sortie,
+    f"{QUALITE}/images/filets.svg": filets,
+    f"{QUALITE}/images/linters.svg": linters,
+    f"{QUALITE}/images/revue.svg": revue,
 }

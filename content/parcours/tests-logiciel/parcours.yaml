@@ -5,7 +5,8 @@ description: >-
   reproduire un bug, garder un code propre et faire tourner tout cela à chaque
   changement, en intégration continue. Sur le code du robot de livraison. Le
   parcours s'ouvre module par module : les tests unitaires d'abord, puis les
-  tests d'intégration, le rejeu de données et l'intégration continue.
+  tests d'intégration, le rejeu de données, l'intégration continue, puis la
+  qualité du code et la revue.
 accroche: Tests unitaires et d'intégration, données rejouées, qualité du code et intégration continue.
 fil_rouge: "Tester un nœud seul, puis tout le robot, avec des données rejouées."
 notion: "Tests, qualité du code, intégration continue."
@@ -22,6 +23,7 @@ objectifs:
   - enregistrer et rejouer des données avec ros2 bag pour reproduire un bug
   - transformer un bug corrigé en test de non-régression sur données enregistrées
   - faire tourner compilation et tests à chaque pull request avec GitHub Actions
+  - appliquer les linters d'ament, écrire un test gtest en C++ et mener une revue de code
 prerequis:
   - Apprendre ROS 2 avec un robot mobile
 outils:
@@ -30,6 +32,8 @@ outils:
   - ros2 bag
   - rosbag2_py
   - GitHub Actions
+  - gtest
+  - ament_lint
 modules:
   - id: 40-tests-unitaires
     coef: 1
@@ -41,5 +45,8 @@ modules:
     coef: 1
     partie: Tester sur des données réelles
   - id: 43-integration-continue
+    coef: 1
+    partie: Automatiser
+  - id: 44-qualite-code
     coef: 1
     partie: Automatiser
