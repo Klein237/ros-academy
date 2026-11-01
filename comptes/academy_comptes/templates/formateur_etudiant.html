@@ -14,6 +14,17 @@
   <div class="tile"><span class="tile-value">{{ fr(s.finale, 2) }}</span><span class="tile-label">note finale sur 20</span></div>
 </section>
 
+<section class="card" aria-labelledby="lab-mois">
+  <h2 id="lab-mois">Temps de lab, mois par mois</h2>
+  <p class="muted small">12 derniers mois · {{ historique | sum(attribute="minutes") }} min au total. Le quota se renouvelle chaque mois ; l'historique est conservé.</p>
+  <div class="table-scroll">
+  <table class="results lab-mois">
+    <thead><tr>{% for m in historique %}<th scope="col">{{ m.libelle }}</th>{% endfor %}</tr></thead>
+    <tbody><tr>{% for m in historique %}<td{% if not m.minutes %} class="muted"{% endif %}>{{ m.minutes }}</td>{% endfor %}</tr></tbody>
+  </table>
+  </div>
+</section>
+
 <section class="card">
   <h2>{{ parcours.titre if parcours else "Modules" }}</h2>
   <div class="table-scroll">

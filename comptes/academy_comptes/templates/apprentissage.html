@@ -5,6 +5,21 @@
 {% block main_class %}page plein{% endblock %}
 {% macro objet(nom, taille) %}<img class="objet-verre" src="/static/contenus/icones/{{ nom }}.webp" alt="" width="{{ taille }}" height="{{ taille }}" loading="lazy">{% endmacro %}
 {% macro note20(n, chiffres=1) %}{{ (('%.' ~ chiffres ~ 'f') | format(n)) | replace('.', ',') }}{% endmacro %}
+{% macro barres(g, nom) %}
+<svg class="graphique graphique-{{ nom }}" viewBox="0 0 {{ g.largeur }} {{ g.hauteur + 26 }}" role="img" aria-labelledby="titre-{{ nom }} resume-{{ nom }}">
+  <desc id="resume-{{ nom }}">{% for b in g.barres %}{{ b.periode }} : {{ b.minutes }} min. {% endfor %}</desc>
+  <line class="graphique-axe" x1="0" y1="{{ g.hauteur }}" x2="{{ g.largeur }}" y2="{{ g.hauteur }}"></line>
+  {% for b in g.barres %}
+  <g class="graphique-semaine">
+    <title>{{ b.periode }} : {{ b.minutes }} min de lab</title>
+    <rect class="graphique-zone" x="{{ b.zone_x }}" y="0" width="{{ b.zone_largeur }}" height="{{ g.hauteur }}"></rect>
+    <rect class="graphique-barre{% if b.derniere %} actuelle{% endif %}" x="{{ b.x }}" y="{{ b.y }}" width="{{ b.largeur }}" height="{{ b.hauteur }}" rx="4"></rect>
+    {% if b.etiquette %}<text class="graphique-valeur" x="{{ b.centre }}" y="{{ b.y - 6 }}" text-anchor="middle">{{ b.etiquette }}</text>{% endif %}
+    <text class="graphique-date" x="{{ b.centre }}" y="{{ g.hauteur + 18 }}" text-anchor="middle">{{ b.date }}</text>
+  </g>
+  {% endfor %}
+</svg>
+{%- endmacro %}
 {% block content %}
 {% set prenom = (user.nom or "").split(" ")[0] %}
 <div class="conteneur tableau tableau-or">
@@ -69,20 +84,7 @@
     <section class="carte-or" aria-labelledby="titre-minutes">
       <h2 id="titre-minutes">Minutes de lab par semaine</h2>
       <p class="chiffre-note">{% if graphique.total %}{{ graphique.barres | length }} dernières semaines · {{ graphique.total }} min au total · survolez une barre{% else %}Pas encore de lab ces {{ graphique.barres | length }} dernières semaines : vos minutes s'afficheront ici.{% endif %}</p>
-      {% set g = graphique %}
-      <svg class="graphique" viewBox="0 0 {{ g.largeur }} {{ g.hauteur + 26 }}" role="img" aria-labelledby="titre-minutes resume-minutes">
-        <desc id="resume-minutes">{% for b in g.barres %}Semaine du {{ b.date }} : {{ b.minutes }} min. {% endfor %}</desc>
-        <line class="graphique-axe" x1="0" y1="{{ g.hauteur }}" x2="{{ g.largeur }}" y2="{{ g.hauteur }}"></line>
-        {% for b in g.barres %}
-        <g class="graphique-semaine">
-          <title>Semaine du {{ b.date }} : {{ b.minutes }} min de lab</title>
-          <rect class="graphique-zone" x="{{ b.zone_x }}" y="0" width="{{ b.zone_largeur }}" height="{{ g.hauteur }}"></rect>
-          <rect class="graphique-barre{% if b.derniere %} actuelle{% endif %}" x="{{ b.x }}" y="{{ b.y }}" width="{{ b.largeur }}" height="{{ b.hauteur }}" rx="4"></rect>
-          {% if b.etiquette %}<text class="graphique-valeur" x="{{ b.centre }}" y="{{ b.y - 6 }}" text-anchor="middle">{{ b.etiquette }}</text>{% endif %}
-          <text class="graphique-date" x="{{ b.centre }}" y="{{ g.hauteur + 18 }}" text-anchor="middle">{{ b.date }}</text>
-        </g>
-        {% endfor %}
-      </svg>
+      {{ barres(graphique, "minutes") }}
     </section>
 
     <section class="carte-or" aria-labelledby="titre-notes">
@@ -101,6 +103,12 @@
       <p class="chiffre-note"><a href="/compte/resultats">Détail des notes →</a></p>
     </section>
   </div>
+
+  <section class="carte-or" aria-labelledby="titre-mois">
+    <h2 id="titre-mois">Le lab, mois par mois</h2>
+    <p class="chiffre-note">{% if historique.total %}{{ historique.barres | length }} derniers mois · {{ historique.total }} min au total · le quota se renouvelle chaque mois, l'historique est conservé{% else %}Vos minutes de lab s'afficheront ici, mois après mois.{% endif %}</p>
+    <div class="defile-graphique">{{ barres(historique, "mois") }}</div>
+  </section>
 
   <div class="tableau-cartes">
     <section class="carte-or carte-icone" aria-labelledby="titre-certificat">

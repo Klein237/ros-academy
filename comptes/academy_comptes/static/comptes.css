@@ -133,3 +133,14 @@ nav.row a[aria-current] { font-weight: 600; }
 .profil-grille { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 20px; align-items: start; }
 .profil-grille .membre { margin: 12px 0; }
 @media (max-width: 760px) { .profil-grille { grid-template-columns: 1fr; } }
+
+/* Le lab, mois par mois : sur téléphone, le graphique garde une largeur lisible et défile */
+/* sens droite-gauche du conteneur seulement : le défilement démarre sur les mois récents, sans script */
+.defile-graphique { overflow-x: auto; direction: rtl; }
+.defile-graphique > svg { direction: ltr; }
+@media (max-width: 640px) {
+  .defile-graphique .graphique-mois { min-width: 620px; }
+  .graphique-mois .graphique-date { font-size: 13px; }
+  .graphique-mois .graphique-valeur { font-size: 14px; }
+}
+.lab-mois th, .lab-mois td { text-align: center; white-space: nowrap; }
