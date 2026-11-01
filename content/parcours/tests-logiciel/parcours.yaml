@@ -1,13 +1,13 @@
 titre: Tester et fiabiliser un logiciel robotique
 description: >-
-  Ce qu'on attend d'un développeur robotique en équipe : tester un nœud seul,
-  tester plusieurs nœuds ensemble, rejouer des données enregistrées pour
-  reproduire un bug, garder un code propre et faire tourner tout cela à chaque
-  changement, en intégration continue. Sur le code du robot de livraison. Le
-  parcours s'ouvre module par module : les tests unitaires d'abord, puis les
-  tests d'intégration, le rejeu de données, l'intégration continue, puis la
-  qualité du code et la revue.
-accroche: Tests unitaires et d'intégration, données rejouées, qualité du code et intégration continue.
+  Ce qu'on attend d'un développeur robotique en équipe, sur le code du robot de
+  livraison : versionner avec Git, tester un nœud seul, tester plusieurs nœuds
+  ensemble, rejouer des données enregistrées pour reproduire un bug, faire
+  tourner tout cela à chaque changement en intégration continue, et garder un
+  code propre, relu en équipe. Le parcours s'ouvre module par module : Git
+  d'abord, puis les tests unitaires, les tests d'intégration, le rejeu de
+  données, l'intégration continue, la qualité du code et la revue.
+accroche: Git, tests unitaires et d'intégration, données rejouées, intégration continue, qualité du code et revue.
 fil_rouge: "Tester un nœud seul, puis tout le robot, avec des données rejouées."
 notion: "Tests, qualité du code, intégration continue."
 statut: disponible
@@ -15,6 +15,7 @@ niveau: intermediaire
 ordre: 30
 prix: 30
 objectifs:
+  - "versionner son code avec Git : commits, historique, branches et fusion"
   - séparer le calcul d'un nœud ROS pour le tester seul
   - écrire des tests unitaires avec pytest, cas limites et tests paramétrés compris
   - lancer les tests d'un package avec colcon test
@@ -27,6 +28,7 @@ objectifs:
 prerequis:
   - Apprendre ROS 2 avec un robot mobile
 outils:
+  - Git
   - pytest
   - launch_testing
   - ros2 bag
@@ -35,6 +37,9 @@ outils:
   - gtest
   - ament_lint
 modules:
+  - id: 15-git
+    coef: 1
+    partie: Travailler en équipe
   - id: 40-tests-unitaires
     coef: 1
     partie: Tester le code

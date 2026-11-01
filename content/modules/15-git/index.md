@@ -65,7 +65,7 @@ git status                        # que se passe-t-il ?
 
 `git status` est la commande à lancer sans modération : elle dit sur quelle branche vous êtes, ce qui est modifié et ce qui est prêt à être commité.
 
-Les dossiers `build/`, `install/` et `log/` sont **produits** par `colcon build` (module 4) : on ne les versionne pas. Un fichier `.gitignore` le dit à Git :
+Les dossiers `build/`, `install/` et `log/` sont **produits** par `colcon build` (module « Organiser son code » du parcours ROS 2) : on ne les versionne pas. Un fichier `.gitignore` le dit à Git :
 
 ```bash
 printf 'build/\ninstall/\nlog/\n' > .gitignore
@@ -142,7 +142,7 @@ La branche envoyée, on ouvre une **pull request** (ou *merge request*) : une de
 - les **tests automatiques** (l'intégration continue, ou CI) compilent le code et lancent les tests ;
 - la branche n'est fusionnée qu'une fois relue et testée.
 
-C'est ainsi que les projets ROS 2 open source acceptent les contributions. Le parcours « Tester et fiabiliser », bientôt disponible, montre comment écrire ces tests et les faire tourner automatiquement.
+C'est ainsi que les projets ROS 2 open source acceptent les contributions. La suite de ce parcours montre comment écrire ces tests et les faire tourner automatiquement : tests unitaires, tests d'intégration, données rejouées, intégration continue et revue de code.
 
 ## 7. Les bons réflexes
 
