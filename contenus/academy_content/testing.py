@@ -3,7 +3,8 @@
 Étapes (celles de la spec), les trois premières pour un module avec exercice :
   1. setup.sh installe le workspace de l'exercice, avec le bug ;
   2. check.sh doit ÉCHOUER (le bug est bien là) ;
-  3. solution/ est copiée par-dessus le workspace de l'exercice ;
+  3. solution/ est copiée par-dessus le workspace de l'exercice (ou, si elle contient solution.sh, ce
+     script est exécuté dans le workspace : une solution faite de commandes, comme avec Git) ;
   4. check.sh doit RÉUSSIR ;
   5. le lab guidé (lab/ + fichiers complets du cours) compile avec colcon,
      puis lab_test.sh (facultatif) vérifie que les nœuds démarrent.
@@ -53,8 +54,13 @@ if [ -d "$M/exercice" ]; then
   ok bug
 
   echo "--- check.sh (avec solution/)"
-  # --preserve=mode : un fichier remplacé prend les droits de la solution (un .sh y est exécutable)
-  cp -r --preserve=mode "$M/exercice/solution/." "$WS/"
+  if [ -f "$M/exercice/solution/solution.sh" ]; then
+    # solution faite de commandes (Git : branche, commit, fusion) : rejouée dans le workspace
+    (cd "$WS" && timeout 120 bash "$M/exercice/solution/solution.sh") || ko solution "solution.sh a échoué"
+  else
+    # --preserve=mode : un fichier remplacé prend les droits de la solution (un .sh y est exécutable)
+    cp -r --preserve=mode "$M/exercice/solution/." "$WS/"
+  fi
   run check.sh || ko solution "check.sh échoue avec la solution"
   ok solution
 fi

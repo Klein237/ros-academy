@@ -1,0 +1,57 @@
+questions:
+  - id: zones
+    question: Que fait git add talker.py ?
+    choix:
+      - texte: Il place la modification de talker.py dans l'index, pour le prochain commit
+        correct: true
+      - texte: Il enregistre talker.py dans l'historique
+      - texte: Il envoie talker.py sur le dépôt distant
+    explication: git add prépare le commit en remplissant l'index ; c'est git commit qui enregistre dans l'historique, et git push qui envoie sur le dépôt distant.
+  - id: status
+    question: Quelle commande dit sur quelle branche vous êtes et ce qui est modifié ?
+    choix:
+      - texte: git status
+        correct: true
+      - texte: git log
+      - texte: git show
+    explication: git log montre l'historique et git show le détail d'un commit ; git status décrit l'état présent du dossier de travail et de l'index.
+  - id: message
+    question: Lequel de ces messages de commit est le plus utile à l'équipe ?
+    choix:
+      - texte: Corrige le nom du topic de vitesse
+        correct: true
+      - texte: modifs
+      - texte: wip vendredi
+    explication: Un bon message dit ce que fait le changement, en une ligne, à l'impératif. Il se lit dans git log des mois plus tard.
+  - id: gitignore
+    question: Pourquoi met-on build/, install/ et log/ dans .gitignore ?
+    choix:
+      - texte: Ils sont produits par colcon build et se recréent à chaque compilation
+        correct: true
+      - texte: Ils contiennent des secrets
+      - texte: Git ne sait pas lire les fichiers binaires
+    explication: Seules les sources se versionnent ; les produits de compilation se recréent avec colcon build et alourdiraient le dépôt.
+  - id: branche
+    question: Pourquoi corriger un bug sur une branche plutôt que directement sur main ?
+    choix:
+      - texte: Pour vérifier la correction sans toucher la version que l'équipe utilise, puis la fusionner
+        correct: true
+      - texte: Parce que Git interdit les commits sur main
+      - texte: Pour que la correction ne soit jamais fusionnée
+    explication: main reste utilisable pendant le travail ; la branche est fusionnée une fois la correction vérifiée, souvent après relecture.
+  - id: revert
+    question: Un commit déjà partagé a cassé le robot. Quelle correction garde l'historique intact ?
+    choix:
+      - texte: git revert <identifiant>, qui crée un commit inverse
+        correct: true
+      - texte: git reset --hard sur le commit d'avant
+      - texte: Supprimer le dossier .git et recommencer
+    explication: git revert ajoute un commit qui annule le fautif ; git reset --hard efface des commits, y compris les bons qui suivaient, et casse l'historique des collègues.
+  - id: pull-request
+    question: À quoi sert une pull request ?
+    choix:
+      - texte: À demander la fusion d'une branche dans main, après relecture du code et tests automatiques
+        correct: true
+      - texte: À télécharger le dépôt d'un collègue
+      - texte: À annuler le dernier commit
+    explication: La pull request est le lieu de la revue de code et de l'intégration continue ; la branche n'entre dans main qu'une fois relue et testée.

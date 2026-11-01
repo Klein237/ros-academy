@@ -13,7 +13,7 @@ RUN apt-get update \
       ros-jazzy-joint-state-publisher-gui ros-jazzy-rviz2 ros-jazzy-ros-gz liburdfdom-tools \
       tigervnc-standalone-server python3-websockify openbox x11-utils x11-xserver-utils \
       libgl1-mesa-dri libegl-mesa0 fonts-dejavu-core \
-      nano vim-tiny less \
+      nano vim-tiny less git \
  && SUDO_FORCE_REMOVE=yes apt-get purge -y --auto-remove sudo \
  && rm -rf /var/lib/apt/lists/*
 

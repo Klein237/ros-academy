@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930 352" role="img" aria-labelledby="t d">
+<title id="t">Les trois zones de Git</title>
+<desc id="d">Le dossier de travail contient vos fichiers tels quels, dont talker.py modifié. git add place talker.py dans l&#x27;index, qui prépare le prochain commit. git commit enregistre l&#x27;index dans le dépôt, l&#x27;historique rangé dans le dossier .git : chaque commit a un identifiant court et un message. git restore et git switch font revenir le dossier de travail à une version enregistrée.</desc>
+<style>
+.fond { fill: #fbfaf6; stroke: #cfc8b8; stroke-width: 1.5; }
+.grille { stroke: #ece8de; stroke-width: 1; }
+.boite { fill: #ffffff; stroke: #cfc8b8; stroke-width: 1.5; }
+.calcul { fill: #ecedf9; stroke: #3b4596; stroke-width: 2; }
+.capteur { fill: #fff8e8; stroke: #d39a2c; stroke-width: 2; }
+.actionneur { fill: #eef1f5; stroke: #56606a; stroke-width: 2; }
+.robot { fill: #ecedf9; stroke: #3b4596; stroke-width: 2; }
+.roue { fill: #12171c; }
+.roulette { fill: #ffffff; stroke: #12171c; stroke-width: 1.5; }
+.nez { fill: #3b4596; }
+.ax-x { stroke: #d64545; stroke-width: 3; fill: none; } .ax-y { stroke: #2f9e44; stroke-width: 3; fill: none; }
+.px { fill: #d64545; } .py { fill: #2f9e44; }
+.trait { stroke: #56606a; stroke-width: 2; fill: none; }
+.tirets { stroke: #8a949c; stroke-width: 1.5; stroke-dasharray: 5 5; fill: none; }
+.trajet { stroke: #d39a2c; stroke-width: 3; fill: none; stroke-linecap: round; }
+.trajet-pointe { fill: #d39a2c; }
+.vitesse { stroke: #3b4596; stroke-width: 3; fill: none; }
+.vitesse-pointe { fill: #3b4596; }
+.pointe { fill: #56606a; }
+.cir { fill: #d39a2c; }
+.t { fill: #12171c; font: 400 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-gras { fill: #12171c; font: 600 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-titre { fill: #12171c; font: 600 16px "IBM Plex Sans", system-ui, sans-serif; }
+.t-petit { fill: #56606a; font: 400 12.5px "IBM Plex Sans", system-ui, sans-serif; }
+.t-sur { fill: #56606a; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; letter-spacing: 0.08em; }
+.t-math { fill: #12171c; font: italic 500 15px "IBM Plex Serif", Georgia, serif; }
+.t-code { fill: #12171c; font: 500 13px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+.t-accent { fill: #3b4596; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-ambre { fill: #8a5d10; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-x { fill: #d64545; font: 600 13px "JetBrains Mono", monospace; } .t-y { fill: #2f9e44; font: 600 13px "JetBrains Mono", monospace; }
+.badge { fill: #3b4596; } .t-badge { fill: #ffffff; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; }
+.t-commit { fill: #12171c; font: 600 10.5px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+.sep { stroke: #e7e2d6; stroke-width: 1.5; }
+@media (prefers-color-scheme: dark) {
+  .fond { fill: #101114; stroke: #3a3b42; } .grille { stroke: #1f2026; }
+  .boite { fill: #16171b; stroke: #3a3b42; }
+  .calcul, .robot { fill: #1d2140; stroke: #9aa4f0; }
+  .capteur { fill: #2a2212; stroke: #f2b544; }
+  .actionneur { fill: #1c1d22; stroke: #9a9aa3; }
+  .roue { fill: #c9c9cf; } .roulette { fill: #16171b; stroke: #c9c9cf; } .nez { fill: #9aa4f0; }
+  .ax-x { stroke: #ff6b6b; } .ax-y { stroke: #51cf66; } .px, .t-x { fill: #ff6b6b; } .py, .t-y { fill: #51cf66; }
+  .trait { stroke: #9a9aa3; } .tirets { stroke: #62636b; } .pointe { fill: #9a9aa3; }
+  .trajet { stroke: #f2b544; } .trajet-pointe, .cir { fill: #f2b544; }
+  .vitesse { stroke: #9aa4f0; } .vitesse-pointe { fill: #9aa4f0; }
+  .t, .t-gras, .t-titre, .t-math, .t-code, .t-commit { fill: #f4f1ea; }
+  .t-petit, .t-sur { fill: #9a9aa3; } .t-accent { fill: #9aa4f0; } .t-ambre { fill: #f2b544; }
+  .badge { fill: #9aa4f0; } .t-badge { fill: #0b0b0d; } .sep { stroke: #26272d; }
+}
+</style>
+<defs>
+<marker id="m-trait" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-trajet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="trajet-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-vitesse" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="vitesse-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-x" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="px" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-y" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="py" d="M0 0 L10 5 L0 10 z"/></marker>
+</defs>
+<rect class="fond" x="20.0" y="20.0" width="230.0" height="240.0" rx="12"/>
+<text class="t-sur" x="135.0" y="48.0" text-anchor="middle">DOSSIER DE TRAVAIL</text>
+<text class="t-petit" x="135.0" y="68.0" text-anchor="middle">vos fichiers, tels quels</text>
+<rect class="boite" x="36.0" y="86.0" width="198.0" height="36.0" rx="6"/>
+<text class="t-code" x="50.0" y="109.0" text-anchor="start">talker.py  modifié</text>
+<rect class="boite" x="36.0" y="132.0" width="198.0" height="36.0" rx="6"/>
+<text class="t-code" x="50.0" y="155.0" text-anchor="start">setup.py</text>
+<rect class="boite" x="36.0" y="178.0" width="198.0" height="36.0" rx="6"/>
+<text class="t-code" x="50.0" y="201.0" text-anchor="start">README.md</text>
+<rect class="fond" x="350.0" y="20.0" width="230.0" height="240.0" rx="12"/>
+<text class="t-sur" x="465.0" y="48.0" text-anchor="middle">INDEX</text>
+<text class="t-petit" x="465.0" y="68.0" text-anchor="middle">le prochain commit</text>
+<rect class="capteur" x="366.0" y="86.0" width="198.0" height="36.0" rx="6"/>
+<text class="t-code" x="380.0" y="109.0" text-anchor="start">talker.py</text>
+<rect class="fond" x="680.0" y="20.0" width="230.0" height="240.0" rx="12"/>
+<text class="t-sur" x="795.0" y="48.0" text-anchor="middle">DÉPÔT</text>
+<text class="t-petit" x="795.0" y="68.0" text-anchor="middle">l&#x27;historique (.git)</text>
+<rect class="calcul" x="696.0" y="86.0" width="198.0" height="36.0" rx="6"/>
+<text class="t-code" x="710.0" y="109.0" text-anchor="start">a1f3  Ajoute talker</text>
+<rect class="calcul" x="696.0" y="132.0" width="198.0" height="36.0" rx="6"/>
+<text class="t-code" x="710.0" y="155.0" text-anchor="start">7c2e  Publie à 2 Hz</text>
+<rect class="calcul" x="696.0" y="178.0" width="198.0" height="36.0" rx="6"/>
+<text class="t-code" x="710.0" y="201.0" text-anchor="start">e90b  Corrige le topic</text>
+<line class="trait" x1="258.0" y1="150.0" x2="342.0" y2="150.0" marker-end="url(#m-trait)"/>
+<text class="t-code" x="300.0" y="136.0" text-anchor="middle">git add</text>
+<line class="trait" x1="588.0" y1="150.0" x2="672.0" y2="150.0" marker-end="url(#m-trait)"/>
+<text class="t-code" x="630.0" y="136.0" text-anchor="middle">git commit</text>
+<path class="tirets" d="M795 262 C 795 318, 135 318, 135 264" marker-end="url(#m-trait)"/>
+<text class="t-petit" x="465.0" y="338.0" text-anchor="middle">git restore, git switch : revenir à une version enregistrée</text>
+</svg>

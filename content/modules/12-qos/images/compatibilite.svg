@@ -33,6 +33,7 @@
 .t-ambre { fill: #8a5d10; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
 .t-x { fill: #d64545; font: 600 13px "JetBrains Mono", monospace; } .t-y { fill: #2f9e44; font: 600 13px "JetBrains Mono", monospace; }
 .badge { fill: #3b4596; } .t-badge { fill: #ffffff; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; }
+.t-commit { fill: #12171c; font: 600 10.5px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
 .sep { stroke: #e7e2d6; stroke-width: 1.5; }
 @media (prefers-color-scheme: dark) {
   .fond { fill: #101114; stroke: #3a3b42; } .grille { stroke: #1f2026; }
@@ -45,7 +46,7 @@
   .trait { stroke: #9a9aa3; } .tirets { stroke: #62636b; } .pointe { fill: #9a9aa3; }
   .trajet { stroke: #f2b544; } .trajet-pointe, .cir { fill: #f2b544; }
   .vitesse { stroke: #9aa4f0; } .vitesse-pointe { fill: #9aa4f0; }
-  .t, .t-gras, .t-titre, .t-math, .t-code { fill: #f4f1ea; }
+  .t, .t-gras, .t-titre, .t-math, .t-code, .t-commit { fill: #f4f1ea; }
   .t-petit, .t-sur { fill: #9a9aa3; } .t-accent { fill: #9aa4f0; } .t-ambre { fill: #f2b544; }
   .badge { fill: #9aa4f0; } .t-badge { fill: #0b0b0d; } .sep { stroke: #26272d; }
 }

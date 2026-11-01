@@ -13,11 +13,12 @@ from pathlib import Path
 import bonus
 import bras
 import docker
+import git
 import robot_mobile
 import ros2
 
 CONTENT = Path(__file__).resolve().parents[2] / "content" / "modules"
-SOURCES = [robot_mobile, ros2, bonus, docker, bras]
+SOURCES = [robot_mobile, ros2, bonus, docker, bras, git]
 
 
 def main():
