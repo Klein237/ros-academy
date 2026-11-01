@@ -7,7 +7,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-      python3-pip python3-venv python3-colcon-common-extensions build-essential \
+      python3-pip python3-venv python3-colcon-common-extensions python3-pytest build-essential \
       ros-jazzy-rosbridge-suite ros-jazzy-demo-nodes-py ros-jazzy-demo-nodes-cpp \
       ros-jazzy-action-tutorials-py ros-jazzy-xacro ros-jazzy-joint-state-publisher \
       ros-jazzy-joint-state-publisher-gui ros-jazzy-rviz2 ros-jazzy-ros-gz liburdfdom-tools \

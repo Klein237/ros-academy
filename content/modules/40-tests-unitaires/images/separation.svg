@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 340" role="img" aria-labelledby="t d">
+<title id="t">Séparer le calcul du nœud pour le tester</title>
+<desc id="d">Avant : le calcul de l&#x27;odométrie est écrit dans le nœud ROS, mêlé à l&#x27;abonnement, à la minuterie et à la publication ; pour le tester, il faut lancer ROS. Après : le nœud est fin, il reçoit les vitesses, appelle integrer() et publie ; le calcul vit dans odometrie/calcul.py (integrer, normaliser, vitesses_roues), sans ROS, et pytest le teste seul, en quelques millisecondes.</desc>
+<style>
+.fond { fill: #fbfaf6; stroke: #cfc8b8; stroke-width: 1.5; }
+.grille { stroke: #ece8de; stroke-width: 1; }
+.boite { fill: #ffffff; stroke: #cfc8b8; stroke-width: 1.5; }
+.calcul { fill: #ecedf9; stroke: #3b4596; stroke-width: 2; }
+.capteur { fill: #fff8e8; stroke: #d39a2c; stroke-width: 2; }
+.actionneur { fill: #eef1f5; stroke: #56606a; stroke-width: 2; }
+.robot { fill: #ecedf9; stroke: #3b4596; stroke-width: 2; }
+.roue { fill: #12171c; }
+.roulette { fill: #ffffff; stroke: #12171c; stroke-width: 1.5; }
+.nez { fill: #3b4596; }
+.ax-x { stroke: #d64545; stroke-width: 3; fill: none; } .ax-y { stroke: #2f9e44; stroke-width: 3; fill: none; }
+.px { fill: #d64545; } .py { fill: #2f9e44; }
+.trait { stroke: #56606a; stroke-width: 2; fill: none; }
+.tirets { stroke: #8a949c; stroke-width: 1.5; stroke-dasharray: 5 5; fill: none; }
+.trajet { stroke: #d39a2c; stroke-width: 3; fill: none; stroke-linecap: round; }
+.trajet-pointe { fill: #d39a2c; }
+.vitesse { stroke: #3b4596; stroke-width: 3; fill: none; }
+.vitesse-pointe { fill: #3b4596; }
+.pointe { fill: #56606a; }
+.cir { fill: #d39a2c; }
+.t { fill: #12171c; font: 400 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-gras { fill: #12171c; font: 600 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-titre { fill: #12171c; font: 600 16px "IBM Plex Sans", system-ui, sans-serif; }
+.t-petit { fill: #56606a; font: 400 12.5px "IBM Plex Sans", system-ui, sans-serif; }
+.t-sur { fill: #56606a; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; letter-spacing: 0.08em; }
+.t-math { fill: #12171c; font: italic 500 15px "IBM Plex Serif", Georgia, serif; }
+.t-code { fill: #12171c; font: 500 13px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+.t-accent { fill: #3b4596; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-ambre { fill: #8a5d10; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-x { fill: #d64545; font: 600 13px "JetBrains Mono", monospace; } .t-y { fill: #2f9e44; font: 600 13px "JetBrains Mono", monospace; }
+.badge { fill: #3b4596; } .t-badge { fill: #ffffff; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; }
+.t-commit { fill: #12171c; font: 600 10.5px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+.sep { stroke: #e7e2d6; stroke-width: 1.5; }
+@media (prefers-color-scheme: dark) {
+  .fond { fill: #101114; stroke: #3a3b42; } .grille { stroke: #1f2026; }
+  .boite { fill: #16171b; stroke: #3a3b42; }
+  .calcul, .robot { fill: #1d2140; stroke: #9aa4f0; }
+  .capteur { fill: #2a2212; stroke: #f2b544; }
+  .actionneur { fill: #1c1d22; stroke: #9a9aa3; }
+  .roue { fill: #c9c9cf; } .roulette { fill: #16171b; stroke: #c9c9cf; } .nez { fill: #9aa4f0; }
+  .ax-x { stroke: #ff6b6b; } .ax-y { stroke: #51cf66; } .px, .t-x { fill: #ff6b6b; } .py, .t-y { fill: #51cf66; }
+  .trait { stroke: #9a9aa3; } .tirets { stroke: #62636b; } .pointe { fill: #9a9aa3; }
+  .trajet { stroke: #f2b544; } .trajet-pointe, .cir { fill: #f2b544; }
+  .vitesse { stroke: #9aa4f0; } .vitesse-pointe { fill: #9aa4f0; }
+  .t, .t-gras, .t-titre, .t-math, .t-code, .t-commit { fill: #f4f1ea; }
+  .t-petit, .t-sur { fill: #9a9aa3; } .t-accent { fill: #9aa4f0; } .t-ambre { fill: #f2b544; }
+  .badge { fill: #9aa4f0; } .t-badge { fill: #0b0b0d; } .sep { stroke: #26272d; }
+}
+</style>
+<defs>
+<marker id="m-trait" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-trajet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="trajet-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-vitesse" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="vitesse-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-x" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="px" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-y" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="py" d="M0 0 L10 5 L0 10 z"/></marker>
+</defs>
+<rect class="fond" x="20.0" y="20.0" width="400.0" height="300.0" rx="12"/>
+<text class="t-sur" x="40.0" y="48.0" text-anchor="start">AVANT : TOUT DANS LE NŒUD</text>
+<rect class="boite" x="44.0" y="70.0" width="352.0" height="200.0" rx="8"/>
+<text class="t-code" x="64.0" y="98.0" text-anchor="start">class Odometrie(Node)</text>
+<text class="t-petit" x="76.0" y="128.0" text-anchor="start">abonnement /cmd_vel</text>
+<text class="t-petit" x="76.0" y="150.0" text-anchor="start">minuterie</text>
+<rect class="capteur" x="68.0" y="164.0" width="304.0" height="58.0" rx="6"/>
+<text class="t-code" x="84.0" y="188.0" text-anchor="start">x += v * cos(theta) * dt …</text>
+<text class="t-ambre" x="84.0" y="208.0" text-anchor="start">calcul mêlé à ROS</text>
+<text class="t-petit" x="76.0" y="248.0" text-anchor="start">publication /odom</text>
+<text class="t-petit" x="220.0" y="300.0" text-anchor="middle">pour tester le calcul, il faut lancer ROS</text>
+<rect class="fond" x="500.0" y="20.0" width="400.0" height="300.0" rx="12"/>
+<text class="t-sur" x="520.0" y="48.0" text-anchor="start">APRÈS : UN NŒUD FIN, UN CALCUL PUR</text>
+<rect class="boite" x="524.0" y="70.0" width="352.0" height="92.0" rx="8"/>
+<text class="t-code" x="544.0" y="98.0" text-anchor="start">class Odometrie(Node)</text>
+<text class="t-petit" x="556.0" y="124.0" text-anchor="start">reçoit, appelle integrer(),</text>
+<text class="t-petit" x="556.0" y="144.0" text-anchor="start">publie : rien d&#x27;autre</text>
+<rect class="calcul" x="524.0" y="192.0" width="352.0" height="70.0" rx="8"/>
+<text class="t-code" x="544.0" y="220.0" text-anchor="start">odometrie/calcul.py</text>
+<text class="t-petit" x="556.0" y="244.0" text-anchor="start">integrer, normaliser, vitesses_roues</text>
+<line class="trait" x1="700.0" y1="164.0" x2="700.0" y2="190.0" marker-end="url(#m-trait)"/>
+<text class="t-petit" x="712.0" y="182.0" text-anchor="start">appelle</text>
+<rect class="capteur" x="760.0" y="270.0" width="116.0" height="34.0" rx="6"/>
+<text class="t-code" x="818.0" y="292.0" text-anchor="middle">pytest</text>
+<text class="t-petit" x="640.0" y="296.0" text-anchor="middle">testé seul, en millisecondes</text>
+<line class="trait" x1="422.0" y1="170.0" x2="498.0" y2="170.0" marker-end="url(#m-trait)"/>
+</svg>

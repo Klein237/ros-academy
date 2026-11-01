@@ -1,0 +1,57 @@
+questions:
+  - id: unitaire
+    question: Qu'est-ce qu'un test unitaire ?
+    choix:
+      - texte: Un test d'une petite unité de code, comme une fonction, isolée du reste
+        correct: true
+      - texte: Un test du robot entier en simulation
+      - texte: Un test lancé une seule fois avant la livraison
+    explication: Le test unitaire vérifie une fonction seule ; plusieurs nœuds ensemble, c'est un test d'intégration, et le robot entier, un test système.
+  - id: separer
+    question: Pourquoi sortir le calcul de l'odométrie du nœud ROS ?
+    choix:
+      - texte: Pour le tester seul, sans lancer ROS, en quelques millisecondes
+        correct: true
+      - texte: Parce que ROS interdit les calculs dans un nœud
+      - texte: Pour que le nœud tourne plus vite
+    explication: Une fonction pure se teste avec pytest sans abonnement ni publication ; le nœud qui l'appelle reste fin.
+  - id: approx
+    question: Pourquoi comparer des positions avec pytest.approx ?
+    choix:
+      - texte: Les calculs en virgule flottante ne sont pas exacts, math.cos(math.pi / 2) ne vaut pas exactement 0
+        correct: true
+      - texte: Pour que le test passe même quand le calcul est faux
+      - texte: Parce que assert ne sait pas comparer des tuples
+    explication: pytest.approx tolère une erreur d'arrondi minuscule, pas une erreur de calcul.
+  - id: dt
+    question: Pour vérifier qu'une fonction n'oublie pas de multiplier par dt, quelle valeur de dt choisir dans le test ?
+    choix:
+      - texte: dt = 2, une valeur qui change le résultat si dt est oublié
+        correct: true
+      - texte: dt = 1
+      - texte: dt = 0
+    explication: Avec dt = 1, multiplier par dt ne change rien ; avec dt = 0, rien ne bouge. Choisissez des valeurs qui distinguent.
+  - id: limites
+    question: Où se cachent le plus souvent les bugs d'une fonction qui normalise un angle ?
+    choix:
+      - texte: Aux limites, autour de pi et de -pi
+        correct: true
+      - texte: Autour de 0
+      - texte: Nulle part, c'est une fonction simple
+    explication: "Les bornes d'un intervalle sont les cas que l'on oublie : faut-il renvoyer pi ou -pi ? Un test le fixe."
+  - id: colcon
+    question: Quelle commande lance tous les tests d'un package, comme le fait l'intégration continue ?
+    choix:
+      - texte: colcon test, puis colcon test-result --verbose pour le détail
+        correct: true
+      - texte: colcon build --tests
+      - texte: ros2 run mon_package test
+    explication: colcon test lance les tests de chaque package (pytest, et les tests de qualité déclarés) ; colcon test-result en donne le bilan.
+  - id: mutant
+    question: Un mutant de votre code (une copie avec un bug volontaire) passe tous vos tests. Qu'en conclure ?
+    choix:
+      - texte: Il manque un test qui distingue ce bug du comportement correct
+        correct: true
+      - texte: Le mutant est en fait correct
+      - texte: Les tests sont trop nombreux
+    explication: Un bon test échoue quand le code est faux ; un mutant qui survit indique précisément le test à écrire.

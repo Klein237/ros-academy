@@ -8,7 +8,7 @@ from .db import Answer, Question, UsageTick, utcnow
 
 SEMAINES = 8
 # objet en verre de chaque parcours (contenus/academy_content/static/icones/) ; les autres : le graphe de nœuds
-ICONES = {"ros2-fondamentaux": "robot", "bras-robotique": "bras", "docker-robotique": "conteneur"}
+ICONES = {"ros2-fondamentaux": "robot", "bras-robotique": "bras", "docker-robotique": "conteneur", "tests-logiciel": "bouclier"}
 
 
 def icone(parcours_id):
