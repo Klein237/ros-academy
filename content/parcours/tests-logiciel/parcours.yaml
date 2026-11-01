@@ -18,6 +18,7 @@ objectifs:
   - écrire des tests unitaires avec pytest, cas limites et tests paramétrés compris
   - lancer les tests d'un package avec colcon test
   - mesurer la qualité de ses tests avec des mutants
+  - tester un nœud lancé pour de vrai avec launch_testing, paramètres et codes de sortie compris
 prerequis:
   - Apprendre ROS 2 avec un robot mobile
 outils:
@@ -28,5 +29,8 @@ outils:
   - ament_lint
 modules:
   - id: 40-tests-unitaires
+    coef: 1
+    partie: Tester le code
+  - id: 41-tests-integration
     coef: 1
     partie: Tester le code

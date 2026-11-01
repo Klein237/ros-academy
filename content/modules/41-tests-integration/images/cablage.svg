@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 340" role="img" aria-labelledby="t d">
+<title id="t">Ce que voit un test unitaire, et ce que voit un test d&#x27;intégration</title>
+<desc id="d">À gauche, le test unitaire appelle directement la fonction borner() : il voit le calcul et ses cas limites, mais pas les noms des topics, les paramètres de lancement, ni le démarrage et l&#x27;arrêt du nœud. À droite, le test d&#x27;intégration lance le vrai nœud limiteur, avec le paramètre vitesse_max à 0.3 : les commandes arrivent sur /cmd_vel_brut, passent par borner() et repartent sur /cmd_vel. Il voit en plus un topic renommé, un paramètre ignoré, un nœud qui plante ou quitte en erreur. Il est plus lent : quelques secondes par fichier.</desc>
+<style>
+.fond { fill: #fbfaf6; stroke: #cfc8b8; stroke-width: 1.5; }
+.grille { stroke: #ece8de; stroke-width: 1; }
+.boite { fill: #ffffff; stroke: #cfc8b8; stroke-width: 1.5; }
+.calcul { fill: #ecedf9; stroke: #3b4596; stroke-width: 2; }
+.capteur { fill: #fff8e8; stroke: #d39a2c; stroke-width: 2; }
+.actionneur { fill: #eef1f5; stroke: #56606a; stroke-width: 2; }
+.robot { fill: #ecedf9; stroke: #3b4596; stroke-width: 2; }
+.roue { fill: #12171c; }
+.roulette { fill: #ffffff; stroke: #12171c; stroke-width: 1.5; }
+.nez { fill: #3b4596; }
+.ax-x { stroke: #d64545; stroke-width: 3; fill: none; } .ax-y { stroke: #2f9e44; stroke-width: 3; fill: none; }
+.px { fill: #d64545; } .py { fill: #2f9e44; }
+.trait { stroke: #56606a; stroke-width: 2; fill: none; }
+.tirets { stroke: #8a949c; stroke-width: 1.5; stroke-dasharray: 5 5; fill: none; }
+.trajet { stroke: #d39a2c; stroke-width: 3; fill: none; stroke-linecap: round; }
+.trajet-pointe { fill: #d39a2c; }
+.vitesse { stroke: #3b4596; stroke-width: 3; fill: none; }
+.vitesse-pointe { fill: #3b4596; }
+.pointe { fill: #56606a; }
+.cir { fill: #d39a2c; }
+.t { fill: #12171c; font: 400 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-gras { fill: #12171c; font: 600 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-titre { fill: #12171c; font: 600 16px "IBM Plex Sans", system-ui, sans-serif; }
+.t-petit { fill: #56606a; font: 400 12.5px "IBM Plex Sans", system-ui, sans-serif; }
+.t-sur { fill: #56606a; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; letter-spacing: 0.08em; }
+.t-math { fill: #12171c; font: italic 500 15px "IBM Plex Serif", Georgia, serif; }
+.t-code { fill: #12171c; font: 500 13px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+.t-accent { fill: #3b4596; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-ambre { fill: #8a5d10; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-x { fill: #d64545; font: 600 13px "JetBrains Mono", monospace; } .t-y { fill: #2f9e44; font: 600 13px "JetBrains Mono", monospace; }
+.badge { fill: #3b4596; } .t-badge { fill: #ffffff; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; }
+.t-commit { fill: #12171c; font: 600 10.5px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+.sep { stroke: #e7e2d6; stroke-width: 1.5; }
+@media (prefers-color-scheme: dark) {
+  .fond { fill: #101114; stroke: #3a3b42; } .grille { stroke: #1f2026; }
+  .boite { fill: #16171b; stroke: #3a3b42; }
+  .calcul, .robot { fill: #1d2140; stroke: #9aa4f0; }
+  .capteur { fill: #2a2212; stroke: #f2b544; }
+  .actionneur { fill: #1c1d22; stroke: #9a9aa3; }
+  .roue { fill: #c9c9cf; } .roulette { fill: #16171b; stroke: #c9c9cf; } .nez { fill: #9aa4f0; }
+  .ax-x { stroke: #ff6b6b; } .ax-y { stroke: #51cf66; } .px, .t-x { fill: #ff6b6b; } .py, .t-y { fill: #51cf66; }
+  .trait { stroke: #9a9aa3; } .tirets { stroke: #62636b; } .pointe { fill: #9a9aa3; }
+  .trajet { stroke: #f2b544; } .trajet-pointe, .cir { fill: #f2b544; }
+  .vitesse { stroke: #9aa4f0; } .vitesse-pointe { fill: #9aa4f0; }
+  .t, .t-gras, .t-titre, .t-math, .t-code, .t-commit { fill: #f4f1ea; }
+  .t-petit, .t-sur { fill: #9a9aa3; } .t-accent { fill: #9aa4f0; } .t-ambre { fill: #f2b544; }
+  .badge { fill: #9aa4f0; } .t-badge { fill: #0b0b0d; } .sep { stroke: #26272d; }
+}
+</style>
+<defs>
+<marker id="m-trait" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-trajet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="trajet-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-vitesse" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="vitesse-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-x" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="px" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-y" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="py" d="M0 0 L10 5 L0 10 z"/></marker>
+</defs>
+<rect class="fond" x="20.0" y="20.0" width="420.0" height="300.0" rx="12"/>
+<text class="t-sur" x="40.0" y="48.0" text-anchor="start">TEST UNITAIRE</text>
+<rect class="capteur" x="44.0" y="70.0" width="172.0" height="50.0" rx="8"/>
+<text class="t-code" x="130.0" y="100.0" text-anchor="middle">test_borner()</text>
+<line class="trait" x1="218.0" y1="95.0" x2="262.0" y2="95.0" marker-end="url(#m-trait)"/>
+<rect class="calcul" x="264.0" y="70.0" width="152.0" height="50.0" rx="8"/>
+<text class="t-code" x="340.0" y="100.0" text-anchor="middle">borner()</text>
+<text class="t-gras" x="44.0" y="156.0" text-anchor="start">voit :</text>
+<text class="t-petit" x="60.0" y="180.0" text-anchor="start">le calcul, ses cas limites</text>
+<text class="t-gras" x="44.0" y="216.0" text-anchor="start">ne voit pas :</text>
+<text class="t-petit" x="60.0" y="240.0" text-anchor="start">les noms des topics</text>
+<text class="t-petit" x="60.0" y="260.0" text-anchor="start">les paramètres de lancement</text>
+<text class="t-petit" x="60.0" y="280.0" text-anchor="start">le démarrage et l&#x27;arrêt du nœud</text>
+<rect class="fond" x="480.0" y="20.0" width="420.0" height="300.0" rx="12"/>
+<text class="t-sur" x="500.0" y="48.0" text-anchor="start">TEST D&#x27;INTÉGRATION</text>
+<rect class="boite" x="504.0" y="70.0" width="372.0" height="112.0" rx="8"/>
+<text class="t-gras" x="520.0" y="94.0" text-anchor="start">nœud limiteur, lancé pour de vrai</text>
+<rect class="capteur" x="516.0" y="106.0" width="126.0" height="30.0" rx="6"/>
+<text class="t-code" x="579.0" y="126.0" text-anchor="middle">/cmd_vel_brut</text>
+<rect class="calcul" x="658.0" y="106.0" width="92.0" height="30.0" rx="6"/>
+<text class="t-code" x="704.0" y="126.0" text-anchor="middle">borner()</text>
+<rect class="capteur" x="766.0" y="106.0" width="96.0" height="30.0" rx="6"/>
+<text class="t-code" x="814.0" y="126.0" text-anchor="middle">/cmd_vel</text>
+<line class="trait" x1="643.0" y1="121.0" x2="656.0" y2="121.0" marker-end="url(#m-trait)"/>
+<line class="trait" x1="751.0" y1="121.0" x2="764.0" y2="121.0" marker-end="url(#m-trait)"/>
+<text class="t-code" x="520.0" y="164.0" text-anchor="start">paramètre vitesse_max : 0.3</text>
+<text class="t-gras" x="504.0" y="216.0" text-anchor="start">voit en plus :</text>
+<text class="t-petit" x="520.0" y="240.0" text-anchor="start">un topic renommé, plus personne n&#x27;écoute</text>
+<text class="t-petit" x="520.0" y="260.0" text-anchor="start">un paramètre ignoré</text>
+<text class="t-petit" x="520.0" y="280.0" text-anchor="start">un nœud qui plante ou quitte en erreur</text>
+<text class="t-ambre" x="690.0" y="306.0" text-anchor="middle">plus lent : quelques secondes par fichier</text>
+</svg>
