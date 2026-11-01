@@ -1,4 +1,4 @@
-"""Schémas du parcours « Tester et fiabiliser » : tests unitaires (module 40), tests d'intégration (module 41), rejeu de données (module 42)."""
+"""Schémas du parcours « Tester et fiabiliser » : tests unitaires (module 40), tests d'intégration (module 41), rejeu de données (module 42), intégration continue (module 43)."""
 
 import math
 
@@ -7,6 +7,7 @@ from style import line, path, rect, robot, svg, text
 UNITAIRES = "40-tests-unitaires"
 INTEGRATION = "41-tests-integration"
 REJEU = "42-rejeu-donnees"
+CI = "43-integration-continue"
 
 
 def separation():
@@ -237,6 +238,76 @@ def non_regression():
                "Le test s'écrit avant la correction : le voir échouer prouve qu'il attrape le bug.", "\n".join(b))
 
 
+def pipeline():
+    b = [rect(20, 20, 880, 300, "fond", 12), text(40, 48, "UNE PULL REQUEST ET SA CI", "t-sur")]
+    etapes = [("développeur", "git push, puis", "pull request", "boite"),
+              ("CI : machine neuve", "checkout, dépendances,", "compilation, tests", "calcul"),
+              ("résultat", "affiché sur la", "pull request", "capteur")]
+    for i, (nom, l1, l2, cls) in enumerate(etapes):
+        x = 40 + i * 230
+        b += [rect(x, 76, 200, 104, cls, 8), text(x + 100, 108, nom, "t-gras", "middle"),
+              text(x + 100, 136, l1, "t-petit", "middle"), text(x + 100, 156, l2, "t-petit", "middle")]
+        if i < 2:
+            b.append(line(x + 202, 128, x + 228, 128, fin="trait"))
+    b += [line(642, 104, 700, 92, fin="trait"), line(642, 152, 700, 214, fin="trait"),
+          rect(702, 66, 178, 52, "calcul", 8), text(791, 90, "✔ vert", "t-accent", "middle"),
+          text(791, 108, "fusion possible dans main", "t-petit", "middle"),
+          rect(702, 188, 178, 52, "capteur", 8), text(791, 212, "✘ rouge", "t-ambre", "middle"),
+          text(791, 230, "on corrige, on repousse", "t-petit", "middle"),
+          path("M702 226 C 400 284, 160 284, 140 182", "tirets", fin="trait"),
+          text(420, 300, "nouvelle tentative : la CI repart de zéro", "t-petit", "middle")]
+    return svg(920, 340, "Une pull request et son intégration continue",
+               "Le développeur pousse sa branche et ouvre une pull request. La CI démarre sur une machine neuve : "
+               "récupération du code, dépendances, compilation, tests. Le résultat s'affiche sur la pull request : vert, "
+               "la fusion dans main est possible ; rouge, on corrige et on repousse, et la CI repart de zéro.",
+               "\n".join(b))
+
+
+def workflow():
+    b = [rect(20, 20, 880, 330, "fond", 12), text(40, 48, ".GITHUB/WORKFLOWS/CI.YML", "t-sur"),
+         rect(40, 70, 260, 260, "capteur", 8), text(60, 98, "on", "t-code"), text(60, 120, "quand ?", "t-gras"),
+         text(60, 154, "push sur main", "t-petit"), text(60, 176, "pull_request", "t-petit"),
+         text(60, 224, "sans pull_request, l'erreur", "t-petit"), text(60, 244, "n'apparaît qu'après la fusion", "t-petit"),
+         rect(320, 70, 260, 260, "boite", 8), text(340, 98, "jobs", "t-code"), text(340, 120, "sur quelle machine ?", "t-gras"),
+         text(340, 154, "runs-on: ubuntu-24.04", "t-code"), text(340, 176, "container:", "t-code"),
+         text(352, 196, "ros:jazzy-ros-base", "t-code"),
+         text(340, 244, "une machine neuve à chaque fois", "t-petit"),
+         rect(600, 70, 280, 260, "calcul", 8), text(620, 98, "steps", "t-code"), text(620, 120, "quoi, dans l'ordre ?", "t-gras")]
+    pas = [("actions/checkout", "✔"), ("dépendances (rosdep)", "✔"), ("colcon build", "✔"), ("colcon test", "✔"),
+           ("colcon test-result", "✘")]
+    for i, (nom, res) in enumerate(pas):
+        y = 140 + i * 30
+        b += [rect(620, y, 200, 24, "boite", 5), text(632, y + 17, nom, "t-code"),
+              text(842, y + 17, res, "t-accent" if res == "✔" else "t-ambre", "middle")]
+    b.append(text(740, 318, "une étape échoue : le job s'arrête, rouge", "t-ambre", "middle"))
+    return svg(920, 370, "Les trois parties d'un workflow GitHub Actions",
+               "Le fichier .github/workflows/ci.yml a trois parties. on : quand il se déclenche, à chaque push sur main "
+               "et à chaque pull_request ; sans pull_request, l'erreur n'apparaît qu'après la fusion. jobs : sur quelle "
+               "machine, ici ubuntu-24.04 avec le conteneur ros:jazzy-ros-base, une machine neuve à chaque fois. steps : "
+               "les étapes dans l'ordre, actions/checkout, dépendances avec rosdep, colcon build, colcon test, colcon "
+               "test-result. Ici colcon test-result échoue : le job s'arrête et devient rouge.", "\n".join(b))
+
+
+def codes_sortie():
+    b = [rect(20, 20, 880, 280, "fond", 12), text(40, 48, "UN TEST ÉCHOUE : QUE RENVOIENT LES COMMANDES ?", "t-sur"),
+         rect(40, 76, 200, 60, "boite", 8), text(140, 104, "1 test sur 12", "t-gras", "middle"),
+         text(140, 124, "échoue", "t-petit", "middle")]
+    lignes = [("colcon test", "lance les tests, enregistre les résultats", "code 0", "t-accent", "l'étape reste verte : le piège", 92),
+              ("colcon test-result", "lit les résultats enregistrés", "code 1", "t-ambre", "l'étape échoue : la CI est rouge", 196)]
+    for cmd, detail, code, cls, effet, y in lignes:
+        b += [path(f"M242 106 C 280 106, 290 {y + 28}, 318 {y + 28}", "trait", fin="trait"),
+              rect(320, y, 260, 56, "calcul", 8), text(340, y + 24, cmd, "t-code"), text(340, y + 44, detail, "t-petit"),
+              line(582, y + 28, 616, y + 28, fin="trait"),
+              rect(618, y, 92, 56, "capteur" if code == "code 1" else "boite", 8), text(664, y + 34, code, cls, "middle"),
+              text(726, y + 24, effet.split(" : ")[0], "t-gras"), text(726, y + 44, effet.split(" : ")[1], "t-petit")]
+    b.append(text(460, 284, "vérifiez votre CI : cassez un test exprès, elle doit devenir rouge", "t-petit", "middle"))
+    return svg(920, 320, "colcon test et colcon test-result face à un test qui échoue",
+               "Un test sur douze échoue. colcon test lance les tests et enregistre les résultats, mais renvoie le code 0 : "
+               "l'étape de la CI reste verte, c'est le piège. colcon test-result lit les résultats enregistrés et renvoie "
+               "le code 1 : l'étape échoue et la CI devient rouge. Pour vérifier une CI, on casse un test exprès : elle "
+               "doit devenir rouge.", "\n".join(b))
+
+
 SCHEMAS = {
     f"{UNITAIRES}/images/separation.svg": separation,
     f"{UNITAIRES}/images/pyramide.svg": pyramide,
@@ -247,4 +318,7 @@ SCHEMAS = {
     f"{REJEU}/images/enregistrer-rejouer.svg": enregistrer_rejouer,
     f"{REJEU}/images/scan.svg": scan_laser,
     f"{REJEU}/images/non-regression.svg": non_regression,
+    f"{CI}/images/pipeline.svg": pipeline,
+    f"{CI}/images/workflow.svg": workflow,
+    f"{CI}/images/codes-sortie.svg": codes_sortie,
 }

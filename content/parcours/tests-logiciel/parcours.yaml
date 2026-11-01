@@ -21,14 +21,15 @@ objectifs:
   - tester un nœud lancé pour de vrai avec launch_testing, paramètres et codes de sortie compris
   - enregistrer et rejouer des données avec ros2 bag pour reproduire un bug
   - transformer un bug corrigé en test de non-régression sur données enregistrées
+  - faire tourner compilation et tests à chaque pull request avec GitHub Actions
 prerequis:
   - Apprendre ROS 2 avec un robot mobile
 outils:
   - pytest
-  - gtest
   - launch_testing
   - ros2 bag
-  - ament_lint
+  - rosbag2_py
+  - GitHub Actions
 modules:
   - id: 40-tests-unitaires
     coef: 1
@@ -39,3 +40,6 @@ modules:
   - id: 42-rejeu-donnees
     coef: 1
     partie: Tester sur des données réelles
+  - id: 43-integration-continue
+    coef: 1
+    partie: Automatiser
