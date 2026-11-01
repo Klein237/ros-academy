@@ -21,7 +21,7 @@
     <p class="chapeau">Concevez, codez, testez et livrez le logiciel de vrais robots. Chaque parcours suit un robot, de son premier tour de roue à sa mise en service, dans un lab en ligne, sans matériel ni installation.</p>
     <div class="actions">
       <a class="button primary grand" href="/catalogue/">Voir les parcours</a>
-      <a class="button grand" href="/decouvrir/">Commencer gratuitement</a>
+      <a class="button grand" href="/parcours-gratuit/">Commencer gratuitement</a>
     </div>
     <ul class="avantages">
       <li>{{ coche() }}Aucune installation</li>
@@ -61,26 +61,14 @@
 </section>
 
 <section class="conteneur bloc" aria-labelledby="gratuit">
-  <h2 id="gratuit">Commencer gratuitement</h2>
-  <p class="sous-titre">Sans compte, pour savoir dans quoi vous vous lancez.</p>
-  <div class="grille-gratuit">
-    <a class="carte-gratuite" href="/decouvrir/middlewares/">
-      {{ objet("noeuds", 88) }}
-      <span>
-        <span class="eyebrow">Gratuit · 4 chapitres</span>
-        <strong>Middlewares et évolution de la robotique</strong>
-        <span>ROS, ROS 2, Cyber RT et les autres : comment ils font tenir ensemble le logiciel des robots mobiles, des drones et des véhicules.</span>
-      </span>
-    </a>
-    <a class="carte-gratuite" href="/decouvrir/">
-      {{ objet("robot", 88) }}
-      <span>
-        <span class="eyebrow">Gratuit · 20 min</span>
-        <strong>Découvrir ROS 2</strong>
-        <span>D'où vient ROS, comment fonctionne ROS 2, le parcours qui l'enseigne et les liens à garder sous la main.</span>
-      </span>
-    </a>
+  <div class="entete-section">
+    <div>
+      <h2 id="gratuit">Le parcours gratuit</h2>
+      <p class="sous-titre">Sans compte, pour savoir dans quoi vous vous lancez.</p>
+    </div>
+    <a class="lien-fort" href="/parcours-gratuit/">Voir le parcours gratuit {{ fleche() }}</a>
   </div>
+  {% with taille=88 %}{% include "partiels/cartes_gratuites.html" %}{% endwith %}
 </section>
 
 <section class="bande" id="comment" aria-labelledby="comment-titre">

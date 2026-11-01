@@ -1,0 +1,14 @@
+{# Les étapes du parcours gratuit (app.PARCOURS_GRATUIT), en cartes. taille : celle de l'icône #}
+{% from "partiels/icones.html" import objet %}
+<div class="grille-gratuit">
+  {% for e in parcours_gratuit %}
+  <a class="carte-gratuite" href="{{ e.url }}">
+    {{ objet(e.icone, taille | default(88)) }}
+    <span>
+      <span class="eyebrow">Étape {{ loop.index }} · {{ e.duree }}</span>
+      <strong>{{ e.titre }}</strong>
+      <span>{{ e.resume }}</span>
+    </span>
+  </a>
+  {% endfor %}
+</div>

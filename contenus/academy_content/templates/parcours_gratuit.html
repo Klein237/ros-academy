@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "partiels/icones.html" import objet, fleche %}
+{% set nav_actif = "decouvrir" %}
+{% block title %}Parcours gratuit · RoboForge{% endblock %}
+{% block description %}Le parcours gratuit de RoboForge, sans compte : les middlewares de la robotique, puis ROS 2, pour savoir dans quoi vous vous lancez.{% endblock %}
+{% block main_class %}page plein{% endblock %}
+{% block content %}
+{% set premier = parcours | first %}
+<div class="conteneur page-titre avec-objet">
+  {{ objet("medaille", 150, "page-titre-objet") }}
+  <p class="eyebrow">Gratuit · sans compte</p>
+  <h1 class="titre-xl">Le parcours gratuit</h1>
+  <p class="chapeau">Avant de vous lancer, comprenez le paysage : comment le logiciel tient un robot ensemble, puis ROS 2, le middleware que vous apprendrez à utiliser. À lire à votre rythme, dans l'ordre.</p>
+</div>
+
+<section class="conteneur bloc" aria-labelledby="etapes">
+  <h2 id="etapes" class="titre-section">Les étapes</h2>
+  <ol class="etapes-gratuites">
+    {% for e in parcours_gratuit %}
+    <li>
+      <a class="etape-gratuite" href="{{ e.url }}">
+        <span class="pastille-numero">{{ loop.index }}</span>
+        {{ objet(e.icone, 72) }}
+        <span class="etape-texte">
+          <strong>{{ e.titre }}</strong>
+          <span>{{ e.resume }}</span>
+          <span class="muted small">{{ e.duree }} · lecture libre</span>
+        </span>
+        <span class="ligne-action" aria-hidden="true">Lire {{ fleche() }}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ol>
+  <p class="bientot-ligne">D'autres modules gratuits rejoindront ce parcours.</p>
+</section>
+
+{% if premier %}
+<section class="conteneur bloc" aria-labelledby="ensuite">
+  <div class="encart encart-sombre">
+    <div>
+      <h2 id="ensuite">Et ensuite ?</h2>
+      <p>Le parcours ROS 2 met tout cela en pratique dans un lab en ligne, autour d'un robot de livraison.</p>
+    </div>
+    <a class="button amber grand" href="/parcours/{{ premier.id }}/">{{ premier.titre }}</a>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

@@ -7,7 +7,7 @@
 {% block content %}
 <div class="conteneur page-titre avec-objet">
   {{ objet("noeuds", 150, "page-titre-objet") }}
-  <p class="eyebrow">Gratuit · sans prérequis · 4 chapitres</p>
+  {% with url="/decouvrir/middlewares/", titre="Middlewares et robotique", detail="sans prérequis · 4 chapitres" %}{% include "partiels/etape_gratuite.html" %}{% endwith %}
   <h1 class="titre-xl">Middlewares et robotique : ce qui relie le logiciel au robot</h1>
   <p class="chapeau">Un robot mobile, un drone ou une voiture autonome sont faits de dizaines de programmes qui doivent se parler en temps réel. Le middleware est la couche qui rend cela possible. Voici comment on en est arrivé à ROS 2, Cyber RT et les autres, et pourquoi chaque famille de robots a ses habitudes.</p>
 </div>
