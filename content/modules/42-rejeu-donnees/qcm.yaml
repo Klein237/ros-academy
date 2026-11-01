@@ -1,0 +1,57 @@
+questions:
+  - id: bag
+    question: Que contient un bag ROS 2 ?
+    choix:
+      - texte: Les messages des topics enregistrés, avec leur heure, et un fichier metadata.yaml qui décrit l'enregistrement
+        correct: true
+      - texte: Le code des nœuds qui tournaient pendant l'enregistrement
+      - texte: Une vidéo du robot
+    explication: Un bag est un dossier qui contient les messages sérialisés et leur description ; le code n'y est pas.
+  - id: record
+    question: Pourquoi éviter ros2 bag record -a sur un robot qui a des caméras ?
+    choix:
+      - texte: Il enregistre tous les topics, images comprises, et remplit vite le disque
+        correct: true
+      - texte: Il ne fonctionne qu'en simulation
+      - texte: Il ralentit le lidar
+    explication: Enregistrez les topics utiles à la question posée, ici /scan ; un petit bag se partage et se range avec les tests.
+  - id: info
+    question: Quelle commande affiche la durée d'un enregistrement et le nombre de messages par topic ?
+    choix:
+      - texte: ros2 bag info allee3
+        correct: true
+      - texte: ros2 topic info allee3
+      - texte: ros2 bag play allee3 --info
+    explication: ros2 bag info lit metadata.yaml ; un topic manquant ou trop peu de messages s'y voient tout de suite.
+  - id: play
+    question: Pendant ros2 bag play allee3, que voit le nœud arret_urgence ?
+    choix:
+      - texte: Les messages /scan republiés dans le même ordre et au même rythme, comme sur le robot
+        correct: true
+      - texte: Rien, il faut le relancer avec l'option --bag
+      - texte: Seulement le dernier message de l'enregistrement
+    explication: ros2 bag play republie les messages sur leurs topics ; un nœud abonné ne fait pas la différence avec le vrai capteur.
+  - id: laserscan
+    question: Un scan laser contient la distance 0.0 alors que range_min vaut 0.12. Que faire de cette mesure ?
+    choix:
+      - texte: L'ignorer, une distance hors de [range_min, range_max] est invalide
+        correct: true
+      - texte: La traiter comme un obstacle collé au robot
+      - texte: La remplacer par range_max
+    explication: La définition de sensor_msgs/LaserScan demande d'ignorer les distances hors des bornes ; ce lidar renvoie 0.0 quand le laser ne revient pas.
+  - id: rosbag2py
+    question: Pourquoi un test lit-il le bag avec rosbag2_py plutôt qu'en lançant ros2 bag play ?
+    choix:
+      - texte: Aucun nœud ni délai, les messages arrivent tous et dans l'ordre, le résultat est toujours le même
+        correct: true
+      - texte: ros2 bag play est interdit dans les tests
+      - texte: rosbag2_py modifie les messages pour les rendre testables
+    explication: Lire le bag directement retire le minutage et le réseau du test ; ros2 bag play sert à observer un nœud qui tourne.
+  - id: regression
+    question: Quand écrire le test de non-régression d'un bug ?
+    choix:
+      - texte: Avant de corriger, en vérifiant qu'il échoue, puis il doit réussir après la correction
+        correct: true
+      - texte: Après la correction, sans le lancer sur l'ancien code
+      - texte: Seulement si le bug revient une deuxième fois
+    explication: Un test qui passe déjà avec le bug ne protège de rien ; le voir échouer prouve qu'il attrape ce bug.

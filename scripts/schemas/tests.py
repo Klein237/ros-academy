@@ -1,9 +1,12 @@
-"""Schémas du parcours « Tester et fiabiliser » : tests unitaires (module 40), tests d'intégration (module 41)."""
+"""Schémas du parcours « Tester et fiabiliser » : tests unitaires (module 40), tests d'intégration (module 41), rejeu de données (module 42)."""
 
-from style import line, path, rect, svg, text
+import math
+
+from style import line, path, rect, robot, svg, text
 
 UNITAIRES = "40-tests-unitaires"
 INTEGRATION = "41-tests-integration"
+REJEU = "42-rejeu-donnees"
 
 
 def separation():
@@ -140,6 +143,100 @@ def deroulement():
                "vérifie les codes de sortie.", "\n".join(b))
 
 
+def enregistrer_rejouer():
+    b = [rect(20, 20, 420, 300, "fond", 12), text(40, 48, "SUR LE ROBOT, DANS L'ALLÉE 3", "t-sur"),
+         robot(100, 120, 0, 1.1),
+         rect(170, 98, 110, 44, "capteur", 8), text(225, 126, "/scan", "t-code", "middle"),
+         line(282, 120, 316, 120, fin="trait"),
+         rect(318, 92, 104, 56, "boite", 8), text(370, 116, "ros2 bag", "t-code", "middle"),
+         text(370, 136, "record", "t-code", "middle"),
+         line(370, 150, 370, 196, fin="trait"),
+         rect(280, 198, 180, 96, "calcul", 8), text(370, 224, "allee3/", "t-gras", "middle"),
+         text(370, 248, "metadata.yaml", "t-code", "middle"), text(370, 270, "allee3_0.mcap", "t-code", "middle"),
+         text(60, 230, "le bug se produit ici,", "t-petit"), text(60, 250, "on enregistre ce que", "t-petit"),
+         text(60, 270, "le lidar a vu", "t-petit")]
+    b += [path("M462 246 C 500 246, 500 246, 520 246", "tirets", fin="trait"), text(490, 236, "copie", "t-petit", "middle")]
+    b += [rect(520, 20, 380, 300, "fond", 12), text(540, 48, "SUR VOTRE POSTE", "t-sur"),
+          rect(540, 198, 120, 96, "calcul", 8), text(600, 224, "allee3/", "t-gras", "middle"),
+          text(600, 248, "les mêmes", "t-petit", "middle"), text(600, 268, "messages", "t-petit", "middle"),
+          line(600, 196, 600, 152, fin="trait"),
+          rect(540, 92, 120, 58, "boite", 8), text(600, 116, "ros2 bag", "t-code", "middle"), text(600, 136, "play", "t-code", "middle"),
+          line(662, 120, 712, 120, fin="trait"), text(687, 110, "/scan", "t-code", "middle"),
+          rect(714, 92, 168, 58, "capteur", 8), text(798, 116, "arret_urgence", "t-code", "middle"),
+          text(798, 136, "le nœud étudié", "t-petit", "middle"),
+          line(798, 152, 798, 196, fin="trait"),
+          rect(714, 198, 168, 44, "boite", 8), text(798, 226, "/arret", "t-code", "middle"),
+          text(798, 272, "le bug, reproduit", "t-ambre", "middle")]
+    return svg(920, 340, "Enregistrer sur le robot, rejouer sur son poste",
+               "À gauche, sur le robot dans l'allée 3, là où le bug se produit : ros2 bag record enregistre le topic /scan "
+               "du lidar dans le dossier allee3, qui contient metadata.yaml et le fichier de données allee3_0.mcap. Le "
+               "dossier est copié sur le poste du développeur. À droite, ros2 bag play republie les mêmes messages sur "
+               "/scan devant le nœud arret_urgence, qui publie sa décision sur /arret : le bug est reproduit.",
+               "\n".join(b))
+
+
+def scan_laser():
+    cx, cy = 300, 205
+    b = [rect(20, 20, 880, 330, "fond", 12), text(40, 48, "UN SCAN LASER, VU DE DESSUS", "t-sur"),
+         f'<circle class="tirets" cx="{cx}" cy="{cy}" r="140"/>', f'<circle class="tirets" cx="{cx}" cy="{cy}" r="34"/>']
+    mesures = [(-80, 1.0), (-60, 1.0), (-40, 1.0), (-20, 1.0), (0, None), (20, 1.0), (40, 0.0), (60, 1.0), (80, 1.0),
+               (100, 1.0), (120, 1.0), (140, 1.0), (160, 1.0), (180, None), (200, 1.0), (220, 1.0), (240, 0.0), (260, 1.0)]
+    zeros = []
+    for angle, valeur in mesures:
+        a = math.radians(angle)
+        if valeur is None:          # rien à portée : inf
+            x, y = cx + 140 * math.cos(a), cy - 140 * math.sin(a)
+            b.append(line(cx, cy, x, y, "tirets"))
+            continue
+        d = 0 if valeur == 0.0 else min(124, 90 / max(abs(math.sin(a)), 0.73))
+        x, y = cx + d * math.cos(a), cy - d * math.sin(a)
+        if valeur == 0.0:
+            zeros.append(f'<circle class="cir" cx="{cx + 22 * math.cos(a):.1f}" cy="{cy - 22 * math.sin(a):.1f}" r="5"/>')
+        else:
+            b += [line(cx, cy, x, y, "trait"), f'<circle class="roue" cx="{x:.1f}" cy="{y:.1f}" r="4"/>']
+    b += [robot(cx, cy, 90, 0.4)] + zeros + [
+          text(cx + 112, cy - 112, "range_max", "t-code"), text(cx + 40, cy + 44, "range_min", "t-code")]
+    b += [text(520, 92, "mesure valide", "t-gras"), text(520, 112, "entre range_min et range_max : un mur, un obstacle", "t-petit"),
+          f'<circle class="roue" cx="508" cy="88" r="4"/>',
+          text(520, 160, "inf", "t-gras"), text(520, 180, "rien à portée sur ce rayon", "t-petit"),
+          line(496, 156, 510, 156, "tirets"),
+          text(520, 228, "0.0", "t-gras"), text(520, 248, "le laser n'est pas revenu : pas une distance", "t-petit"),
+          f'<circle class="cir" cx="508" cy="224" r="5"/>',
+          text(520, 300, "le message dit lesquelles sont fiables :", "t-petit"),
+          text(520, 320, "ros2 interface show sensor_msgs/msg/LaserScan", "t-code")]
+    return svg(920, 370, "Ce que contient un scan laser",
+               "Le robot vu de dessus, au centre, avec ses rayons laser tout autour. Deux cercles en tirets marquent "
+               "range_min, près du robot, et range_max, la portée du capteur. Les mesures valides, entre les deux, "
+               "touchent les murs. Certains rayons ne rencontrent rien à portée : leur distance vaut inf. Pour deux "
+               "rayons, le laser n'est pas revenu : la distance vaut 0.0, ce qui n'est pas une vraie distance. La "
+               "définition du message, ros2 interface show sensor_msgs/msg/LaserScan, dit quelles mesures sont fiables.",
+               "\n".join(b))
+
+
+def non_regression():
+    b = [rect(20, 20, 880, 300, "fond", 12), text(40, 48, "DU BUG AU TEST DE NON-RÉGRESSION", "t-sur")]
+    etapes = [("1. le bug", "le robot s'arrête", "sans raison", "boite"),
+              ("2. enregistrer", "ros2 bag record", "/scan", "boite"),
+              ("3. reproduire", "ros2 bag play,", "le bug revient", "boite"),
+              ("4. un test", "qui rejoue le bag :", "il échoue", "capteur"),
+              ("5. corriger", "le test réussit,", "il reste dans la CI", "calcul")]
+    for i, (nom, l1, l2, cls) in enumerate(etapes):
+        x = 40 + i * 172
+        b += [rect(x, 84, 152, 110, cls, 8), text(x + 76, 116, nom, "t-gras", "middle"),
+              text(x + 76, 146, l1, "t-petit", "middle"), text(x + 76, 166, l2, "t-petit", "middle")]
+        if i < len(etapes) - 1:
+            b.append(line(x + 154, 139, x + 170, 139, fin="trait"))
+    b += [path("M764 196 C 764 262, 592 262, 592 198", "tirets", fin="trait"),
+          text(678, 280, "le bug revient ? le test échoue", "t-ambre", "middle"),
+          text(212, 240, "le test s'écrit AVANT la correction :", "t-petit", "middle"),
+          text(212, 260, "le voir échouer prouve qu'il attrape le bug", "t-petit", "middle")]
+    return svg(920, 340, "Du bug au test de non-régression",
+               "Cinq étapes : 1, le robot s'arrête sans raison ; 2, on enregistre /scan avec ros2 bag record ; 3, on "
+               "rejoue avec ros2 bag play et le bug revient ; 4, on écrit un test qui rejoue le bag, et il échoue ; 5, on "
+               "corrige, le test réussit et reste dans l'intégration continue. Si le bug revient un jour, le test échoue. "
+               "Le test s'écrit avant la correction : le voir échouer prouve qu'il attrape le bug.", "\n".join(b))
+
+
 SCHEMAS = {
     f"{UNITAIRES}/images/separation.svg": separation,
     f"{UNITAIRES}/images/pyramide.svg": pyramide,
@@ -147,4 +244,7 @@ SCHEMAS = {
     f"{INTEGRATION}/images/cablage.svg": cablage,
     f"{INTEGRATION}/images/integration.svg": integration,
     f"{INTEGRATION}/images/deroulement.svg": deroulement,
+    f"{REJEU}/images/enregistrer-rejouer.svg": enregistrer_rejouer,
+    f"{REJEU}/images/scan.svg": scan_laser,
+    f"{REJEU}/images/non-regression.svg": non_regression,
 }

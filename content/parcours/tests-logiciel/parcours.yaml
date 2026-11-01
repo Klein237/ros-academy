@@ -19,6 +19,8 @@ objectifs:
   - lancer les tests d'un package avec colcon test
   - mesurer la qualité de ses tests avec des mutants
   - tester un nœud lancé pour de vrai avec launch_testing, paramètres et codes de sortie compris
+  - enregistrer et rejouer des données avec ros2 bag pour reproduire un bug
+  - transformer un bug corrigé en test de non-régression sur données enregistrées
 prerequis:
   - Apprendre ROS 2 avec un robot mobile
 outils:
@@ -34,3 +36,6 @@ modules:
   - id: 41-tests-integration
     coef: 1
     partie: Tester le code
+  - id: 42-rejeu-donnees
+    coef: 1
+    partie: Tester sur des données réelles

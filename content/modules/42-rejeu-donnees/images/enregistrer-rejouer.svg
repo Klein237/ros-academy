@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 340" role="img" aria-labelledby="t d">
+<title id="t">Enregistrer sur le robot, rejouer sur son poste</title>
+<desc id="d">À gauche, sur le robot dans l&#x27;allée 3, là où le bug se produit : ros2 bag record enregistre le topic /scan du lidar dans le dossier allee3, qui contient metadata.yaml et le fichier de données allee3_0.mcap. Le dossier est copié sur le poste du développeur. À droite, ros2 bag play republie les mêmes messages sur /scan devant le nœud arret_urgence, qui publie sa décision sur /arret : le bug est reproduit.</desc>
+<style>
+.fond { fill: #fbfaf6; stroke: #cfc8b8; stroke-width: 1.5; }
+.grille { stroke: #ece8de; stroke-width: 1; }
+.boite { fill: #ffffff; stroke: #cfc8b8; stroke-width: 1.5; }
+.calcul { fill: #ecedf9; stroke: #3b4596; stroke-width: 2; }
+.capteur { fill: #fff8e8; stroke: #d39a2c; stroke-width: 2; }
+.actionneur { fill: #eef1f5; stroke: #56606a; stroke-width: 2; }
+.robot { fill: #ecedf9; stroke: #3b4596; stroke-width: 2; }
+.roue { fill: #12171c; }
+.roulette { fill: #ffffff; stroke: #12171c; stroke-width: 1.5; }
+.nez { fill: #3b4596; }
+.ax-x { stroke: #d64545; stroke-width: 3; fill: none; } .ax-y { stroke: #2f9e44; stroke-width: 3; fill: none; }
+.px { fill: #d64545; } .py { fill: #2f9e44; }
+.trait { stroke: #56606a; stroke-width: 2; fill: none; }
+.tirets { stroke: #8a949c; stroke-width: 1.5; stroke-dasharray: 5 5; fill: none; }
+.trajet { stroke: #d39a2c; stroke-width: 3; fill: none; stroke-linecap: round; }
+.trajet-pointe { fill: #d39a2c; }
+.vitesse { stroke: #3b4596; stroke-width: 3; fill: none; }
+.vitesse-pointe { fill: #3b4596; }
+.pointe { fill: #56606a; }
+.cir { fill: #d39a2c; }
+.t { fill: #12171c; font: 400 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-gras { fill: #12171c; font: 600 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-titre { fill: #12171c; font: 600 16px "IBM Plex Sans", system-ui, sans-serif; }
+.t-petit { fill: #56606a; font: 400 12.5px "IBM Plex Sans", system-ui, sans-serif; }
+.t-sur { fill: #56606a; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; letter-spacing: 0.08em; }
+.t-math { fill: #12171c; font: italic 500 15px "IBM Plex Serif", Georgia, serif; }
+.t-code { fill: #12171c; font: 500 13px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+.t-accent { fill: #3b4596; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-ambre { fill: #8a5d10; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-x { fill: #d64545; font: 600 13px "JetBrains Mono", monospace; } .t-y { fill: #2f9e44; font: 600 13px "JetBrains Mono", monospace; }
+.badge { fill: #3b4596; } .t-badge { fill: #ffffff; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; }
+.t-commit { fill: #12171c; font: 600 10.5px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+.sep { stroke: #e7e2d6; stroke-width: 1.5; }
+@media (prefers-color-scheme: dark) {
+  .fond { fill: #101114; stroke: #3a3b42; } .grille { stroke: #1f2026; }
+  .boite { fill: #16171b; stroke: #3a3b42; }
+  .calcul, .robot { fill: #1d2140; stroke: #9aa4f0; }
+  .capteur { fill: #2a2212; stroke: #f2b544; }
+  .actionneur { fill: #1c1d22; stroke: #9a9aa3; }
+  .roue { fill: #c9c9cf; } .roulette { fill: #16171b; stroke: #c9c9cf; } .nez { fill: #9aa4f0; }
+  .ax-x { stroke: #ff6b6b; } .ax-y { stroke: #51cf66; } .px, .t-x { fill: #ff6b6b; } .py, .t-y { fill: #51cf66; }
+  .trait { stroke: #9a9aa3; } .tirets { stroke: #62636b; } .pointe { fill: #9a9aa3; }
+  .trajet { stroke: #f2b544; } .trajet-pointe, .cir { fill: #f2b544; }
+  .vitesse { stroke: #9aa4f0; } .vitesse-pointe { fill: #9aa4f0; }
+  .t, .t-gras, .t-titre, .t-math, .t-code, .t-commit { fill: #f4f1ea; }
+  .t-petit, .t-sur { fill: #9a9aa3; } .t-accent { fill: #9aa4f0; } .t-ambre { fill: #f2b544; }
+  .badge { fill: #9aa4f0; } .t-badge { fill: #0b0b0d; } .sep { stroke: #26272d; }
+}
+</style>
+<defs>
+<marker id="m-trait" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-trajet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="trajet-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-vitesse" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="vitesse-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-x" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="px" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-y" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="py" d="M0 0 L10 5 L0 10 z"/></marker>
+</defs>
+<rect class="fond" x="20.0" y="20.0" width="420.0" height="300.0" rx="12"/>
+<text class="t-sur" x="40.0" y="48.0" text-anchor="start">SUR LE ROBOT, DANS L&#x27;ALLÉE 3</text>
+<g transform="translate(100.0 120.0) rotate(0.0)"><rect class="roue" x="-17.6" y="-34.1" width="35.2" height="9.9" rx="3.3"/><rect class="roue" x="-17.6" y="24.2" width="35.2" height="9.9" rx="3.3"/><rect class="robot" x="-28.6" y="-24.2" width="72.6" height="48.4" rx="11.0"/><circle class="roulette" cx="-18.7" cy="0" r="5.0"/><path class="nez" d="M33.0 0 l-9.9 -6.6 v13.2 z"/></g>
+<rect class="capteur" x="170.0" y="98.0" width="110.0" height="44.0" rx="8"/>
+<text class="t-code" x="225.0" y="126.0" text-anchor="middle">/scan</text>
+<line class="trait" x1="282.0" y1="120.0" x2="316.0" y2="120.0" marker-end="url(#m-trait)"/>
+<rect class="boite" x="318.0" y="92.0" width="104.0" height="56.0" rx="8"/>
+<text class="t-code" x="370.0" y="116.0" text-anchor="middle">ros2 bag</text>
+<text class="t-code" x="370.0" y="136.0" text-anchor="middle">record</text>
+<line class="trait" x1="370.0" y1="150.0" x2="370.0" y2="196.0" marker-end="url(#m-trait)"/>
+<rect class="calcul" x="280.0" y="198.0" width="180.0" height="96.0" rx="8"/>
+<text class="t-gras" x="370.0" y="224.0" text-anchor="middle">allee3/</text>
+<text class="t-code" x="370.0" y="248.0" text-anchor="middle">metadata.yaml</text>
+<text class="t-code" x="370.0" y="270.0" text-anchor="middle">allee3_0.mcap</text>
+<text class="t-petit" x="60.0" y="230.0" text-anchor="start">le bug se produit ici,</text>
+<text class="t-petit" x="60.0" y="250.0" text-anchor="start">on enregistre ce que</text>
+<text class="t-petit" x="60.0" y="270.0" text-anchor="start">le lidar a vu</text>
+<path class="tirets" d="M462 246 C 500 246, 500 246, 520 246" marker-end="url(#m-trait)"/>
+<text class="t-petit" x="490.0" y="236.0" text-anchor="middle">copie</text>
+<rect class="fond" x="520.0" y="20.0" width="380.0" height="300.0" rx="12"/>
+<text class="t-sur" x="540.0" y="48.0" text-anchor="start">SUR VOTRE POSTE</text>
+<rect class="calcul" x="540.0" y="198.0" width="120.0" height="96.0" rx="8"/>
+<text class="t-gras" x="600.0" y="224.0" text-anchor="middle">allee3/</text>
+<text class="t-petit" x="600.0" y="248.0" text-anchor="middle">les mêmes</text>
+<text class="t-petit" x="600.0" y="268.0" text-anchor="middle">messages</text>
+<line class="trait" x1="600.0" y1="196.0" x2="600.0" y2="152.0" marker-end="url(#m-trait)"/>
+<rect class="boite" x="540.0" y="92.0" width="120.0" height="58.0" rx="8"/>
+<text class="t-code" x="600.0" y="116.0" text-anchor="middle">ros2 bag</text>
+<text class="t-code" x="600.0" y="136.0" text-anchor="middle">play</text>
+<line class="trait" x1="662.0" y1="120.0" x2="712.0" y2="120.0" marker-end="url(#m-trait)"/>
+<text class="t-code" x="687.0" y="110.0" text-anchor="middle">/scan</text>
+<rect class="capteur" x="714.0" y="92.0" width="168.0" height="58.0" rx="8"/>
+<text class="t-code" x="798.0" y="116.0" text-anchor="middle">arret_urgence</text>
+<text class="t-petit" x="798.0" y="136.0" text-anchor="middle">le nœud étudié</text>
+<line class="trait" x1="798.0" y1="152.0" x2="798.0" y2="196.0" marker-end="url(#m-trait)"/>
+<rect class="boite" x="714.0" y="198.0" width="168.0" height="44.0" rx="8"/>
+<text class="t-code" x="798.0" y="226.0" text-anchor="middle">/arret</text>
+<text class="t-ambre" x="798.0" y="272.0" text-anchor="middle">le bug, reproduit</text>
+</svg>
