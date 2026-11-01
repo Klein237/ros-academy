@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import re
 import time
 from urllib.parse import parse_qs, urlsplit
 
@@ -692,4 +693,22 @@ def test_free_path_lists_its_steps_in_order(client):
     assert "étape 2 sur 2" in client.get("/decouvrir/").text
     for path in ("/", "/catalogue/"):
         page = client.get(path).text
-        assert 'href="/parcours-gratuit/">Voir le parcours gratuit' in page and "Étape 2 · 20 min" in page, path
+        assert 'href="/parcours-gratuit/">Voir le parcours gratuit' in page and "Étape 2 · 7 chapitres · 30 min" in page, path
+
+
+def test_free_path_pages_teach_with_schemas_and_a_self_check(client):
+    """Le point d'entrée de la plateforme apprend quelque chose : schémas servis, chapitres, auto-évaluation."""
+    pages = {"/decouvrir/middlewares/": ["sans-avec", "communications", "decouverte"],
+             "/decouvrir/": ["graphe", "twist", "du-code-au-robot"]}
+    for path, schemas in pages.items():
+        page = client.get(path).text
+        assert 'id="testez-vous"' in page and page.count("<details>") >= 4, path
+        for nom in schemas:
+            src = re.search(rf'src="(/static/contenus/decouvrir/{nom}\.svg\?v=[0-9a-f]+)"', page)
+            assert src, (path, nom)
+            image = client.get(src.group(1))
+            assert image.status_code == 200 and image.text.startswith("<svg"), (path, nom)
+    assert "Trois façons de se parler" in client.get("/decouvrir/middlewares/").text
+    page = client.get("/decouvrir/")
+    assert "create_publisher(Twist, &#39;/cmd_vel&#39;, 10)" in page.text or "create_publisher(Twist, '/cmd_vel', 10)" in page.text
+    assert "Ce que vous saurez à la fin" in client.get("/parcours-gratuit/").text

@@ -2,21 +2,22 @@
 {% from "partiels/icones.html" import objet %}
 {% set nav_actif = "decouvrir" %}
 {% block title %}Découvrir ROS 2 · RoboForge{% endblock %}
-{% block description %}D'où vient ROS, pourquoi ROS 2, qui l'utilise aujourd'hui et les liens utiles pour bien commencer.{% endblock %}
+{% block description %}D'où vient ROS, comment ROS 2 voit un robot (nœuds, topics, messages), un premier nœud en Python, les commandes pour explorer et le chemin du code jusqu'au robot.{% endblock %}
 {% block main_class %}page plein{% endblock %}
 {% block content %}
 {% set premier = parcours | first %}
 <div class="conteneur page-titre avec-objet">
   {{ objet("noeuds", 150, "page-titre-objet") }}
-  {% with url="/decouvrir/", titre="Découvrir ROS 2", detail="20 min" %}{% include "partiels/etape_gratuite.html" %}{% endwith %}
+  {% with url="/decouvrir/", titre="Découvrir ROS 2", detail="30 min · 7 chapitres" %}{% include "partiels/etape_gratuite.html" %}{% endwith %}
   <h1 class="titre-xl">ROS 2, le langage commun des robots</h1>
-  <p class="chapeau">Un robot, c'est des capteurs, des moteurs et beaucoup de logiciels qui doivent se parler. ROS 2 leur donne une façon commune de le faire, et des milliers de briques prêtes à l'emploi pour ne pas tout réécrire.</p>
+  <p class="chapeau">Un robot, c'est des capteurs, des moteurs et beaucoup de logiciels qui doivent se parler. ROS 2 leur donne une façon commune de le faire, et des milliers de briques prêtes à l'emploi pour ne pas tout réécrire. Voici comment il voit un robot, et à quoi ressemble votre premier programme.</p>
 </div>
 
 <div class="conteneur deux-colonnes">
   <div class="colonne-principale">
-    <section aria-labelledby="histoire">
-      <h2 id="histoire">Une brève histoire</h2>
+    <section id="histoire" aria-labelledby="histoire-titre">
+      <p class="eyebrow">Chapitre 1</p>
+      <h2 id="histoire-titre">Une brève histoire</h2>
       <ol class="frise">
         <li><strong>2007</strong><p>Né à Stanford, ROS est développé chez Willow Garage. Le but : arrêter de réinventer la roue dans chaque laboratoire.</p></li>
         <li><strong>2010</strong><p>Première distribution, Box Turtle, et le robot PR2 confié à des universités. La communauté décolle.</p></li>
@@ -27,8 +28,99 @@
       </ol>
     </section>
 
-    <section aria-labelledby="usages">
-      <h2 id="usages">Où on le trouve aujourd'hui</h2>
+    <section id="graphe" aria-labelledby="graphe-titre">
+      <p class="eyebrow">Chapitre 2</p>
+      <h2 id="graphe-titre">Un robot, vu comme un graphe</h2>
+      <p class="texte-long">ROS 2 découpe le logiciel d'un robot en <strong>nœuds</strong> : de petits programmes qui font chacun une seule chose. Ils échangent des messages sur des <strong>topics</strong>, des canaux nommés comme <code>/scan</code> ou <code>/cmd_vel</code>. L'ensemble forme un graphe. Voici celui du robot de livraison que vous construirez dans les parcours :</p>
+      <figure class="schema-page">
+        <img src="{{ statique('decouvrir/graphe.svg') }}" alt="Le graphe du robot de livraison : le lidar publie /scan, lu par arret_urgence et navigation ; l'odométrie publie /odom ; arret_urgence et navigation publient vers le nœud base, qui commande les roues" width="920" height="400" loading="lazy">
+      </figure>
+      <div class="grille-petite grille-3 apport">
+        <div class="carte-simple"><strong>Remplacer une pièce</strong><p>Un nouveau lidar ? Seul son nœud change. Les autres lisent toujours <code>/scan</code>.</p></div>
+        <div class="carte-simple"><strong>Ajouter une fonction</strong><p>Un nœud de cartographie s'abonne à <code>/scan</code> sans rien changer au reste.</p></div>
+        <div class="carte-simple"><strong>Tester un morceau</strong><p>On lance un nœud seul, on lui envoie des messages, on regarde ses réponses.</p></div>
+      </div>
+    </section>
+
+    <section id="messages" aria-labelledby="messages-titre">
+      <p class="eyebrow">Chapitre 3</p>
+      <h2 id="messages-titre">Ce qui circule : les messages</h2>
+      <p class="texte-long">Chaque topic transporte un seul <strong>type de message</strong>, défini une fois pour toutes et partagé par tout l'écosystème. Pour faire bouger un robot mobile, on publie sur <code>/cmd_vel</code> un message <code>geometry_msgs/msg/Twist</code> : une vitesse d'avance et une vitesse de rotation.</p>
+      <figure class="schema-page">
+        <img src="{{ statique('decouvrir/twist.svg') }}" alt="Le robot vu de dessus : linear.x est la vitesse d'avance en m/s, angular.z la vitesse de rotation en rad/s ; à côté, le contenu d'un message Twist avec x à 0.3 et z à 0.5" width="920" height="340" loading="lazy">
+      </figure>
+      <p class="texte-long">D'autres types reviennent sans cesse : <code>sensor_msgs/msg/LaserScan</code> pour un lidar, <code>sensor_msgs/msg/Image</code> pour une caméra, <code>nav_msgs/msg/Odometry</code> pour la position estimée. Parce que tout le monde utilise les mêmes, un pilote de lidar écrit par un fabricant fonctionne avec la navigation écrite par un autre.</p>
+    </section>
+
+    <section id="premier-noeud" aria-labelledby="noeud-titre">
+      <p class="eyebrow">Chapitre 4</p>
+      <h2 id="noeud-titre">Un premier nœud, en quelques lignes</h2>
+      <p class="texte-long">Voici un nœud complet, en Python : il publie dix fois par seconde une commande qui fait avancer le robot en tournant doucement à gauche.</p>
+      <figure class="code">
+        <figcaption><span class="code-lang">Python</span><span class="code-file">avance.py</span></figcaption>
+        <pre><code>import rclpy
+from geometry_msgs.msg import Twist
+from rclpy.node import Node
+
+
+class Avance(Node):
+
+    def __init__(self):
+        super().__init__('avance')  # le nom du nœud
+        self.commande = self.create_publisher(Twist, '/cmd_vel', 10)
+        self.create_timer(0.1, self.publier)  # 10 fois par seconde
+
+    def publier(self):
+        msg = Twist()
+        msg.linear.x = 0.3  # avance à 0,3 m/s
+        msg.angular.z = 0.5  # tourne à gauche
+        self.commande.publish(msg)
+
+
+def main():
+    rclpy.init()
+    rclpy.spin(Avance())  # tourne jusqu'à Ctrl+C</code></pre>
+      </figure>
+      <ul class="liste-lecture">
+        <li><code>create_publisher(Twist, '/cmd_vel', 10)</code> : le nœud annonce qu'il publiera des <code>Twist</code> sur <code>/cmd_vel</code>, en gardant au plus 10 messages en attente ;</li>
+        <li><code>create_timer(0.1, self.publier)</code> : ROS 2 appelle <code>publier()</code> toutes les 0,1 seconde ;</li>
+        <li><code>rclpy.spin()</code> : le nœud attend les événements (minuteries, messages reçus) et y répond, jusqu'à son arrêt.</li>
+      </ul>
+      <p class="texte-long">Le nœud ne sait pas qui l'écoute : un robot simulé, le vrai robot, ou un outil qui affiche les messages. C'est tout l'intérêt. Le même nœud s'écrit aussi en C++, avec la bibliothèque <code>rclcpp</code>.</p>
+    </section>
+
+    <section id="explorer" aria-labelledby="explorer-titre">
+      <p class="eyebrow">Chapitre 5</p>
+      <h2 id="explorer-titre">Explorer un robot qui tourne</h2>
+      <p class="texte-long">Quand des nœuds tournent, la commande <code>ros2</code> permet de les observer depuis un terminal, sans écrire de code. C'est le premier réflexe face à un robot qui ne fait pas ce qu'on attend :</p>
+      <div class="table-defilante">
+        <table class="table-robots">
+          <thead><tr><th scope="col">Commande</th><th scope="col">Ce qu'elle montre</th></tr></thead>
+          <tbody>
+            <tr><th scope="row"><code>ros2 node list</code></th><td>les nœuds en marche</td></tr>
+            <tr><th scope="row"><code>ros2 topic list</code></th><td>les topics existants</td></tr>
+            <tr><th scope="row"><code>ros2 topic echo /cmd_vel</code></th><td>les messages qui passent sur un topic, un par un</td></tr>
+            <tr><th scope="row"><code>ros2 topic hz /scan</code></th><td>la fréquence de publication : un capteur qui ralentit se voit tout de suite</td></tr>
+            <tr><th scope="row"><code>ros2 node info /avance</code></th><td>ce qu'un nœud publie, ce qu'il écoute, ses services</td></tr>
+            <tr><th scope="row"><code>ros2 interface show geometry_msgs/msg/Twist</code></th><td>la définition d'un type de message, champ par champ</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="code-robot" aria-labelledby="code-robot-titre">
+      <p class="eyebrow">Chapitre 6</p>
+      <h2 id="code-robot-titre">Du code au robot</h2>
+      <p class="texte-long">Les nœuds se rangent dans des <strong>packages</strong>, eux-mêmes rangés dans un <strong>workspace</strong>. Une commande, <code>colcon build</code>, compile et installe le tout ; une autre, <code>ros2 run</code> ou <code>ros2 launch</code>, démarre les nœuds.</p>
+      <figure class="schema-page">
+        <img src="{{ statique('decouvrir/du-code-au-robot.svg') }}" alt="Du code au robot : src/ contient les packages, colcon build compile et installe, on charge install/setup.bash, puis ros2 run ou ros2 launch démarre les nœuds en simulation ou sur le robot réel" width="920" height="300" loading="lazy">
+      </figure>
+      <p class="texte-long">Le même code tourne dans <strong>Gazebo</strong>, le simulateur, et sur le robot réel. On développe et on teste d'abord en simulation, sans risque pour le matériel, puis on passe au robot. Dans les parcours, le lab en ligne vous donne tout cela dans le navigateur : terminal, éditeur, Gazebo et RViz.</p>
+    </section>
+
+    <section id="usages" aria-labelledby="usages-titre">
+      <p class="eyebrow">Chapitre 7</p>
+      <h2 id="usages-titre">Où on le trouve aujourd'hui</h2>
       <p class="sous-titre">Les cas pratiques de la plateforme s'inspirent de ces usages.</p>
       <div class="grille-petite">
         <div class="carte-simple"><strong>Logistique</strong><p>Robots mobiles en entrepôt, qui naviguent avec Nav2.</p></div>
@@ -38,21 +130,32 @@
       </div>
     </section>
 
-    <section aria-labelledby="concepts">
+    <section id="idees-cles" aria-labelledby="concepts">
       <h2 id="concepts">Les idées clés, en une minute</h2>
       <dl class="concepts">
         <div><dt>nœud</dt><dd>Un programme qui fait une chose : lire un lidar, piloter les roues.</dd></div>
-        <div><dt>topic</dt><dd>Un flux de messages : le lidar publie, qui veut s'abonne.</dd></div>
+        <div><dt>topic</dt><dd>Un canal nommé : le lidar publie, qui veut s'abonne.</dd></div>
+        <div><dt>message</dt><dd>Un type partagé par tous : Twist pour une vitesse, LaserScan pour un lidar.</dd></div>
         <div><dt>service · action</dt><dd>Une question et sa réponse, ou une tâche longue avec suivi.</dd></div>
+        <div><dt>package · workspace</dt><dd>Les nœuds se rangent en packages, compilés avec colcon build.</dd></div>
         <div><dt>simulation</dt><dd>Gazebo fait vivre le robot avant qu'il existe pour de vrai.</dd></div>
       </dl>
+    </section>
+
+    <section id="testez-vous" class="quiz-libre" aria-labelledby="quiz-titre">
+      <h2 id="quiz-titre">Testez-vous</h2>
+      <p class="texte-long">Quatre questions pour vérifier ce que vous avez retenu. Réfléchissez, puis ouvrez la réponse.</p>
+      <details><summary>On remplace le lidar du robot par un autre modèle. Quels nœuds faut-il modifier ?</summary><p><strong>Seulement le nœud pilote du lidar.</strong> Tant qu'il publie toujours des <code>LaserScan</code> sur <code>/scan</code>, l'arrêt d'urgence et la navigation ne voient pas la différence.</p></details>
+      <details><summary>Dans un message Twist, quel champ fait tourner le robot sur lui-même ?</summary><p><strong><code>angular.z</code></strong>, la vitesse de rotation autour de l'axe vertical, en rad/s. Positive, le robot tourne à gauche. <code>linear.x</code> le fait avancer.</p></details>
+      <details><summary>Le robot ne bouge pas. Quelle commande lancer d'abord pour voir si une commande de vitesse arrive ?</summary><p><code>ros2 topic echo /cmd_vel</code> : si aucun message ne s'affiche, personne ne publie de commande ; s'ils arrivent, le problème est du côté du nœud qui pilote les roues.</p></details>
+      <details><summary>Que fait <code>colcon build</code> ?</summary><p>Il <strong>compile et installe</strong> les packages du dossier <code>src/</code> du workspace dans <code>install/</code>. On charge ensuite <code>install/setup.bash</code> pour que <code>ros2 run</code> les trouve.</p></details>
     </section>
 
     {% if premier %}
     <section class="encart encart-primaire">
       <div>
         <h2>Prêt à faire rouler votre premier robot ?</h2>
-        <p>Le premier module fait rouler le robot de livraison simulé dans votre navigateur, avant même d'écrire une ligne de ROS.</p>
+        <p>Le premier module fait rouler le robot de livraison simulé dans votre navigateur, avant même d'écrire une ligne de ROS. Puis vous écrivez vos propres nœuds, comme celui de cette page.</p>
       </div>
       <a class="button amber grand" href="/parcours/{{ premier.id }}/">Commencer : {{ premier.titre }}</a>
     </section>
@@ -60,6 +163,20 @@
   </div>
 
   <aside class="colonne-laterale">
+    <nav class="encart sommaire-intro" aria-label="Sommaire">
+      <h2>Sommaire</h2>
+      <ol>
+        <li><a href="#histoire">Une brève histoire</a></li>
+        <li><a href="#graphe">Un robot, vu comme un graphe</a></li>
+        <li><a href="#messages">Ce qui circule : les messages</a></li>
+        <li><a href="#premier-noeud">Un premier nœud</a></li>
+        <li><a href="#explorer">Explorer un robot qui tourne</a></li>
+        <li><a href="#code-robot">Du code au robot</a></li>
+        <li><a href="#usages">Où on le trouve</a></li>
+        <li><a href="#testez-vous">Testez-vous</a></li>
+      </ol>
+      <p class="muted small">Lecture libre, sans compte.</p>
+    </nav>
     <section class="encart encart-liens" aria-labelledby="liens">
       <h2 id="liens">Liens utiles</h2>
       <ul class="liens">
