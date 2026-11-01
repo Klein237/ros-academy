@@ -7,7 +7,7 @@
 {% block content %}
 <div class="conteneur page-titre avec-objet">
   {{ objet("noeuds", 150, "page-titre-objet") }}
-  {% with url="/decouvrir/middlewares/", titre="Middlewares et robotique", detail="sans prérequis · 4 chapitres" %}{% include "partiels/etape_gratuite.html" %}{% endwith %}
+  {% with url="/decouvrir/middlewares/", titre="Middlewares et robotique", detail="sans prérequis · 6 chapitres" %}{% include "partiels/etape_gratuite.html" %}{% endwith %}
   <h1 class="titre-xl">Middlewares et robotique : ce qui relie le logiciel au robot</h1>
   <p class="chapeau">Un robot mobile, un drone ou une voiture autonome sont faits de dizaines de programmes qui doivent se parler en temps réel. Le middleware est la couche qui rend cela possible. Voici comment on en est arrivé à ROS 2, Cyber RT et les autres, et pourquoi chaque famille de robots a ses habitudes.</p>
 </div>
@@ -28,6 +28,10 @@
         </ol>
         <figcaption>Le middleware sépare ce que fait le robot de la façon dont ses programmes communiquent. On peut changer de lidar sans réécrire la planification.</figcaption>
       </figure>
+      <p class="texte-long">Sans middleware, chaque programme devrait savoir où trouver chacun des autres, dans quel format lui écrire et quoi faire s'il ne répond pas. Avec cinq programmes, cela fait déjà dix liaisons à maintenir à la main. Le middleware remplace ces liaisons par un point de rendez-vous commun :</p>
+      <figure class="schema-page">
+        <img src="{{ statique('decouvrir/sans-avec.svg') }}" alt="À gauche, sans middleware, cinq programmes du robot reliés deux à deux ; à droite, avec un middleware, chacun ne parle qu'au middleware" width="920" height="370" loading="lazy">
+      </figure>
       <div class="grille-petite grille-3 apport">
         <div class="carte-simple"><strong>Découpler</strong><p>Chaque programme publie ce qu'il sait et lit ce dont il a besoin.</p></div>
         <div class="carte-simple"><strong>Réutiliser</strong><p>Un pilote ou un planificateur écrit une fois sert sur plusieurs robots.</p></div>
@@ -35,8 +39,38 @@
       </div>
     </section>
 
-    <section id="histoire" aria-labelledby="histoire-titre">
+    <section id="communiquer" aria-labelledby="communiquer-titre">
       <p class="eyebrow">Chapitre 2</p>
+      <h2 id="communiquer-titre">Trois façons de se parler</h2>
+      <p class="texte-long">Presque tous les middlewares de la robotique proposent les mêmes trois façons d'échanger. Les reconnaître, c'est déjà savoir lire l'architecture d'un robot.</p>
+      <figure class="schema-page">
+        <img src="{{ statique('decouvrir/communications.svg') }}" alt="Topic : le lidar publie /scan vers deux abonnés ; service : une question et sa réponse ; action : un but, des nouvelles en route et un résultat" width="920" height="460" loading="lazy">
+      </figure>
+      <div class="grille-petite grille-3 apport">
+        <div class="carte-simple"><strong>Topic</strong><p>Pour ce qui coule en continu : mesures des capteurs, position, commandes de vitesse. L'émetteur ne sait pas qui écoute.</p></div>
+        <div class="carte-simple"><strong>Service</strong><p>Pour une demande ponctuelle et rapide : lire un niveau de batterie, changer un mode. Le client attend la réponse.</p></div>
+        <div class="carte-simple"><strong>Action</strong><p>Pour une tâche qui prend du temps : aller à un quai, saisir un objet. On suit l'avancement, et on peut annuler.</p></div>
+      </div>
+      <p class="a-retenir"><strong>À retenir :</strong> devant un besoin de communication, demandez-vous si l'information coule en continu (topic), si l'on attend une réponse immédiate (service), ou si c'est une tâche longue à suivre (action).</p>
+    </section>
+
+    <section id="decouverte" aria-labelledby="decouverte-titre">
+      <p class="eyebrow">Chapitre 3</p>
+      <h2 id="decouverte-titre">Se trouver et tenir les délais</h2>
+      <p class="texte-long">Deux questions se posent dès que les programmes tournent sur plusieurs ordinateurs : comment se trouvent-ils, et que faire quand le réseau perd un message ? ROS 1 répondait à la première avec un serveur central. ROS 2 s'appuie sur DDS, un standard de l'industrie, où chaque programme s'annonce lui-même sur le réseau.</p>
+      <figure class="schema-page">
+        <img src="{{ statique('decouvrir/decouverte.svg') }}" alt="ROS 1 : les nœuds passent par un serveur central, roscore ; ROS 2 : sans serveur, chaque nœud s'annonce sur le réseau grâce à DDS" width="920" height="340" loading="lazy">
+      </figure>
+      <p class="texte-long">Pour la seconde question, ROS 2 laisse régler la <strong>qualité de service</strong> de chaque topic. Les deux réglages qu'on rencontre le plus :</p>
+      <div class="grille-petite apport">
+        <div class="carte-simple"><strong>Fiable ou au mieux</strong><p>En mode fiable (<em>reliable</em>), un message perdu est renvoyé : c'est le choix pour une commande. Au mieux (<em>best effort</em>), on ne renvoie rien : un scan laser perdu sera remplacé par le suivant, un dixième de seconde plus tard.</p></div>
+        <div class="carte-simple"><strong>Garder le dernier message</strong><p>Une carte ou la description du robot se publient une fois. En les gardant pour les retardataires (<em>transient local</em>), un nœud démarré après coup les reçoit quand même.</p></div>
+      </div>
+      <p class="a-retenir"><strong>À retenir :</strong> pas de serveur central en ROS 2, et chaque topic choisit son compromis entre fiabilité et fraîcheur. Le module bonus « La qualité de service (QoS) » du parcours ROS 2 le met en pratique.</p>
+    </section>
+
+    <section id="histoire" aria-labelledby="histoire-titre">
+      <p class="eyebrow">Chapitre 4</p>
       <h2 id="histoire-titre">Une courte histoire</h2>
       <ol class="frise">
         <li><strong>Début des années 2000 · Player/Stage</strong><p>Un serveur qui expose les capteurs et les moteurs d'un robot sur le réseau, et un simulateur 2D. Les laboratoires commencent à partager du code d'un robot à l'autre.</p></li>
@@ -48,7 +82,7 @@
     </section>
 
     <section id="paysage" aria-labelledby="paysage-titre">
-      <p class="eyebrow">Chapitre 3</p>
+      <p class="eyebrow">Chapitre 5</p>
       <h2 id="paysage-titre">Le paysage aujourd'hui</h2>
       <div class="grille-petite">
         <div class="carte-simple"><strong>ROS 2</strong><p>Le standard ouvert le plus répandu. Communication DDS, outils (RViz, rosbag), et de grandes briques comme Nav2 pour la navigation et MoveIt 2 pour les bras.</p></div>
@@ -62,7 +96,7 @@
     </section>
 
     <section id="robots" aria-labelledby="robots-titre">
-      <p class="eyebrow">Chapitre 4</p>
+      <p class="eyebrow">Chapitre 6</p>
       <h2 id="robots-titre">Un middleware par type de robot</h2>
       <p class="texte-long">Le choix dépend des contraintes : temps réel, puissance de calcul embarquée, certification, taille de l'écosystème. Voici les associations les plus courantes.</p>
       <div class="table-defilante">
@@ -92,10 +126,19 @@
       </div>
     </section>
 
+    <section id="testez-vous" class="quiz-libre" aria-labelledby="quiz-titre">
+      <h2 id="quiz-titre">Testez-vous</h2>
+      <p class="texte-long">Quatre questions pour vérifier ce que vous avez retenu. Réfléchissez, puis ouvrez la réponse.</p>
+      <details><summary>Le lidar envoie ses mesures dix fois par seconde à trois programmes. Topic, service ou action ?</summary><p><strong>Un topic.</strong> L'information coule en continu, sans réponse attendue, vers autant d'abonnés que nécessaire.</p></details>
+      <details><summary>Le robot doit traverser l'entrepôt jusqu'au quai 4, en donnant des nouvelles. Topic, service ou action ?</summary><p><strong>Une action.</strong> C'est une tâche longue : un but, des nouvelles en route, un résultat, et la possibilité d'annuler.</p></details>
+      <details><summary>Pourquoi ROS 2 n'a-t-il plus besoin de roscore ?</summary><p>Parce qu'il repose sur <strong>DDS</strong> : chaque nœud s'annonce lui-même sur le réseau, et les nœuds se découvrent entre eux. Il n'y a plus de serveur central dont l'arrêt paralyserait le robot.</p></details>
+      <details><summary>Un scan laser se perd sur le Wi-Fi. Faut-il absolument le renvoyer ?</summary><p><strong>Non.</strong> Un nouveau scan arrive un dixième de seconde plus tard : le mode « au mieux » (<em>best effort</em>) suffit. Une commande ou une carte, en revanche, se publient en mode fiable.</p></details>
+    </section>
+
     <section class="encart encart-sombre" aria-labelledby="suite">
       <div>
         <h2 id="suite">Voir ROS 2 de près, gratuitement</h2>
-        <p>La deuxième introduction gratuite présente ROS 2 : d'où il vient, ses idées clés, le parcours qui l'enseigne et les liens utiles pour aller plus loin.</p>
+        <p>L'étape suivante du parcours gratuit ouvre ROS 2 : le robot vu comme un graphe, les messages, un premier nœud en Python, et le chemin du code jusqu'au robot.</p>
       </div>
       <a class="button amber grand" href="/decouvrir/">Découvrir ROS 2</a>
     </section>
@@ -106,9 +149,12 @@
       <h2>Sommaire</h2>
       <ol>
         <li><a href="#pourquoi">Pourquoi un middleware ?</a></li>
+        <li><a href="#communiquer">Trois façons de se parler</a></li>
+        <li><a href="#decouverte">Se trouver et tenir les délais</a></li>
         <li><a href="#histoire">Une courte histoire</a></li>
         <li><a href="#paysage">Le paysage aujourd'hui</a></li>
         <li><a href="#robots">Un middleware par type de robot</a></li>
+        <li><a href="#testez-vous">Testez-vous</a></li>
       </ol>
       <p class="muted small">Lecture libre, sans compte.</p>
     </nav>

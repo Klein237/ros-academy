@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" role="img" aria-labelledby="t d">
+<title id="t">Trois façons de se parler</title>
+<desc id="d">Topic : le lidar publie /scan dix fois par seconde, l&#x27;arrêt d&#x27;urgence et la cartographie s&#x27;y abonnent, sans réponse. Service : l&#x27;interface demande à la batterie son niveau et attend la réponse, 72 %. Action : la mission demande à la navigation d&#x27;aller au quai 4, reçoit des nouvelles en route (encore 12 m), puis le résultat (arrivé) ; on peut l&#x27;annuler en chemin.</desc>
+<style>
+.fond { fill: #fbfaf6; stroke: #cfc8b8; stroke-width: 1.5; }
+.grille { stroke: #ece8de; stroke-width: 1; }
+.boite { fill: #ffffff; stroke: #cfc8b8; stroke-width: 1.5; }
+.calcul { fill: #ecedf9; stroke: #3b4596; stroke-width: 2; }
+.capteur { fill: #fff8e8; stroke: #d39a2c; stroke-width: 2; }
+.actionneur { fill: #eef1f5; stroke: #56606a; stroke-width: 2; }
+.robot { fill: #ecedf9; stroke: #3b4596; stroke-width: 2; }
+.roue { fill: #12171c; }
+.roulette { fill: #ffffff; stroke: #12171c; stroke-width: 1.5; }
+.nez { fill: #3b4596; }
+.ax-x { stroke: #d64545; stroke-width: 3; fill: none; } .ax-y { stroke: #2f9e44; stroke-width: 3; fill: none; }
+.px { fill: #d64545; } .py { fill: #2f9e44; }
+.trait { stroke: #56606a; stroke-width: 2; fill: none; }
+.tirets { stroke: #8a949c; stroke-width: 1.5; stroke-dasharray: 5 5; fill: none; }
+.trajet { stroke: #d39a2c; stroke-width: 3; fill: none; stroke-linecap: round; }
+.trajet-pointe { fill: #d39a2c; }
+.vitesse { stroke: #3b4596; stroke-width: 3; fill: none; }
+.vitesse-pointe { fill: #3b4596; }
+.pointe { fill: #56606a; }
+.cir { fill: #d39a2c; }
+.t { fill: #12171c; font: 400 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-gras { fill: #12171c; font: 600 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-titre { fill: #12171c; font: 600 16px "IBM Plex Sans", system-ui, sans-serif; }
+.t-petit { fill: #56606a; font: 400 12.5px "IBM Plex Sans", system-ui, sans-serif; }
+.t-sur { fill: #56606a; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; letter-spacing: 0.08em; }
+.t-math { fill: #12171c; font: italic 500 15px "IBM Plex Serif", Georgia, serif; }
+.t-code { fill: #12171c; font: 500 13px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+.t-accent { fill: #3b4596; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-ambre { fill: #8a5d10; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-x { fill: #d64545; font: 600 13px "JetBrains Mono", monospace; } .t-y { fill: #2f9e44; font: 600 13px "JetBrains Mono", monospace; }
+.badge { fill: #3b4596; } .t-badge { fill: #ffffff; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; }
+.t-commit { fill: #12171c; font: 600 10.5px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+.sep { stroke: #e7e2d6; stroke-width: 1.5; }
+@media (prefers-color-scheme: dark) {
+  .fond { fill: #101114; stroke: #3a3b42; } .grille { stroke: #1f2026; }
+  .boite { fill: #16171b; stroke: #3a3b42; }
+  .calcul, .robot { fill: #1d2140; stroke: #9aa4f0; }
+  .capteur { fill: #2a2212; stroke: #f2b544; }
+  .actionneur { fill: #1c1d22; stroke: #9a9aa3; }
+  .roue { fill: #c9c9cf; } .roulette { fill: #16171b; stroke: #c9c9cf; } .nez { fill: #9aa4f0; }
+  .ax-x { stroke: #ff6b6b; } .ax-y { stroke: #51cf66; } .px, .t-x { fill: #ff6b6b; } .py, .t-y { fill: #51cf66; }
+  .trait { stroke: #9a9aa3; } .tirets { stroke: #62636b; } .pointe { fill: #9a9aa3; }
+  .trajet { stroke: #f2b544; } .trajet-pointe, .cir { fill: #f2b544; }
+  .vitesse { stroke: #9aa4f0; } .vitesse-pointe { fill: #9aa4f0; }
+  .t, .t-gras, .t-titre, .t-math, .t-code, .t-commit { fill: #f4f1ea; }
+  .t-petit, .t-sur { fill: #9a9aa3; } .t-accent { fill: #9aa4f0; } .t-ambre { fill: #f2b544; }
+  .badge { fill: #9aa4f0; } .t-badge { fill: #0b0b0d; } .sep { stroke: #26272d; }
+}
+</style>
+<defs>
+<marker id="m-trait" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-trajet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="trajet-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-vitesse" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="vitesse-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-x" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="px" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-y" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="py" d="M0 0 L10 5 L0 10 z"/></marker>
+</defs>
+<rect class="fond" x="20.0" y="20.0" width="880.0" height="420.0" rx="12"/>
+<text class="t-sur" x="40.0" y="50.0" text-anchor="start">TOPIC : UN FLUX CONTINU</text>
+<rect class="capteur" x="40.0" y="70.0" width="150.0" height="50.0" rx="8"/>
+<text class="t-gras" x="115.0" y="100.0" text-anchor="middle">lidar</text>
+<line class="trait" x1="192.0" y1="95.0" x2="236.0" y2="95.0"/>
+<path class="trait" d="M236 95 C 280 95, 290 77, 330 77" marker-end="url(#m-trait)"/>
+<path class="trait" d="M236 95 C 280 95, 290 115, 330 115" marker-end="url(#m-trait)"/>
+<text class="t-code" x="214.0" y="86.0" text-anchor="middle">/scan</text>
+<text class="t-petit" x="214.0" y="140.0" text-anchor="middle">10 fois par seconde</text>
+<rect class="boite" x="332.0" y="62.0" width="170.0" height="30.0" rx="6"/>
+<text class="t-petit" x="417.0" y="82.0" text-anchor="middle">arrêt d&#x27;urgence</text>
+<rect class="boite" x="332.0" y="100.0" width="170.0" height="30.0" rx="6"/>
+<text class="t-petit" x="417.0" y="120.0" text-anchor="middle">cartographie</text>
+<text class="t-petit" x="530.0" y="92.0" text-anchor="start">un émetteur, autant d&#x27;abonnés que nécessaire,</text>
+<text class="t-petit" x="530.0" y="112.0" text-anchor="start">sans réponse : publier et s&#x27;abonner</text>
+<line class="sep" x1="40.0" y1="152.0" x2="880.0" y2="152.0"/>
+<text class="t-sur" x="40.0" y="182.0" text-anchor="start">SERVICE : UNE QUESTION, UNE RÉPONSE</text>
+<rect class="boite" x="40.0" y="200.0" width="150.0" height="56.0" rx="8"/>
+<text class="t-gras" x="115.0" y="233.0" text-anchor="middle">interface</text>
+<rect class="calcul" x="332.0" y="200.0" width="170.0" height="56.0" rx="8"/>
+<text class="t-gras" x="417.0" y="233.0" text-anchor="middle">batterie</text>
+<line class="trait" x1="192.0" y1="214.0" x2="330.0" y2="214.0" marker-end="url(#m-trait)"/>
+<text class="t-code" x="261.0" y="207.0" text-anchor="middle">niveau ?</text>
+<line class="trait" x1="330.0" y1="244.0" x2="194.0" y2="244.0" marker-end="url(#m-trait)"/>
+<text class="t-code" x="261.0" y="266.0" text-anchor="middle">72 %</text>
+<text class="t-petit" x="530.0" y="224.0" text-anchor="start">le client attend la réponse :</text>
+<text class="t-petit" x="530.0" y="244.0" text-anchor="start">pour une demande courte</text>
+<line class="sep" x1="40.0" y1="288.0" x2="880.0" y2="288.0"/>
+<text class="t-sur" x="40.0" y="318.0" text-anchor="start">ACTION : UNE TÂCHE LONGUE, SUIVIE</text>
+<rect class="boite" x="40.0" y="336.0" width="150.0" height="80.0" rx="8"/>
+<text class="t-gras" x="115.0" y="381.0" text-anchor="middle">mission</text>
+<rect class="calcul" x="332.0" y="336.0" width="170.0" height="80.0" rx="8"/>
+<text class="t-gras" x="417.0" y="381.0" text-anchor="middle">navigation</text>
+<line class="trait" x1="192.0" y1="348.0" x2="330.0" y2="348.0" marker-end="url(#m-trait)"/>
+<text class="t-code" x="261.0" y="342.0" text-anchor="middle">va au quai 4</text>
+<line class="tirets" x1="330.0" y1="376.0" x2="194.0" y2="376.0" marker-end="url(#m-trait)"/>
+<text class="t-code" x="261.0" y="370.0" text-anchor="middle">encore 12 m</text>
+<line class="trait" x1="330.0" y1="404.0" x2="194.0" y2="404.0" marker-end="url(#m-trait)"/>
+<text class="t-code" x="261.0" y="398.0" text-anchor="middle">arrivé</text>
+<text class="t-petit" x="530.0" y="366.0" text-anchor="start">un but, des nouvelles en route, un résultat ;</text>
+<text class="t-petit" x="530.0" y="386.0" text-anchor="start">on peut l&#x27;annuler en chemin</text>
+</svg>

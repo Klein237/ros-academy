@@ -132,12 +132,12 @@ def format_prix(prix):
 # l'afficher sur la page du parcours gratuit, l'accueil et le catalogue)
 PARCOURS_GRATUIT = [
     {"url": "/decouvrir/middlewares/", "titre": "Middlewares et évolution de la robotique", "icone": "noeuds",
-     "duree": "4 chapitres",
-     "resume": "ROS, ROS 2, Cyber RT et les autres : comment ils font tenir ensemble le logiciel des robots "
-               "mobiles, des drones et des véhicules."},
-    {"url": "/decouvrir/", "titre": "Découvrir ROS 2", "icone": "robot", "duree": "20 min",
-     "resume": "D'où vient ROS, comment fonctionne ROS 2, le parcours qui l'enseigne et les liens à garder "
-               "sous la main."},
+     "duree": "6 chapitres · 25 min",
+     "resume": "Pourquoi un middleware, les trois façons de se parler (topic, service, action), la découverte "
+               "et la qualité de service, puis ROS 2, Cyber RT et les autres, robot par robot."},
+    {"url": "/decouvrir/", "titre": "Découvrir ROS 2", "icone": "robot", "duree": "7 chapitres · 30 min",
+     "resume": "Le robot vu comme un graphe de nœuds, les messages, un premier nœud en Python, les commandes "
+               "pour explorer un robot et le chemin du code jusqu'au robot."},
 ]
 
 

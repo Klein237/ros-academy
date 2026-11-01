@@ -12,22 +12,27 @@ from pathlib import Path
 
 import bonus
 import bras
+import decouvrir
 import docker
 import git
 import robot_mobile
 import ros2
 import tests
 
-CONTENT = Path(__file__).resolve().parents[2] / "content" / "modules"
-SOURCES = [robot_mobile, ros2, bonus, docker, bras, git, tests]
+RACINE = Path(__file__).resolve().parents[2]
+CONTENT = RACINE / "content" / "modules"
+# schémas des pages du site (parcours gratuit), servis par Contenus sous /static/contenus/
+STATIQUE = RACINE / "contenus" / "academy_content" / "static"
+SOURCES = [robot_mobile, ros2, bonus, docker, bras, git, tests, decouvrir]
 
 
 def main():
     verifier = "--verifier" in sys.argv
     perimes = []
     for source in SOURCES:
-        for rel, fn in source.SCHEMAS.items():
-            target = CONTENT / rel
+        cibles = [(CONTENT / rel, rel, fn) for rel, fn in source.SCHEMAS.items()]
+        cibles += [(STATIQUE / rel, f"static/{rel}", fn) for rel, fn in getattr(source, "STATIQUES", {}).items()]
+        for target, rel, fn in cibles:
             contenu = fn()
             if target.is_file() and target.read_text(encoding="utf-8") == contenu:
                 continue
