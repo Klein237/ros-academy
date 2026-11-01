@@ -663,7 +663,7 @@ def test_catalogue_v2_free_available_and_upcoming(store, client):
                                  "notion": "A* et Dijkstra"})
     store.publish(Runner())
     page = client.get("/catalogue/").text
-    gratuit, dispo, bientot = page.index("Parcours gratuit, sans compte"), page.index(">Disponibles<"), page.index(">Bientôt<")
+    gratuit, dispo, bientot = page.index(">Parcours gratuit<"), page.index(">Disponibles<"), page.index(">Bientôt<")
     assert gratuit < dispo < bientot and 'href="/decouvrir/"' in page[gratuit:dispo]
     assert "Parcours démo" in page[dispo:bientot] and "Planifier un trajet" in page[bientot:]
     assert "Notion : A* et Dijkstra" in page and "feuille de route" not in page.lower()
@@ -689,8 +689,8 @@ def test_free_path_lists_its_steps_in_order(client):
     assert "D'autres modules gratuits rejoindront ce parcours." in page
     # chaque étape renvoie au parcours gratuit et dit où elle se situe
     page = client.get("/decouvrir/middlewares/").text
-    assert 'href="/parcours-gratuit/">Parcours gratuit</a> › Middlewares et robotique' in page and "étape 1 sur 2" in page
-    assert "étape 2 sur 2" in client.get("/decouvrir/").text
+    assert 'href="/parcours-gratuit/">Parcours gratuit</a> › Middlewares et robotique' in page and "étape 1 sur 3" in page
+    assert "étape 2 sur 3" in client.get("/decouvrir/").text
     for path in ("/", "/catalogue/"):
         page = client.get(path).text
         assert 'href="/parcours-gratuit/">Voir le parcours gratuit' in page and "Étape 2 · 7 chapitres · 30 min" in page, path
@@ -712,3 +712,41 @@ def test_free_path_pages_teach_with_schemas_and_a_self_check(client):
     page = client.get("/decouvrir/")
     assert "create_publisher(Twist, &#39;/cmd_vel&#39;, 10)" in page.text or "create_publisher(Twist, '/cmd_vel', 10)" in page.text
     assert "Ce que vous saurez à la fin" in client.get("/parcours-gratuit/").text
+
+
+@pytest.fixture
+def store_linux(tmp_path):
+    """Un parcours payant (01-demo) et le module gratuit 02-linux, dans aucun parcours."""
+    seed = tmp_path / "seed"
+    make_module(seed)
+    make_module(seed, "02-linux", **{"index.md": "---\ntitre: Linux pour la robotique\nresume: Le terminal\n"
+                                                 "duree: 1 h 15\n---\n# Cours\n\n## Se déplacer\n\nTexte.\n"})
+    make_parcours(seed)
+    return ContentStore(tmp_path / "store", seed=seed)
+
+
+def test_free_module_opens_to_any_connected_account_without_purchase(store_linux):
+    c = TestClient(create_app(store_linux, Runner(), SECRET, cookie_secure=False))
+    # sans compte : le plan du module et une invitation à créer un compte gratuit
+    page = c.get("/modules/02-linux/").text
+    assert "Module gratuit, avec un compte" in page and "Créer un compte gratuit" in page and "Texte." not in page
+    assert 'href="/parcours-gratuit/">Parcours gratuit</a> › Linux pour la robotique' in page
+    # connecté sans aucun parcours acheté : le cours s'ouvre, avec le retour au parcours gratuit
+    page = c.get("/modules/02-linux/", headers={**ETUDIANT, "X-Academy-Acces": ""}).text
+    assert "Texte." in page and 'class="module-retour" href="/parcours-gratuit/"' in page
+    assert 'data-ouverture="02-linux"' in page  # l'ouverture du cours est notée pour les formateurs
+    # un module payant reste fermé sans achat
+    assert "Texte." not in c.get("/modules/01-demo/", headers={**ETUDIANT, "X-Academy-Acces": ""}).text
+    # Comptes reçoit la liste des modules gratuits avec le catalogue
+    data = c.get("/api/contenus/parcours").json()
+    assert [m["id"] for m in data["gratuits"]] == ["02-linux"]
+    assert all(m["id"] != "02-linux" for p in data["parcours"] for m in p["modules"])
+    # le parcours gratuit le présente comme sa 3e étape, avec un compte gratuit
+    page = c.get("/parcours-gratuit/").text
+    assert 'href="/modules/02-linux/"' in page and "compte gratuit" in page
+    page = c.get("/decouvrir/").text  # l'étape 2 renvoie à l'étape 3
+    assert "Parcours gratuit · étape suivante" in page and 'href="/modules/02-linux/">Pratiquer dans le lab' in page
+
+
+def test_module_page_marks_its_opening(client):
+    assert 'data-ouverture="01-demo"' in client.get("/modules/01-demo/").text

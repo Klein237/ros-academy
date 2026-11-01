@@ -98,13 +98,13 @@ test("module Linux : l'exercice se corrige dans le terminal et le serveur le vé
   const panel = page.locator(".module-panel");
   await expect(panel.locator(".exercise-status")).toContainText("Exercice prêt", { timeout: 180_000 });
   // le lab guidé du module (fichiers d'entraînement) est installé
-  await expect(page.locator('.tree-row[data-path="ws/ros2-fondamentaux/02-linux"]')).toBeVisible();
+  await expect(page.locator('.tree-row[data-path="ws/02-linux"]')).toBeVisible();
   await panel.getByRole("button", { name: "Vérifier" }).click();
   await expect(panel.locator(".exercise-status")).toContainText("Pas encore", { timeout: 180_000 });
   await expect(panel.locator(".exercise-status")).toContainText("Permission denied");
   await page.locator(".terminals .tab").first().click();
   await expect(activeTerminal(page)).toHaveAttribute("data-status", "open");
-  await run(page, "cd ~/ws/ros2-fondamentaux/02-linux-exercice && chmod +x demarrer_robot.sh && ./demarrer_robot.sh", "robot.env introuvable");
+  await run(page, "cd ~/ws/02-linux-exercice && chmod +x demarrer_robot.sh && ./demarrer_robot.sh", "robot.env introuvable");
   await run(page, `cp config/robot.env.exemple config/robot.env && sed -i 's/a-changer/livreur-01/' config/robot.env && ./demarrer_robot.sh`,
     "Robot livreur-01 prêt");
   await panel.getByRole("button", { name: "Vérifier" }).click();

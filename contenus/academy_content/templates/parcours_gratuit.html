@@ -2,15 +2,15 @@
 {% from "partiels/icones.html" import objet, fleche %}
 {% set nav_actif = "decouvrir" %}
 {% block title %}Parcours gratuit · RoboForge{% endblock %}
-{% block description %}Le parcours gratuit de RoboForge, sans compte : les middlewares de la robotique, puis ROS 2, pour savoir dans quoi vous vous lancez.{% endblock %}
+{% block description %}Le parcours gratuit de RoboForge : les middlewares de la robotique, ROS 2, puis le terminal Linux dans un vrai lab, pour savoir dans quoi vous vous lancez.{% endblock %}
 {% block main_class %}page plein{% endblock %}
 {% block content %}
 {% set premier = parcours | first %}
 <div class="conteneur page-titre avec-objet">
   {{ objet("medaille", 150, "page-titre-objet") }}
-  <p class="eyebrow">Gratuit · sans compte</p>
+  <p class="eyebrow">Gratuit · sans carte bancaire</p>
   <h1 class="titre-xl">Le parcours gratuit</h1>
-  <p class="chapeau">Avant de vous lancer, comprenez le paysage : comment le logiciel tient un robot ensemble, puis ROS 2, le middleware que vous apprendrez à utiliser. À lire à votre rythme, dans l'ordre.</p>
+  <p class="chapeau">Avant de vous lancer, comprenez le paysage : comment le logiciel tient un robot ensemble, puis ROS 2, le middleware que vous apprendrez à utiliser. Les deux premières étapes se lisent sans compte ; la troisième vous fait pratiquer le terminal Linux dans le lab en ligne, avec un compte gratuit.</p>
 </div>
 
 <section class="conteneur bloc" aria-labelledby="etapes">
@@ -24,9 +24,9 @@
         <span class="etape-texte">
           <strong>{{ e.titre }}</strong>
           <span>{{ e.resume }}</span>
-          <span class="muted small">{{ e.duree }} · lecture libre</span>
+          <span class="muted small">{{ e.duree }} · {{ "compte gratuit" if e.module else "lecture libre, sans compte" }}</span>
         </span>
-        <span class="ligne-action" aria-hidden="true">Lire {{ fleche() }}</span>
+        <span class="ligne-action" aria-hidden="true">{{ "Pratiquer" if e.module else "Lire" }} {{ fleche() }}</span>
       </a>
     </li>
     {% endfor %}
@@ -43,8 +43,9 @@
     <div class="carte-simple"><strong>Lire un nœud</strong><p>Reconnaître, dans vingt lignes de Python, un éditeur de topic et sa minuterie.</p></div>
     <div class="carte-simple"><strong>Observer un robot</strong><p>Connaître les commandes ros2 qui montrent les nœuds, les topics et les messages.</p></div>
     <div class="carte-simple"><strong>Le chemin du code</strong><p>Du dossier src/ à la simulation, puis au robot réel, avec colcon build et ros2 run.</p></div>
+    <div class="carte-simple"><strong>Le terminal</strong><p>Se déplacer, manipuler des fichiers, droits, variables d'environnement et processus, dans un vrai lab.</p></div>
   </div>
-  <p class="bientot-ligne">Chaque étape se termine par quelques questions pour vous tester, réponses comprises.</p>
+  <p class="bientot-ligne">Les deux premières étapes se terminent par quelques questions pour vous tester ; la troisième par un exercice corrigé et un QCM.</p>
 </section>
 
 {% if premier %}

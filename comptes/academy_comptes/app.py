@@ -22,7 +22,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from sqlalchemy import select
 
-from . import acces, avis, certificats, equipe, formateur, grading, inscriptions, questions, rgpd, tableau
+from . import acces, avis, certificats, equipe, formateur, grading, inscriptions, ouvertures, questions, rgpd, tableau
 from .billing import BadSignature, StripeClient, StripeError, format_amount, price_cents, verify_signature
 from .auth import (
     OAUTH_COOKIE,
@@ -144,7 +144,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
     if settings.billing_enabled:
         stripe = stripe or StripeClient(settings.stripe_secret_key, base=settings.stripe_api_base)
     page_csp = csp(settings.stripe_redirect_origins if settings.billing_enabled else ())
-    state = {"actifs": 0, "releve": 0.0, "parcours": [], "parcours_lu": 0.0}
+    state = {"actifs": 0, "releve": 0.0, "parcours": [], "gratuits": [], "parcours_lu": 0.0}
 
     def tick():
         with SessionLocal() as db:
@@ -274,10 +274,18 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         """Parcours disponibles, relus chez Contenus au plus une fois par minute (dernière liste si injoignable)."""
         if time.time() - state["parcours_lu"] > 60:
             try:
-                state["parcours"], state["parcours_lu"] = contenus.parcours(), time.time()
+                (state["parcours"], state["gratuits"]), state["parcours_lu"] = contenus.catalogue(), time.time()
             except Exception as exc:  # noqa: BLE001
                 log.warning("Parcours illisibles chez Contenus : %s", exc)
         return state["parcours"]
+
+    def gratuits():
+        """Modules du parcours gratuit : ouverts à tout compte, sans achat (lus avec le catalogue)."""
+        catalogue()
+        return state["gratuits"]
+
+    def gratuit_ids():
+        return {m["id"] for m in gratuits()}
 
     def offerts():
         return [p["id"] for p in catalogue() if p.get("offert")]
@@ -288,7 +296,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
     def require_module_access(db, user, module):
         """QCM, indices, vérification : réservés aux parcours ouverts au compte (une fois l'accès payant activé)."""
         check_module(module)
-        if not settings.acces_payant:
+        if not settings.acces_payant or module in gratuit_ids():
             return
         ids = [p["id"] for p in catalogue() if any(m["id"] == module for m in p["modules"])]
         if not acces.can_open(accessible(db, user), ids):
@@ -605,6 +613,9 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
                         lien="/compte/resultats", lien_texte="Voir mes résultats")
         if not contenus.lab_available():
             return lab_maintenance(request)
+        module = ouvertures.module_of_lab_link(suite)
+        if module and MODULE_ID_RE.fullmatch(module):
+            ouvertures.record(db, user, module, ouvertures.LAB)
         token = mint_lab_token(settings.jwt_secret, user, formule)
         return RedirectResponse(f"/hub/jwt_login?token={token}&next={quote(suite, safe='')}", status_code=303)
 
@@ -764,9 +775,11 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
 
     def trainer_data(db, parcours_id, equipe=False):
         try:
-            all_parcours = contenus.parcours()
+            all_parcours, libres = contenus.catalogue()
         except Exception:  # noqa: BLE001
             raise HTTPException(503, "Les parcours sont momentanément indisponibles") from None
+        if libres:  # suivi du parcours gratuit, comme un parcours (sans certificat ni achat)
+            all_parcours = [*all_parcours, {"id": "gratuit", "titre": "Parcours gratuit", "modules": libres}]
         parcours = next((p for p in all_parcours if p["id"] == parcours_id), all_parcours[0] if all_parcours else None)
         return all_parcours, parcours, formateur.students(db, parcours, inscriptions.staff_emails(db, settings), utcnow(),
                                                           equipe)
@@ -799,7 +812,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
                     total=len(students), en_attente=inscriptions.waiting_count(db),
                     sans_reponse=len(questions.unanswered(db, inscriptions.staff_emails(db, settings), equipe)),
                     admin=inscriptions.is_admin(settings, user.email),
-                    stuck_after=formateur.STUCK_AFTER)
+                    stuck_after=formateur.STUCK_AFTER, titres=module_titles())
 
     @app.get("/compte/formateur/etudiants/{student_id}", response_class=HTMLResponse)
     def trainer_student(request: Request, student_id: int, parcours: str = "", user=Depends(current_user),
@@ -817,7 +830,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         return page(request, "formateur_etudiant.html", user=user, parcours=current, s=student, certificats=certs,
                     numero=certificats.format_code,
                     restantes=minutes_left(db, student.user, settings), stuck_after=formateur.STUCK_AFTER,
-                    historique=tableau.monthly_minutes(db, student.user))
+                    historique=tableau.monthly_minutes(db, student.user), titres=module_titles())
 
     @app.get("/compte/formateur/etudiants.csv")
     def trainer_csv(parcours: str = "", qui: str = "", user=Depends(current_user), db=Depends(get_db)):
@@ -938,7 +951,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
     # --- Avis des étudiants : formateurs
 
     def module_titles():
-        return {m["id"]: m["titre"] for p in catalogue() for m in p["modules"]}
+        return {m["id"]: m["titre"] for p in [*catalogue(), {"modules": gratuits()}] for m in p["modules"]}
 
     @app.get("/compte/formateur/avis", response_class=HTMLResponse)
     def trainer_feedback(request: Request, module: str = "", qui: str = "", user=Depends(current_user),
@@ -1483,9 +1496,16 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
 
     def known_module(module):
         check_module(module)
-        ids = {m["id"] for p in catalogue() for m in p["modules"]}
+        ids = {m["id"] for p in catalogue() for m in p["modules"]} | gratuit_ids()
         if ids and module not in ids:
             raise HTTPException(404, "Module introuvable")
+
+    @app.post("/api/comptes/ouvertures/{module}")
+    def opening_save(module: str, user=Depends(require_user), db=Depends(get_db), _=Depends(same_origin)):
+        """La page d'un module a été ouverte : suivi des formateurs (où l'étudiant décroche)."""
+        known_module(module)
+        ouvertures.record(db, user, module, ouvertures.COURS)
+        return {"ok": True}
 
     @app.get("/api/comptes/avis/{module}")
     def feedback_state(module: str, user=Depends(require_user), db=Depends(get_db)):

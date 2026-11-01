@@ -130,10 +130,10 @@ def benv(tmp_path, monkeypatch):
                            admin_emails=frozenset({"admin@exemple.fr"}))
     fake = FakeStripe()
 
-    def make(**changes):
+    def make(contenus=None, **changes):
         settings = replace(base, **{"stripe_secret_key": "sk_test_cle", "stripe_webhook_secret": WHSEC,
                                     "acces_payant": True, **changes})
-        app = appmod.create_app(settings, hub=FakeHub(), contenus=ShopContenus(),
+        app = appmod.create_app(settings, hub=FakeHub(), contenus=contenus or ShopContenus(),
                                 http=httpx.Client(transport=oauth_transport()), background=False, stripe=fake.client())
         return TestClient(app, base_url=BASE)
 
@@ -340,3 +340,16 @@ def test_trainer_offers_and_removes_access(benv):
     assert client.post(f"/compte/formateur/acces/{bought.id}/retirer", headers=ORIGIN).status_code == 409
     assert "achat (30,00 €)" in client.get("/compte/formateur/acces").text
     assert "avec un accès payé ou offert" in client.get("/compte/formateur").text
+
+
+def test_free_path_module_opens_without_purchase(benv):
+    """Un module du parcours gratuit (dans aucun parcours payant) : QCM et indices ouverts à tout compte."""
+    contenus = ShopContenus()
+    contenus.gratuits = [{"id": "02-linux", "titre": "Linux pour la robotique", "coef": 1, "bonus": False,
+                          "exercice": True}]
+    client = benv["make"](contenus=contenus)
+    login(client, benv)
+    assert client.get("/api/comptes/qcm/01-a").status_code == 403  # parcours payant, pas acheté
+    assert client.get("/api/comptes/qcm/02-linux").status_code == 200  # module gratuit
+    assert client.post("/api/comptes/exercices/02-linux/indices/1", headers=ORIGIN).status_code == 200
+    assert client.post("/api/comptes/ouvertures/02-linux", headers=ORIGIN).status_code == 200

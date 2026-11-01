@@ -92,8 +92,13 @@ class ContenusClient:
     def exercise(self, module):
         return self._json(self.http.get(f"{self.base}/api/contenus/modules/{module}/exercice", headers=self.headers))
 
+    def catalogue(self):
+        """(parcours disponibles, modules du parcours gratuit), en une seule lecture."""
+        data = self._json(self.http.get(f"{self.base}/api/contenus/parcours"))
+        return data["parcours"], data.get("gratuits", [])
+
     def parcours(self):
-        return self._json(self.http.get(f"{self.base}/api/contenus/parcours"))["parcours"]
+        return self.catalogue()[0]
 
     def lab_available(self):
         """Faux seulement si Contenus constate que l'image des labs manque. Sans réponse (Contenus

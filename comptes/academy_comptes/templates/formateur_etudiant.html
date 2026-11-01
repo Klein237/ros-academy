@@ -12,6 +12,7 @@
 <section class="tiles" aria-label="Résumé">
   <div class="tile"><span class="tile-value">{{ s.termines }} / {{ s.modules | length }}</span><span class="tile-label">modules terminés</span></div>
   <div class="tile"><span class="tile-value">{{ fr(s.finale, 2) }}</span><span class="tile-label">note finale sur 20</span></div>
+  <div class="tile"><span class="tile-value">{% if s.dernier_ouvert %}{{ titres.get(s.dernier_ouvert[0], s.dernier_ouvert[0]) }}{% else %}—{% endif %}</span><span class="tile-label">dernier module ouvert{% if s.dernier_ouvert %}, le {{ s.dernier_ouvert[1].strftime('%d/%m/%Y') }}{% endif %}</span></div>
 </section>
 
 <section class="card" aria-labelledby="lab-mois">
@@ -29,11 +30,12 @@
   <h2>{{ parcours.titre if parcours else "Modules" }}</h2>
   <div class="table-scroll">
   <table class="results">
-    <thead><tr><th>Module</th><th>QCM (tentatives)</th><th>Exercice</th><th>Vérifications</th><th>Indices</th><th>Note du module</th></tr></thead>
+    <thead><tr><th>Module</th><th>Ouvert</th><th>QCM (tentatives)</th><th>Exercice</th><th>Vérifications</th><th>Indices</th><th>Note du module</th></tr></thead>
     <tbody>
     {% for m in s.modules %}
       <tr>
         <td>{{ m.module.titre }} <span class="muted small">{% if m.module.bonus %}bonus{% else %}coef. {{ m.module.coef | round(1) | replace('.0', '') }}{% endif %}</span></td>
+        <td>{% if m.cours_ouvert or m.lab_ouvert %}{% if m.cours_ouvert %}cours le {{ m.cours_ouvert.strftime('%d/%m') }}{% endif %}{% if m.cours_ouvert and m.lab_ouvert %}<br>{% endif %}{% if m.lab_ouvert %}lab le {{ m.lab_ouvert.strftime('%d/%m') }}{% endif %}{% else %}<span class="muted">jamais</span>{% endif %}</td>
         <td>{% if m.tentatives %}{{ m.tentatives | map('round', 1) | map('string') | map('replace', '.', ',') | join(' puis ') }} <span class="muted small">({{ m.tentatives | length }}/2)</span>{% else %}<span class="muted">pas tenté</span>{% endif %}</td>
         {% if m.module.exercice is false %}<td class="muted" colspan="3">sans exercice</td>{% else %}
         <td>{% if m.reussi_le %}réussi le {{ m.reussi_le.strftime('%d/%m/%Y') }}{% elif m.bloque %}<strong class="warn">bloqué</strong>{% elif m.commence %}en cours{% else %}<span class="muted">pas commencé</span>{% endif %}</td>

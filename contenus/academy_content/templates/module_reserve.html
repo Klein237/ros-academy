@@ -1,21 +1,33 @@
 {% extends "base.html" %}
 {% from "partiels/icones.html" import coche, objet %}
-{% set nav_actif = "catalogue" %}
+{% set nav_actif = "decouvrir" if gratuit else "catalogue" %}
 {% block title %}{{ module.en_tete.titre }} · RoboForge{% endblock %}
 {% block content %}
 <div class="conteneur module-reserve">
   {% if parcours %}
   <nav class="breadcrumb" aria-label="Fil d'Ariane"><a href="/catalogue/">Catalogue</a> › <a href="/parcours/{{ parcours.id }}/">{{ parcours.titre }}</a> › {{ module.en_tete.titre }}</nav>
+  {% elif gratuit %}
+  <nav class="breadcrumb" aria-label="Fil d'Ariane"><a href="/parcours-gratuit/">Parcours gratuit</a> › {{ module.en_tete.titre }}</nav>
   {% endif %}
   <header class="module-intro">
-    <p class="eyebrow">{% if numero %}Module {{ numero }}{% if parcours %} sur {{ parcours.modules | length }}{% endif %}{% endif %}{% if module.en_tete.duree %} · {{ module.en_tete.duree }}{% endif %}</p>
+    {% if gratuit and not parcours %}{% set etape, _ = etape_gratuite(gratuit) %}{% endif %}
+    <p class="eyebrow">{% if gratuit and not parcours %}Parcours gratuit · étape {{ etape }} sur {{ parcours_gratuit | length }}{% elif numero %}Module {{ numero }}{% if parcours %} sur {{ parcours.modules | length }}{% endif %}{% endif %}{% if module.en_tete.duree %}{% if numero or gratuit %} · {% endif %}{{ module.en_tete.duree }}{% endif %}</p>
     <h1>{{ module.en_tete.titre }}</h1>
     {% if module.en_tete.resume %}<p class="lead">{{ module.en_tete.resume }}</p>{% endif %}
   </header>
 
   <section class="encart encart-primaire" aria-labelledby="reserve">
     {{ objet("bouclier", 110, "encart-objet") }}
-    {% if not connecte %}
+    {% if gratuit %}
+    <div>
+      <h2 id="reserve">Module gratuit, avec un compte</h2>
+      <p>Ce module fait partie du parcours gratuit : créez un compte gratuit, sans carte bancaire, pour suivre le cours, ouvrir le lab dans votre navigateur{% if module.exercice %}, faire l'exercice{% endif %} et passer le QCM.</p>
+    </div>
+    <div class="actions-reserve">
+      <a class="button amber grand" href="/connexion/inscription?suite={{ suite | urlencode }}">Créer un compte gratuit</a>
+      <a class="button grand" href="/connexion?suite={{ suite | urlencode }}">Se connecter</a>
+    </div>
+    {% elif not connecte %}
     <div>
       <h2 id="reserve">Cours réservé aux inscrits</h2>
       <p>Connectez-vous pour suivre ce module : le cours, le lab ROS 2 dans votre navigateur{% if module.exercice %}, l'exercice{% endif %} et le QCM.</p>
@@ -55,6 +67,6 @@
   </section>
   {% endif %}
 
-  <p class="muted">Nouveau sur ROS ? <a href="/decouvrir/">Découvrir ROS 2</a> est en accès libre : 20 minutes sur l'histoire de ROS, ses usages et les liens utiles.</p>
+  <p class="muted">Nouveau sur ROS ? <a href="/decouvrir/">Découvrir ROS 2</a> est en accès libre, sans compte : 30 minutes pour voir un robot comme un graphe de nœuds, lire un message et un premier nœud en Python.</p>
 </div>
 {% endblock %}

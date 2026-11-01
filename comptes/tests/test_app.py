@@ -75,6 +75,11 @@ class FakeContenus:
         return [{"id": "ros2", "titre": "ROS 2 Fondamentaux", "modules": [
             {"id": "01-a", "titre": "Module A", "coef": 1}, {"id": "02-b", "titre": "Module B", "coef": 3}]}]
 
+    gratuits = []  # modules du parcours gratuit, ouverts à tout compte
+
+    def catalogue(self):
+        return self.parcours(), list(self.gratuits)
+
 
 def oauth_transport(github_verified=True, google_verified=True, email="eleve@exemple.fr"):
     def handler(request):
