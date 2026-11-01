@@ -128,8 +128,9 @@ def format_prix(prix):
     return f"{euros} €" if not rest else f"{euros},{rest:02d} €"
 
 
-# Le parcours gratuit, ouvert à tous sans compte : ses étapes, dans l'ordre (en ajouter une suffit à
-# l'afficher sur la page du parcours gratuit, l'accueil et le catalogue)
+# Le parcours gratuit : ses étapes, dans l'ordre (en ajouter une suffit à l'afficher sur la page du
+# parcours gratuit, l'accueil et le catalogue). Les pages /decouvrir/ se lisent sans compte ; une étape
+# « module » est un module complet (cours, lab, exercice, QCM), ouvert à tout compte, gratuit, sans achat.
 PARCOURS_GRATUIT = [
     {"url": "/decouvrir/middlewares/", "titre": "Middlewares et évolution de la robotique", "icone": "noeuds",
      "duree": "6 chapitres · 25 min",
@@ -138,7 +139,12 @@ PARCOURS_GRATUIT = [
     {"url": "/decouvrir/", "titre": "Découvrir ROS 2", "icone": "robot", "duree": "7 chapitres · 30 min",
      "resume": "Le robot vu comme un graphe de nœuds, les messages, un premier nœud en Python, les commandes "
                "pour explorer un robot et le chemin du code jusqu'au robot."},
+    {"url": "/modules/02-linux/", "module": "02-linux", "titre": "Linux pour la robotique", "icone": "terminal",
+     "duree": "1 h 15 · avec lab",
+     "resume": "Le terminal dans le lab en ligne : se déplacer, manipuler des fichiers, droits d'exécution, "
+               "variables d'environnement et processus, puis un vrai script de robot à faire démarrer."},
 ]
+MODULES_GRATUITS = tuple(e["module"] for e in PARCOURS_GRATUIT if e.get("module"))
 
 
 def etape_gratuite(url):
@@ -184,6 +190,19 @@ def _parcours_disponibles(root):
     return [p for p in _parcours_list(root) if p["statut"] == "disponible"]
 
 
+def _modules_gratuits(root):
+    """Les modules du parcours gratuit, au format des modules d'un parcours (pour Comptes : suivi, QCM, lab)."""
+    out = []
+    for module_id in MODULES_GRATUITS:
+        try:
+            m = load_module(root, module_id)
+        except ContentError:
+            continue
+        out.append({"id": m.id, "titre": m.en_tete.titre, "resume": m.en_tete.resume, "duree": m.en_tete.duree,
+                    "coef": 1, "partie": "Parcours gratuit", "bonus": False, "exercice": m.exercice is not None})
+    return out
+
+
 def _parcours_of(root, module_id):
     for p in _parcours_disponibles(root):
         ids = [m["id"] for m in p["modules"]]
@@ -198,9 +217,12 @@ def _parcours_containing(root, module_id):
 
 
 def _opened(request, root, module_id):
-    """Cours d'un module ouvert à l'étudiant : l'un des parcours qui le contiennent lui est ouvert."""
+    """Cours d'un module ouvert à l'étudiant : un module gratuit pour tout compte connecté, sinon l'un des
+    parcours qui le contiennent lui est ouvert."""
     if request.headers.get(STUDENT_HEADER) != "1":
         return False
+    if module_id in MODULES_GRATUITS:
+        return True
     value = request.headers.get(ACCESS_HEADER)
     if value is None or value.strip() == "*":
         return True
@@ -403,6 +425,7 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
                                     workspace=workspace_of(root, module.id)),
             enonce_html=render_markdown(module.exercice.enonce) if module.exercice else "", qcm=_public_qcm(module),
             parcours=parcours, prev=prev, next=nxt, numero=numero, apercu=apercu,
+            gratuit=f"/modules/{module.id}/" if module.id in MODULES_GRATUITS else None,
         )
 
     # demandés à la racine par les navigateurs (et iOS) même sans <link> : les icônes Umoja Roboti
@@ -470,7 +493,8 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
         parcours, prev, nxt, numero = _parcours_of(root, module_id)
         return page(request, "module_reserve.html", module=module, sommaire=cours_sommaire(module.cours),
                     parcours=parcours, numero=numero, suite=f"/modules/{module.id}/", connecte=connecte,
-                    a_acheter=_parcours_containing(root, module_id))
+                    a_acheter=_parcours_containing(root, module_id),
+                    gratuit=f"/modules/{module.id}/" if module.id in MODULES_GRATUITS else None)
 
     # --- API du cours (page du module et Lab UI) : étudiant connecté
 
@@ -520,7 +544,7 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
 
     @app.get("/api/contenus/parcours")
     def api_parcours():
-        return {"parcours": _parcours_disponibles(published())}
+        return {"parcours": _parcours_disponibles(published()), "gratuits": _modules_gratuits(published())}
 
     # Routes internes : indices, explication et correction du QCM passent par Comptes,
     # qui applique les règles (indices comptés, explication après réussite, 2 tentatives).

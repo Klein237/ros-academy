@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% set nav_actif = "catalogue" %}
+{% set nav_actif = "decouvrir" if gratuit else "catalogue" %}
 {% block title %}{{ module.en_tete.titre }} · RoboForge{% endblock %}
 {% block body_class %}page-module{% endblock %}
 {% block banner %}{% if apercu %}<div class="preview-banner">Aperçu du brouillon : les étudiants ne voient pas encore cette version. <a href="/admin/modules/{{ module.id }}/">Retour à l'éditeur</a></div>{% endif %}{% endblock %}
@@ -14,12 +14,18 @@
     <li class="etape-lien avis-lien" hidden><a href="#avis" data-section="avis">Votre avis</a></li>
   </ol>
 {% endmacro %}
+{% if not apercu %}<span hidden data-ouverture="{{ module.id }}"></span>{% endif %}
 <div class="module-barre">
   <div class="module-barre-inner">
     {% if parcours %}
     <a class="module-retour" href="/parcours/{{ parcours.id }}/">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
       <span>{{ parcours.titre }}</span>
+    </a>
+    {% elif gratuit %}
+    <a class="module-retour" href="/parcours-gratuit/">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+      <span>Parcours gratuit</span>
     </a>
     {% endif %}
     <nav class="etapes-module" aria-label="Étapes du module">
@@ -48,7 +54,8 @@
 
   <article class="module-contenu">
     <header class="module-intro">
-      <p class="eyebrow">{% if numero %}Module {{ numero }}{% if parcours %} sur {{ parcours.modules | length }}{% endif %}{% endif %}{% if module.en_tete.duree %} · {{ module.en_tete.duree }}{% endif %}</p>
+      {% if gratuit and not parcours %}{% set etape, _ = etape_gratuite(gratuit) %}{% endif %}
+    <p class="eyebrow">{% if gratuit and not parcours %}Parcours gratuit · étape {{ etape }} sur {{ parcours_gratuit | length }}{% elif numero %}Module {{ numero }}{% if parcours %} sur {{ parcours.modules | length }}{% endif %}{% endif %}{% if module.en_tete.duree %}{% if numero or gratuit %} · {% endif %}{{ module.en_tete.duree }}{% endif %}</p>
       <h1>{{ module.en_tete.titre }}</h1>
       {% if module.en_tete.resume %}<p class="lead">{{ module.en_tete.resume }}</p>{% endif %}
       <details class="sommaire-mobile">

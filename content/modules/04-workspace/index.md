@@ -152,7 +152,7 @@ Compiler ne suffit pas : il faut dire au terminal où trouver vos packages. Votr
 source install/setup.bash
 ```
 
-Ce `source` (voir le module Linux) ajoute votre workspace aux variables d'environnement **du terminal courant**. Trois conséquences :
+Ce `source` (voir le module gratuit « Linux pour la robotique ») ajoute votre workspace aux variables d'environnement **du terminal courant**. Trois conséquences :
 
 - il faut le refaire dans **chaque nouveau terminal** ;
 - il faut le refaire après avoir **ajouté un package** (pour un exécutable ajouté à un package existant, un `colcon build` suffit) ;

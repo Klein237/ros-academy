@@ -151,6 +151,18 @@ def main():
       <details><summary>Que fait <code>colcon build</code> ?</summary><p>Il <strong>compile et installe</strong> les packages du dossier <code>src/</code> du workspace dans <code>install/</code>. On charge ensuite <code>install/setup.bash</code> pour que <code>ros2 run</code> les trouve.</p></details>
     </section>
 
+    {% set _, suivante = etape_gratuite("/decouvrir/") %}
+    {% if suivante %}
+    <section class="encart encart-sombre" aria-labelledby="etape-suivante">
+      <div>
+        <p class="eyebrow">Parcours gratuit · étape suivante</p>
+        <h2 id="etape-suivante">{{ suivante.titre }}</h2>
+        <p>{{ suivante.resume }} Avec un compte gratuit, sans carte bancaire.</p>
+      </div>
+      <a class="button amber grand" href="{{ suivante.url }}">Pratiquer dans le lab</a>
+    </section>
+    {% endif %}
+
     {% if premier %}
     <section class="encart encart-primaire">
       <div>
