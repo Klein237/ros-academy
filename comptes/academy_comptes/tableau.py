@@ -8,7 +8,7 @@ from .db import Answer, Question, UsageTick, utcnow
 
 SEMAINES = 8
 # objet en verre de chaque parcours (contenus/academy_content/static/icones/) ; les autres : le graphe de nœuds
-ICONES = {"ros2-fondamentaux": "robot", "bras-robotique": "bras", "docker-robotique": "conteneur"}
+ICONES = {"ros2-fondamentaux": "robot", "bras-robotique": "bras", "docker-robotique": "conteneur", "tests-logiciel": "bouclier"}
 
 
 def icone(parcours_id):
@@ -31,6 +31,36 @@ def weekly_minutes(db, user, now=None, weeks=SEMAINES):
     return [{"debut": debut + timedelta(weeks=i), "minutes": m} for i, m in enumerate(comptes)]
 
 
+MOIS = 12
+NOMS_MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."]
+
+
+def month_start(d):
+    return datetime(d.year, d.month, 1)
+
+
+def add_months(d, n):
+    m = d.month - 1 + n
+    return datetime(d.year + m // 12, m % 12 + 1, 1)
+
+
+def monthly_minutes(db, user, now=None, months=MOIS):
+    """Minutes de lab des `months` derniers mois, le plus ancien d'abord. Le quota reste mensuel ; l'historique,
+    lui, se garde : rien n'est effacé d'un mois à l'autre."""
+    debut = add_months(month_start(now or utcnow()), -(months - 1))
+    comptes = [0] * months
+    for minute in db.scalars(select(UsageTick.minute).where(UsageTick.user_id == user.id, UsageTick.minute >= debut)):
+        i = (minute.year - debut.year) * 12 + minute.month - debut.month
+        if 0 <= i < months:
+            comptes[i] += 1
+    out = []
+    for i, m in enumerate(comptes):
+        d = add_months(debut, i)
+        libelle = NOMS_MOIS[d.month - 1] + (f" {d.year % 100:02d}" if d.month == 1 or i == 0 else "")
+        out.append({"debut": d, "minutes": m, "libelle": libelle, "mois": f"{NOMS_MOIS[d.month - 1]} {d.year}"})
+    return out
+
+
 def chart(semaines, largeur=560, hauteur=180, marge=24):
     """Barres du graphique, calculées ici : la page n'a pas le droit aux styles en ligne (CSP)."""
     pas = largeur / len(semaines)
@@ -45,7 +75,8 @@ def chart(semaines, largeur=560, hauteur=180, marge=24):
             "hauteur": round(h, 1), "minutes": s["minutes"], "derniere": derniere,
             "zone_x": round(i * pas, 1), "zone_largeur": round(pas, 1), "centre": round(i * pas + pas / 2, 1),
             "etiquette": f"{s['minutes']} min" if s["minutes"] and (derniere or s["minutes"] == plus) else "",
-            "date": s["debut"].strftime("%d/%m"),
+            "date": s.get("libelle") or s["debut"].strftime("%d/%m"),
+            "periode": s.get("mois") or f"Semaine du {s['debut'].strftime('%d/%m')}",
         })
     return {"barres": out, "largeur": largeur, "hauteur": hauteur, "total": sum(s["minutes"] for s in semaines)}
 

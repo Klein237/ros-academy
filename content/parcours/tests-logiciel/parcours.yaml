@@ -3,13 +3,21 @@ description: >-
   Ce qu'on attend d'un développeur robotique en équipe : tester un nœud seul,
   tester plusieurs nœuds ensemble, rejouer des données enregistrées pour
   reproduire un bug, garder un code propre et faire tourner tout cela à chaque
-  changement, en intégration continue. Sur le code du robot de livraison.
+  changement, en intégration continue. Sur le code du robot de livraison. Le
+  parcours s'ouvre module par module : les tests unitaires d'abord, puis les
+  tests d'intégration, le rejeu de données et l'intégration continue.
 accroche: Tests unitaires et d'intégration, données rejouées, qualité du code et intégration continue.
 fil_rouge: "Tester un nœud seul, puis tout le robot, avec des données rejouées."
 notion: "Tests, qualité du code, intégration continue."
-statut: bientot
+statut: disponible
 niveau: intermediaire
 ordre: 30
+prix: 30
+objectifs:
+  - séparer le calcul d'un nœud ROS pour le tester seul
+  - écrire des tests unitaires avec pytest, cas limites et tests paramétrés compris
+  - lancer les tests d'un package avec colcon test
+  - mesurer la qualité de ses tests avec des mutants
 prerequis:
   - Apprendre ROS 2 avec un robot mobile
 outils:
@@ -18,3 +26,7 @@ outils:
   - launch_testing
   - ros2 bag
   - ament_lint
+modules:
+  - id: 40-tests-unitaires
+    coef: 1
+    partie: Tester le code

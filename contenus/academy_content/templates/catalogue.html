@@ -21,25 +21,11 @@
 </div>
 
 <section class="conteneur bloc-serre" aria-labelledby="gratuit">
-  <h2 id="gratuit" class="titre-section">Gratuit, sans compte</h2>
-  <div class="grille-gratuit">
-    <a class="carte-gratuite" href="/decouvrir/middlewares/">
-      {{ objet("noeuds", 72) }}
-      <span>
-        <span class="eyebrow">Introduction · 4 chapitres</span>
-        <strong>Middlewares et évolution de la robotique</strong>
-        <span>ROS, ROS 2, Cyber RT et les autres, robot par robot.</span>
-      </span>
-    </a>
-    <a class="carte-gratuite" href="/decouvrir/">
-      {{ objet("robot", 72) }}
-      <span>
-        <span class="eyebrow">Introduction · 20 min</span>
-        <strong>Découvrir ROS 2</strong>
-        <span>Comment fonctionne ROS 2, le parcours qui l'enseigne et les liens utiles.</span>
-      </span>
-    </a>
+  <div class="entete-section">
+    <h2 id="gratuit" class="titre-section">Parcours gratuit, sans compte</h2>
+    <a class="lien-fort" href="/parcours-gratuit/">Voir le parcours gratuit {{ fleche() }}</a>
   </div>
+  {% with taille=72 %}{% include "partiels/cartes_gratuites.html" %}{% endwith %}
 </section>
 
 <section class="conteneur bloc-serre" aria-labelledby="disponibles">

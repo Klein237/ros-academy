@@ -1,0 +1,4 @@
+{# En tête d'une page du parcours gratuit : fil d'Ariane et numéro d'étape. url : l'adresse de la page #}
+{% set numero, suivante = etape_gratuite(url) %}
+<nav class="breadcrumb" aria-label="Fil d'Ariane"><a href="/parcours-gratuit/">Parcours gratuit</a> › {{ titre }}</nav>
+<p class="eyebrow">Parcours gratuit · étape {{ numero }} sur {{ parcours_gratuit | length }} · {{ detail }}</p>

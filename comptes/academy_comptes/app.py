@@ -816,7 +816,8 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
         certs = list(db.scalars(select(Certificate).where(Certificate.user_id == student.user.id)))
         return page(request, "formateur_etudiant.html", user=user, parcours=current, s=student, certificats=certs,
                     numero=certificats.format_code,
-                    restantes=minutes_left(db, student.user, settings), stuck_after=formateur.STUCK_AFTER)
+                    restantes=minutes_left(db, student.user, settings), stuck_after=formateur.STUCK_AFTER,
+                    historique=tableau.monthly_minutes(db, student.user))
 
     @app.get("/compte/formateur/etudiants.csv")
     def trainer_csv(parcours: str = "", qui: str = "", user=Depends(current_user), db=Depends(get_db)):
@@ -1225,6 +1226,7 @@ def create_app(settings: Settings, hub=None, contenus=None, http=None, backgroun
                     utilisees=minutes_used(db, user), restantes=minutes_left(db, user, settings),
                     indices=sum(m["indices"] for r in suivis for m in r["modules"]),
                     graphique=tableau.chart(tableau.weekly_minutes(db, user)),
+                    historique=tableau.chart(tableau.monthly_minutes(db, user), largeur=840),
                     mes_questions=tableau.my_questions(db, user),
                     badges=tableau.badges(focus) if focus else [], icone=tableau.icone,
                     note_min=settings.certificat_note_min,

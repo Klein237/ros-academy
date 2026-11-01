@@ -128,6 +128,27 @@ def format_prix(prix):
     return f"{euros} €" if not rest else f"{euros},{rest:02d} €"
 
 
+# Le parcours gratuit, ouvert à tous sans compte : ses étapes, dans l'ordre (en ajouter une suffit à
+# l'afficher sur la page du parcours gratuit, l'accueil et le catalogue)
+PARCOURS_GRATUIT = [
+    {"url": "/decouvrir/middlewares/", "titre": "Middlewares et évolution de la robotique", "icone": "noeuds",
+     "duree": "4 chapitres",
+     "resume": "ROS, ROS 2, Cyber RT et les autres : comment ils font tenir ensemble le logiciel des robots "
+               "mobiles, des drones et des véhicules."},
+    {"url": "/decouvrir/", "titre": "Découvrir ROS 2", "icone": "robot", "duree": "20 min",
+     "resume": "D'où vient ROS, comment fonctionne ROS 2, le parcours qui l'enseigne et les liens à garder "
+               "sous la main."},
+]
+
+
+def etape_gratuite(url):
+    """Position d'une page dans le parcours gratuit : (numéro, étape suivante ou None)."""
+    for i, e in enumerate(PARCOURS_GRATUIT):
+        if e["url"] == url:
+            return i + 1, (PARCOURS_GRATUIT[i + 1] if i + 1 < len(PARCOURS_GRATUIT) else None)
+    return None, None
+
+
 def _parcours_list(root):
     """Tous les parcours lisibles, dans l'ordre du catalogue (disponibles et annoncés)."""
     out = []
@@ -309,6 +330,8 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
     templates.env.globals["lab_link"] = lab_link
     templates.env.globals["statique"] = statique
     templates.env.globals["icone_parcours"] = icone_parcours
+    templates.env.globals["parcours_gratuit"] = PARCOURS_GRATUIT
+    templates.env.globals["etape_gratuite"] = etape_gratuite
     internal_token = hmac.new(secret.encode(), b"contenus-interne", hashlib.sha256).hexdigest()
 
     def internal(request: Request):
@@ -402,6 +425,10 @@ def create_app(store: ContentStore, runner, secret: str, cookie_secure=True, tes
     @app.get("/decouvrir/", response_class=HTMLResponse)
     def decouvrir(request: Request):
         return page(request, "decouvrir.html", parcours=_parcours_disponibles(published()))
+
+    @app.get("/parcours-gratuit/", response_class=HTMLResponse)
+    def parcours_gratuit(request: Request):
+        return page(request, "parcours_gratuit.html", parcours=_parcours_disponibles(published()))
 
     @app.get("/decouvrir/middlewares/", response_class=HTMLResponse)
     def middlewares(request: Request):

@@ -778,3 +778,13 @@ button.lien.actif { font-weight: 600; text-decoration: none; }
 .sommaire-intro a { text-decoration: none; }
 .sommaire-intro a:hover { text-decoration: underline; }
 #pourquoi, #histoire, #paysage, #robots { scroll-margin-top: 16px; }
+
+/* Parcours gratuit : les étapes, dans l'ordre */
+.etapes-gratuites { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.etape-gratuite { display: flex; align-items: center; gap: 20px; padding: 20px 24px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); color: inherit; text-decoration: none; }
+.etape-gratuite:hover { border-color: var(--accent); color: inherit; }
+.etape-texte { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.etape-texte strong { font-family: var(--font-titre); font-size: 1.25rem; }
+.etape-texte > span:nth-child(2) { color: var(--text-2); line-height: 1.55; }
+.page-titre .breadcrumb { margin-bottom: 10px; }
+@media (max-width: 640px) { .etape-gratuite { flex-wrap: wrap; } .etape-gratuite .ligne-action { display: none; } }

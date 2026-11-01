@@ -509,7 +509,7 @@ def test_prices_on_the_catalogue_parcours_and_pricing_pages(store, client):
     assert "Navigation" in page and 'href="/decouvrir/"' in page and 'href="/tarifs/"' in page
     # « gratuit » ne désigne que l'introduction ouverte à tous, jamais un parcours
     accueil = client.get("/").text
-    assert 'href="/decouvrir/">Commencer gratuitement' in accueil and "essai gratuit" not in accueil.lower()
+    assert 'href="/parcours-gratuit/">Commencer gratuitement' in accueil and "essai gratuit" not in accueil.lower()
 
 
 def test_parcours_price_is_validated_and_editable(admin, store):
@@ -649,7 +649,7 @@ def test_parcours_cards_show_fil_rouge_and_notion(store, client):
 def test_navigation_and_accueil_v2(client):
     # « Qui sommes-nous » est servie par Comptes (profils des formateurs)
     accueil = client.get("/").text
-    for lien in ('href="/catalogue/">Parcours', 'href="/decouvrir/">Découvrir gratuitement', 'href="/tarifs/">Tarifs',
+    for lien in ('href="/catalogue/">Parcours', 'href="/parcours-gratuit/">Parcours gratuit', 'href="/tarifs/">Tarifs',
                  'href="/qui-sommes-nous/">Qui sommes-nous'):
         assert lien in accueil, lien
     assert "Devenez ingénieur logiciel robotique" in accueil and "tous programmés avec ROS" not in accueil
@@ -662,7 +662,7 @@ def test_catalogue_v2_free_available_and_upcoming(store, client):
                                  "notion": "A* et Dijkstra"})
     store.publish(Runner())
     page = client.get("/catalogue/").text
-    gratuit, dispo, bientot = page.index("Gratuit, sans compte"), page.index(">Disponibles<"), page.index(">Bientôt<")
+    gratuit, dispo, bientot = page.index("Parcours gratuit, sans compte"), page.index(">Disponibles<"), page.index(">Bientôt<")
     assert gratuit < dispo < bientot and 'href="/decouvrir/"' in page[gratuit:dispo]
     assert "Parcours démo" in page[dispo:bientot] and "Planifier un trajet" in page[bientot:]
     assert "Notion : A* et Dijkstra" in page and "feuille de route" not in page.lower()
@@ -672,10 +672,24 @@ def test_catalogue_v2_free_available_and_upcoming(store, client):
 
 def test_middlewares_free_page_and_links(client):
     page = client.get("/decouvrir/middlewares/").text
-    assert "Middlewares et robotique" in page and 'aria-current="page">Découvrir gratuitement' in page
+    assert "Middlewares et robotique" in page and 'aria-current="page">Parcours gratuit' in page
     for mot in ("Cyber RT", "micro-ROS", "uORB", "YARP", "OROCOS", "Ardent Apalone", "Apollo 3.5"):
         assert mot in page, mot
     assert 'href="https://docs.px4.io/main/en/middleware/uxrce_dds.html"' in page and 'href="/decouvrir/"' in page
     # ouverte à tous, et annoncée là où se trouvent les contenus gratuits
     for path in ("/", "/catalogue/", "/decouvrir/"):
         assert 'href="/decouvrir/middlewares/"' in client.get(path).text, path
+
+
+def test_free_path_lists_its_steps_in_order(client):
+    page = client.get("/parcours-gratuit/").text
+    assert "Le parcours gratuit" in page and 'aria-current="page">Parcours gratuit' in page
+    assert page.index('href="/decouvrir/middlewares/"') < page.index('href="/decouvrir/"')  # dans l'ordre
+    assert "D'autres modules gratuits rejoindront ce parcours." in page
+    # chaque étape renvoie au parcours gratuit et dit où elle se situe
+    page = client.get("/decouvrir/middlewares/").text
+    assert 'href="/parcours-gratuit/">Parcours gratuit</a> › Middlewares et robotique' in page and "étape 1 sur 2" in page
+    assert "étape 2 sur 2" in client.get("/decouvrir/").text
+    for path in ("/", "/catalogue/"):
+        page = client.get(path).text
+        assert 'href="/parcours-gratuit/">Voir le parcours gratuit' in page and "Étape 2 · 20 min" in page, path

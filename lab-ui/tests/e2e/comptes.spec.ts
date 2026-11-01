@@ -65,7 +65,7 @@ test("parcours terminé : la note finale pondérée s'affiche sur la page Résul
   const origin = { Origin: new URL(page.url()).origin };
   const parcours = (await (await page.request.get("/api/contenus/parcours")).json()).parcours[0];
   const modules: { id: string; coef: number; exercice: boolean; bonus: boolean }[] = parcours.modules;
-  expect(modules.map((m) => m.id)).toEqual(["01-robot-mobile", "02-linux", "03-ros2", "04-workspace", "05-noeud", "06-service", "07-action",
+  expect(modules.map((m) => m.id)).toEqual(["01-robot-mobile", "02-linux", "03-ros2", "04-workspace", "15-git", "05-noeud", "06-service", "07-action",
     "08-parametres", "09-tf2", "10-urdf", "11-gazebo", "12-qos", "13-debogage", "14-robot-reel"]);
   expect(modules.filter((m) => m.bonus).map((m) => m.id)).toEqual(["12-qos", "13-debogage", "14-robot-reel"]); // hors note finale
   expect(modules.filter((m) => !m.exercice).map((m) => m.id)).toEqual(["01-robot-mobile", "03-ros2"]); // modules de cours : QCM seul
@@ -170,14 +170,16 @@ function useMinutes(name: string, minutes: number): void {
        FROM generate_series(0, ${minutes - 1}) AS g;`);
 }
 
-/** Complète les minutes déjà comptées ce mois-ci pour qu'il n'en reste que `left` (minutes passées, jamais
- *  celles que le relevé de Comptes comptera ensuite). */
+/** Complète les minutes déjà comptées ce mois-ci pour qu'il n'en reste que `left`. Les minutes sont prises
+ *  dans tout le mois (le quota compte chaque minute du mois), jamais à moins de 5 min de maintenant : ce sont
+ *  celles que le relevé de Comptes comptera ensuite. Prendre seulement les minutes déjà passées échouait le
+ *  1er du mois avant 10 h, faute de 600 minutes écoulées. */
 function leaveMinutes(name: string, left: number): void {
   const id = Number(name.slice(1));
   const month = "date_trunc('month', now() AT TIME ZONE 'utc')";
   sql(`INSERT INTO usage_ticks (user_id, minute)
-       SELECT ${id}, m FROM (SELECT ${month} + make_interval(mins => g) AS m FROM generate_series(0, 2000) AS g) c
-       WHERE m < (now() AT TIME ZONE 'utc') - interval '5 minutes'
+       SELECT ${id}, m FROM (SELECT ${month} + make_interval(mins => g) AS m FROM generate_series(0, 40319) AS g) c
+       WHERE abs(extract(epoch FROM m - (now() AT TIME ZONE 'utc'))) > 300
          AND NOT EXISTS (SELECT 1 FROM usage_ticks t WHERE t.user_id = ${id} AND t.minute = c.m)
        ORDER BY m
        LIMIT GREATEST(0, ${600 - left} - (SELECT count(*) FROM usage_ticks WHERE user_id = ${id} AND minute >= ${month}));`);
