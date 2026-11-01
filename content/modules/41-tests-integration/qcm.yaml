@@ -1,0 +1,57 @@
+questions:
+  - id: integration
+    question: Quel bug un test d'intégration attrape-t-il, alors que les tests unitaires du calcul passent ?
+    choix:
+      - texte: Un topic de sortie renommé, que plus aucun nœud n'écoute
+        correct: true
+      - texte: Une erreur de signe dans la fonction borner()
+      - texte: Une faute de frappe dans un commentaire
+    explication: Le test unitaire appelle borner() directement ; il ne voit ni les topics, ni les paramètres, ni le lancement du nœud. Le test d'intégration lance le vrai nœud et lui parle par ses topics.
+  - id: generate
+    question: Que renvoie la fonction generate_test_description d'un test launch_testing ?
+    choix:
+      - texte: La description de lancement des nœuds à tester, terminée par ReadyToTest, et les objets utiles aux tests
+        correct: true
+      - texte: La liste des tests à exécuter
+      - texte: Le résultat des tests
+    explication: launch_testing lance cette description, attend l'action ReadyToTest, puis exécute les tests pendant que les nœuds tournent.
+  - id: actifs
+    question: Quand s'exécutent les méthodes de la classe TestLimiteur, sans décorateur ?
+    choix:
+      - texte: Pendant que le limiteur tourne, après ReadyToTest
+        correct: true
+      - texte: Avant le lancement du limiteur
+      - texte: Après l'arrêt du limiteur
+    explication: Ce sont les tests actifs. Ceux d'une classe décorée par post_shutdown_test s'exécutent après l'arrêt de tous les processus.
+  - id: exit
+    question: À quoi sert launch_testing.asserts.assertExitCodes(proc_info) dans un test après l'arrêt ?
+    choix:
+      - texte: À vérifier que chaque nœud lancé s'est arrêté avec le code 0, sans plantage
+        correct: true
+      - texte: À arrêter les nœuds encore lancés
+      - texte: À afficher la sortie des nœuds
+    explication: Un nœud qui plante ou quitte avec une erreur passerait inaperçu dans les tests actifs ; proc_info garde le code de sortie de chaque processus.
+  - id: attente
+    question: Pourquoi la méthode envoyer() publie-t-elle en boucle, avec un délai maximal, au lieu d'un seul publish suivi d'un sleep ?
+    choix:
+      - texte: Le nœud peut ne pas être encore abonné au premier message ; on réessaie jusqu'à la réponse, et le test échoue clairement au bout du délai
+        correct: true
+      - texte: Pour envoyer plus de commandes et charger le nœud
+      - texte: Parce que rclpy ne sait publier qu'en boucle
+    explication: "La découverte entre nœuds prend un peu de temps. Un sleep fixe est soit trop long, soit trop court : on attend une condition, avec un délai maximal."
+  - id: parametre
+    question: Le limiteur a vitesse_max = 0.5 par défaut. Avec quelle valeur le lancer dans le test pour vérifier que le paramètre est bien lu ?
+    choix:
+      - texte: Une valeur différente de la valeur par défaut, comme 0.3
+        correct: true
+      - texte: 0.5, la valeur par défaut
+      - texte: Aucune, la valeur par défaut suffit
+    explication: Avec la valeur par défaut, un nœud qui ignore son paramètre se comporte exactement comme le nœud correct.
+  - id: domaine
+    question: Pourquoi lancer les tests d'intégration dans un ROS_DOMAIN_ID dédié ?
+    choix:
+      - texte: Pour que les nœuds lancés ailleurs, sur le même réseau, ne publient pas sur les topics du test
+        correct: true
+      - texte: Pour que les tests tournent plus vite
+      - texte: Parce que launch_test l'exige
+    explication: Un autre nœud qui publie sur /cmd_vel fausserait le test, ou recevrait ses commandes. Deux machines, ou deux tests, sur des domaines différents ne se voient pas.

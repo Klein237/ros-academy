@@ -1,0 +1,57 @@
+questions:
+  - id: linter
+    question: Qu'est-ce qu'un linter ?
+    choix:
+      - texte: Un outil qui lit le code sans l'exécuter et signale ce qui s'écarte des règles de l'équipe
+        correct: true
+      - texte: Un compilateur plus rapide
+      - texte: Un outil qui lance les tests unitaires
+    explication: Un linter analyse le texte du code (style, structure, licence) ; les tests, eux, exécutent le code.
+  - id: lintauto
+    question: Dans un package ROS 2, que fait ament_lint_auto_find_test_dependencies() ?
+    choix:
+      - texte: Elle ajoute à colcon test un test pour chaque linter déclaré en test_depend, comme ceux d'ament_lint_common
+        correct: true
+      - texte: Elle installe les linters avec apt
+      - texte: Elle corrige le style du code
+    explication: Avec ament_lint_common en test_depend, cpplint, uncrustify, copyright, cppcheck, lint_cmake et xmllint deviennent des tests du package.
+  - id: reformat
+    question: uncrustify signale vingt erreurs de style. Que faire ?
+    choix:
+      - texte: Lancer ament_uncrustify --reformat, qui corrige le formatage dans les fichiers
+        correct: true
+      - texte: Corriger chaque espace à la main
+      - texte: Retirer uncrustify des test_depend
+    explication: Le formatage s'applique avec l'outil ; le corriger à la main est lent, le désactiver retire le filet pour toute l'équipe.
+  - id: namespace
+    question: Pourquoi cpplint interdit-il « using namespace std; » dans un en-tête ?
+    choix:
+      - texte: La directive s'imposerait à tous les fichiers qui incluent l'en-tête, avec des risques de conflits de noms
+        correct: true
+      - texte: Parce que std n'existe pas en C++17
+      - texte: Parce que cela ralentit la compilation
+    explication: Un en-tête est inclus partout ; ce qu'il importe, il l'impose à chacun.
+  - id: gtest
+    question: Que fait EXPECT_DOUBLE_EQ(vitesse::borner(-2.0, 0.5), -0.5) dans un test gtest ?
+    choix:
+      - texte: Il vérifie que le résultat vaut -0.5, à une tolérance d'arrondi près, et fait échouer le cas sinon
+        correct: true
+      - texte: Il affecte -0.5 au résultat
+      - texte: Il arrête tous les tests au premier écart
+    explication: EXPECT_DOUBLE_EQ compare deux double avec une tolérance, comme pytest.approx ; ASSERT_… arrêterait le cas, pas tous les tests.
+  - id: revue
+    question: Que vérifie surtout une revue de code humaine, quand la CI est verte ?
+    choix:
+      - texte: Le comportement, les cas oubliés, la clarté des noms et la sûreté, ce que les outils ne voient pas
+        correct: true
+      - texte: Les espaces et l'indentation
+      - texte: Que le code compile
+    explication: La forme et la compilation sont déjà vérifiées par les outils ; le relecteur se concentre sur le fond.
+  - id: desactiver
+    question: Un linter signale un problème dans votre pull request. Quand est-il acceptable de le faire taire ?
+    choix:
+      - texte: Pour une vraie exception, expliquée en commentaire et acceptée en revue
+        correct: true
+      - texte: Dès qu'il bloque la fusion
+      - texte: Jamais, même pour une exception justifiée
+    explication: Faire taire un linter doit rester rare, justifié et visible ; pour passer au vert, on corrige.

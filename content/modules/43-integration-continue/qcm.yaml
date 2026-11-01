@@ -1,0 +1,57 @@
+questions:
+  - id: ci
+    question: Que fait l'intégration continue à chaque pull request ?
+    choix:
+      - texte: Elle compile et lance les tests sur une machine neuve, et affiche le résultat sur la pull request
+        correct: true
+      - texte: Elle fusionne automatiquement la pull request dans main
+      - texte: Elle déploie le code sur le robot
+    explication: La CI vérifie la modification avant la fusion ; déployer sur le robot est une autre étape, le déploiement continu.
+  - id: declencheur
+    question: Un workflow ne contient que « on push branches [main] ». Quand une erreur est-elle découverte ?
+    choix:
+      - texte: Après la fusion dans main, trop tard pour la refuser
+        correct: true
+      - texte: Dès l'ouverture de la pull request
+      - texte: Jamais
+    explication: Sans le déclencheur pull_request, la CI ne tourne qu'une fois le code fusionné.
+  - id: checkout
+    question: À quoi sert l'étape « uses actions/checkout@v4 » ?
+    choix:
+      - texte: À récupérer le code du dépôt sur la machine de la CI, vide au départ
+        correct: true
+      - texte: À vérifier la syntaxe du workflow
+      - texte: À installer ROS 2
+    explication: La machine de la CI est neuve ; sans checkout, il n'y a rien à compiler.
+  - id: colcontest
+    question: Un test échoue. Quel code de sortie renvoie colcon test ?
+    choix:
+      - texte: 0, les tests ont tourné ; il faut colcon test-result pour obtenir une erreur
+        correct: true
+      - texte: 1, comme pytest
+      - texte: Le nombre de tests échoués
+    explication: colcon test enregistre les résultats sans échouer ; colcon test-result les lit et renvoie un code non nul si un test a échoué.
+  - id: etape
+    question: Quand une étape « run » d'un workflow GitHub Actions échoue-t-elle ?
+    choix:
+      - texte: Quand une de ses commandes se termine avec un code de sortie non nul
+        correct: true
+      - texte: Quand une commande affiche le mot « error »
+      - texte: Jamais, seul le job peut échouer
+    explication: Les étapes tournent avec bash -e ; le texte affiché ne compte pas, seul le code de sortie compte.
+  - id: script
+    question: Pourquoi ranger les commandes de la CI dans un script ci.sh versionné ?
+    choix:
+      - texte: Pour lancer exactement les mêmes étapes en local et reproduire un échec de la CI
+        correct: true
+      - texte: Parce que GitHub Actions n'accepte pas plusieurs commandes par étape
+      - texte: Pour que la CI tourne plus vite
+    explication: Le même script en local et en CI donne le même verdict ; le workflow garde ce qui dépend de GitHub.
+  - id: protection
+    question: Comment empêcher la fusion d'une pull request dont la CI est rouge ?
+    choix:
+      - texte: Avec une règle de protection de la branche main qui exige que les vérifications passent
+        correct: true
+      - texte: En désactivant le test qui échoue
+      - texte: En relançant la CI jusqu'à ce qu'elle passe
+    explication: Une règle de protection rend la CI obligatoire ; désactiver un test ou relancer en boucle cache le problème.

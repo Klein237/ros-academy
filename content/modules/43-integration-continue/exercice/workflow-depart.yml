@@ -1,0 +1,28 @@
+# Intégration continue du dépôt du robot de livraison.
+name: CI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  compiler-tester:
+    runs-on: ubuntu-24.04
+    container: ros:jazzy-ros-base
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Dépendances
+        run: |
+          apt-get update
+          rosdep update
+          rosdep install --from-paths src --ignore-src -y
+      - name: Compilation
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          colcon build
+      - name: Tests
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          colcon test

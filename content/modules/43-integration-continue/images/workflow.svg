@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 370" role="img" aria-labelledby="t d">
+<title id="t">Les trois parties d&#x27;un workflow GitHub Actions</title>
+<desc id="d">Le fichier .github/workflows/ci.yml a trois parties. on : quand il se déclenche, à chaque push sur main et à chaque pull_request ; sans pull_request, l&#x27;erreur n&#x27;apparaît qu&#x27;après la fusion. jobs : sur quelle machine, ici ubuntu-24.04 avec le conteneur ros:jazzy-ros-base, une machine neuve à chaque fois. steps : les étapes dans l&#x27;ordre, actions/checkout, dépendances avec rosdep, colcon build, colcon test, colcon test-result. Ici colcon test-result échoue : le job s&#x27;arrête et devient rouge.</desc>
+<style>
+.fond { fill: #fbfaf6; stroke: #cfc8b8; stroke-width: 1.5; }
+.grille { stroke: #ece8de; stroke-width: 1; }
+.boite { fill: #ffffff; stroke: #cfc8b8; stroke-width: 1.5; }
+.calcul { fill: #ecedf9; stroke: #3b4596; stroke-width: 2; }
+.capteur { fill: #fff8e8; stroke: #d39a2c; stroke-width: 2; }
+.actionneur { fill: #eef1f5; stroke: #56606a; stroke-width: 2; }
+.robot { fill: #ecedf9; stroke: #3b4596; stroke-width: 2; }
+.roue { fill: #12171c; }
+.roulette { fill: #ffffff; stroke: #12171c; stroke-width: 1.5; }
+.nez { fill: #3b4596; }
+.ax-x { stroke: #d64545; stroke-width: 3; fill: none; } .ax-y { stroke: #2f9e44; stroke-width: 3; fill: none; }
+.px { fill: #d64545; } .py { fill: #2f9e44; }
+.trait { stroke: #56606a; stroke-width: 2; fill: none; }
+.tirets { stroke: #8a949c; stroke-width: 1.5; stroke-dasharray: 5 5; fill: none; }
+.trajet { stroke: #d39a2c; stroke-width: 3; fill: none; stroke-linecap: round; }
+.trajet-pointe { fill: #d39a2c; }
+.vitesse { stroke: #3b4596; stroke-width: 3; fill: none; }
+.vitesse-pointe { fill: #3b4596; }
+.pointe { fill: #56606a; }
+.cir { fill: #d39a2c; }
+.t { fill: #12171c; font: 400 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-gras { fill: #12171c; font: 600 14px "IBM Plex Sans", system-ui, sans-serif; }
+.t-titre { fill: #12171c; font: 600 16px "IBM Plex Sans", system-ui, sans-serif; }
+.t-petit { fill: #56606a; font: 400 12.5px "IBM Plex Sans", system-ui, sans-serif; }
+.t-sur { fill: #56606a; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; letter-spacing: 0.08em; }
+.t-math { fill: #12171c; font: italic 500 15px "IBM Plex Serif", Georgia, serif; }
+.t-code { fill: #12171c; font: 500 13px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+.t-accent { fill: #3b4596; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-ambre { fill: #8a5d10; font: 600 13px "IBM Plex Sans", system-ui, sans-serif; }
+.t-x { fill: #d64545; font: 600 13px "JetBrains Mono", monospace; } .t-y { fill: #2f9e44; font: 600 13px "JetBrains Mono", monospace; }
+.badge { fill: #3b4596; } .t-badge { fill: #ffffff; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; }
+.t-commit { fill: #12171c; font: 600 10.5px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+.sep { stroke: #e7e2d6; stroke-width: 1.5; }
+@media (prefers-color-scheme: dark) {
+  .fond { fill: #101114; stroke: #3a3b42; } .grille { stroke: #1f2026; }
+  .boite { fill: #16171b; stroke: #3a3b42; }
+  .calcul, .robot { fill: #1d2140; stroke: #9aa4f0; }
+  .capteur { fill: #2a2212; stroke: #f2b544; }
+  .actionneur { fill: #1c1d22; stroke: #9a9aa3; }
+  .roue { fill: #c9c9cf; } .roulette { fill: #16171b; stroke: #c9c9cf; } .nez { fill: #9aa4f0; }
+  .ax-x { stroke: #ff6b6b; } .ax-y { stroke: #51cf66; } .px, .t-x { fill: #ff6b6b; } .py, .t-y { fill: #51cf66; }
+  .trait { stroke: #9a9aa3; } .tirets { stroke: #62636b; } .pointe { fill: #9a9aa3; }
+  .trajet { stroke: #f2b544; } .trajet-pointe, .cir { fill: #f2b544; }
+  .vitesse { stroke: #9aa4f0; } .vitesse-pointe { fill: #9aa4f0; }
+  .t, .t-gras, .t-titre, .t-math, .t-code, .t-commit { fill: #f4f1ea; }
+  .t-petit, .t-sur { fill: #9a9aa3; } .t-accent { fill: #9aa4f0; } .t-ambre { fill: #f2b544; }
+  .badge { fill: #9aa4f0; } .t-badge { fill: #0b0b0d; } .sep { stroke: #26272d; }
+}
+</style>
+<defs>
+<marker id="m-trait" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-trajet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="trajet-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-vitesse" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="vitesse-pointe" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-x" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="px" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="m-y" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="py" d="M0 0 L10 5 L0 10 z"/></marker>
+</defs>
+<rect class="fond" x="20.0" y="20.0" width="880.0" height="330.0" rx="12"/>
+<text class="t-sur" x="40.0" y="48.0" text-anchor="start">.GITHUB/WORKFLOWS/CI.YML</text>
+<rect class="capteur" x="40.0" y="70.0" width="260.0" height="260.0" rx="8"/>
+<text class="t-code" x="60.0" y="98.0" text-anchor="start">on</text>
+<text class="t-gras" x="60.0" y="120.0" text-anchor="start">quand ?</text>
+<text class="t-petit" x="60.0" y="154.0" text-anchor="start">push sur main</text>
+<text class="t-petit" x="60.0" y="176.0" text-anchor="start">pull_request</text>
+<text class="t-petit" x="60.0" y="224.0" text-anchor="start">sans pull_request, l&#x27;erreur</text>
+<text class="t-petit" x="60.0" y="244.0" text-anchor="start">n&#x27;apparaît qu&#x27;après la fusion</text>
+<rect class="boite" x="320.0" y="70.0" width="260.0" height="260.0" rx="8"/>
+<text class="t-code" x="340.0" y="98.0" text-anchor="start">jobs</text>
+<text class="t-gras" x="340.0" y="120.0" text-anchor="start">sur quelle machine ?</text>
+<text class="t-code" x="340.0" y="154.0" text-anchor="start">runs-on: ubuntu-24.04</text>
+<text class="t-code" x="340.0" y="176.0" text-anchor="start">container:</text>
+<text class="t-code" x="352.0" y="196.0" text-anchor="start">ros:jazzy-ros-base</text>
+<text class="t-petit" x="340.0" y="244.0" text-anchor="start">une machine neuve à chaque fois</text>
+<rect class="calcul" x="600.0" y="70.0" width="280.0" height="260.0" rx="8"/>
+<text class="t-code" x="620.0" y="98.0" text-anchor="start">steps</text>
+<text class="t-gras" x="620.0" y="120.0" text-anchor="start">quoi, dans l&#x27;ordre ?</text>
+<rect class="boite" x="620.0" y="140.0" width="200.0" height="24.0" rx="5"/>
+<text class="t-code" x="632.0" y="157.0" text-anchor="start">actions/checkout</text>
+<text class="t-accent" x="842.0" y="157.0" text-anchor="middle">✔</text>
+<rect class="boite" x="620.0" y="170.0" width="200.0" height="24.0" rx="5"/>
+<text class="t-code" x="632.0" y="187.0" text-anchor="start">dépendances (rosdep)</text>
+<text class="t-accent" x="842.0" y="187.0" text-anchor="middle">✔</text>
+<rect class="boite" x="620.0" y="200.0" width="200.0" height="24.0" rx="5"/>
+<text class="t-code" x="632.0" y="217.0" text-anchor="start">colcon build</text>
+<text class="t-accent" x="842.0" y="217.0" text-anchor="middle">✔</text>
+<rect class="boite" x="620.0" y="230.0" width="200.0" height="24.0" rx="5"/>
+<text class="t-code" x="632.0" y="247.0" text-anchor="start">colcon test</text>
+<text class="t-accent" x="842.0" y="247.0" text-anchor="middle">✔</text>
+<rect class="boite" x="620.0" y="260.0" width="200.0" height="24.0" rx="5"/>
+<text class="t-code" x="632.0" y="277.0" text-anchor="start">colcon test-result</text>
+<text class="t-ambre" x="842.0" y="277.0" text-anchor="middle">✘</text>
+<text class="t-ambre" x="740.0" y="318.0" text-anchor="middle">une étape échoue : le job s&#x27;arrête, rouge</text>
+</svg>
