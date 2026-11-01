@@ -70,12 +70,12 @@ def test_overview_and_module_stats(client, env):
     assert rows == ["01-a", "02-b"]
     row_a = re.search(r'href="/modules/01-a/".*?</tr>', html, re.S).group(0)
     cells = [re.sub(r"<[^>]+>", "", c).strip() for c in re.findall(r"<td>(.*?)</td>", row_a, re.S)]
-    # commencé 2 (alice, bob) ; réussi 1/2 ; bloqués 1 ; 1 vérification avant réussite ; indices 1/0/0 ;
-    # QCM moyen (20 + 10) / 2 = 15 ; note moyenne des modules terminés : 20
-    assert cells == ["2", "1 / 2 · 50 %", "1", "1,0", "1 / 0 / 0", "15,0 / 20", "20,00 / 20", "—"]  # pas encore d'avis
+    # ouvert 2 et commencé 2 (alice, bob) ; réussi 1/2 ; bloqués 1 ; 1 vérification avant réussite ;
+    # indices 1/0/0 ; QCM moyen (20 + 10) / 2 = 15 ; note moyenne des modules terminés : 20
+    assert cells == ["2", "2", "1 / 2 · 50 %", "1", "1,0", "1 / 0 / 0", "15,0 / 20", "20,00 / 20", "—"]  # pas encore d'avis
     row_b = re.search(r'href="/modules/02-b/".*?</tr>', html, re.S).group(0)
     cells = [re.sub(r"<[^>]+>", "", c).strip() for c in re.findall(r"<td>(.*?)</td>", row_b, re.S)]
-    assert cells == ["1", "1 / 1 · 100 %", "0", "2,0", "1 / 1 / 0", "20,0 / 20", "17,00 / 20", "—"]
+    assert cells == ["1", "1", "1 / 1 · 100 %", "0", "2,0", "1 / 1 / 0", "20,0 / 20", "17,00 / 20", "—"]
     assert "admin@exemple.fr" not in html  # le formateur n'est pas compté parmi les étudiants
     assert "bloqué sur Module A" in html
 
@@ -130,3 +130,33 @@ def test_verifications_are_counted(client, env):
         client.post("/api/comptes/exercices/01-a/verification", headers=ORIGIN)
     with db(client) as s:
         assert s.get(Exercise, (1, "01-a")).verifications == 2
+
+
+def test_openings_show_where_students_stop(client, env):
+    """Cours ou lab ouverts sans rien tenter : visibles dans le tableau, la fiche, le CSV et l'export RGPD."""
+    trainer, bob = build(client, env)
+    c = browser(client)
+    login(c, env, "=cmd|calc@exemple.fr")  # u3 : n'avait rien fait
+    assert c.post("/api/comptes/ouvertures/01-a").status_code == 403  # origine absente
+    assert c.post("/api/comptes/ouvertures/99-inconnu", headers=ORIGIN).status_code == 404
+    assert browser(client).post("/api/comptes/ouvertures/01-a", headers=ORIGIN).status_code == 401
+    assert c.post("/api/comptes/ouvertures/01-a", headers=ORIGIN).json() == {"ok": True}
+    assert c.post("/api/comptes/ouvertures/01-a", headers=ORIGIN).status_code == 200  # compté deux fois
+    r = c.get("/compte/lab", params={"suite": "/lab/?module=02-b&exercice=1"}, follow_redirects=False)
+    assert r.status_code == 303 and "/hub/jwt_login" in r.headers["location"]
+    html = trainer.get("/compte/formateur").text
+    row_a = re.search(r'href="/modules/01-a/".*?</tr>', html, re.S).group(0)
+    cells = [re.sub(r"<[^>]+>", "", c).strip() for c in re.findall(r"<td>(.*?)</td>", row_a, re.S)]
+    assert cells[:2] == ["3", "2"]  # ouvert par 3 (dont u3, sans rien tenter), commencé par 2
+    row_b = re.search(r'href="/modules/02-b/".*?</tr>', html, re.S).group(0)
+    cells = [re.sub(r"<[^>]+>", "", c).strip() for c in re.findall(r"<td>(.*?)</td>", row_b, re.S)]
+    assert cells[:2] == ["2", "1"]  # u3 a ouvert le lab de 02-b
+    student = re.search(r'href="/compte/formateur/etudiants/3[?"].*?</tr>', html, re.S).group(0)
+    assert "Module B" in student  # son dernier module ouvert : le lab de 02-b, après le cours de 01-a
+    fiche = trainer.get("/compte/formateur/etudiants/3").text
+    assert "cours le" in fiche and "lab le" in fiche and "dernier module ouvert" in fiche
+    rows = list(csv.reader(io.StringIO(trainer.get("/compte/formateur/etudiants.csv").text.lstrip("﻿")), delimiter=";"))
+    assert rows[0][-2:] == ["dernier module ouvert", "ouvert le"]
+    assert next(r for r in rows[1:] if r[0] == "3")[-2] == "02-b"
+    ouv = c.get("/compte/donnees").json()["ouvertures"]
+    assert [(o["module"], o["quoi"], o["nombre"]) for o in ouv] == [("01-a", "cours", 2), ("02-b", "lab", 1)]

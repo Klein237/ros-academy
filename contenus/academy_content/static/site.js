@@ -443,6 +443,16 @@ function ressemblantes(questions, titre, texte, max = 3) {
     .map((x) => x.q);
 }
 
+// Ouverture du cours : notée chez Comptes pour le suivi des formateurs (où un étudiant décroche).
+// Sans compte connecté, la requête est refusée sans bruit.
+function setupOuverture() {
+  const marque = document.querySelector("[data-ouverture]");
+  if (!marque) return;
+  fetch(`/api/comptes/ouvertures/${encodeURIComponent(marque.dataset.ouverture)}`, {
+    method: "POST", credentials: "same-origin", keepalive: true,
+  }).catch(() => {});
+}
+
 function setupQuestions() {
   const section = document.getElementById("questions");
   if (!section) return;
@@ -782,6 +792,7 @@ setupTabs();
 setupCopy();
 setupCatalogue();
 setupModule();
+setupOuverture();
 setupProgression();
 setupQcm();
 setupQuestions();

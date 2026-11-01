@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 from sqlalchemy import func, select
 
-from . import grading
+from . import grading, ouvertures
 from .db import Exercise, QcmAttempt, SessionRow, UsageTick, User
 from .inscriptions import ACTIF, DESINSCRIT
 from .quotas import month_start
@@ -25,6 +25,13 @@ class ModuleProgress:
     verifications: int = 0
     reussi_le: datetime | None = None
     grade: grading.ModuleGrade | None = None
+    cours_ouvert: datetime | None = None  # dernière ouverture du cours
+    lab_ouvert: datetime | None = None  # dernière ouverture du lab depuis le module
+
+    @property
+    def ouvert(self):
+        """Cours ou lab ouvert, ou module commencé : l'étudiant est au moins passé par ce module."""
+        return bool(self.cours_ouvert or self.lab_ouvert or self.commence)
 
     @property
     def commence(self):
@@ -42,6 +49,7 @@ class Student:
     finale: float | None = None
     derniere_activite: datetime | None = None
     minutes_mois: int = 0
+    dernier_ouvert: tuple | None = None  # (module, date) : le dernier module dont il a ouvert le cours ou le lab
 
     @property
     def termines(self):
@@ -51,6 +59,7 @@ class Student:
 @dataclass
 class ModuleStats:
     module: dict
+    ouverts: int
     commences: int
     reussis: int
     bloques: int
@@ -95,16 +104,28 @@ def students(db, parcours, staff_emails, now, equipe=False):
         last[uid].append(t)
     minutes = dict(db.execute(select(UsageTick.user_id, func.count()).where(UsageTick.minute >= month_start(now))
                               .group_by(UsageTick.user_id)).all())
+    ouv = ouvertures.by_user(db, ids)
+    for uid, mods in ouv.items():
+        last[uid] += [o.derniere for par_quoi in mods.values() for o in par_quoi.values()]
     out = []
     for u in users:
         st = Student(user=u, minutes_mois=minutes.get(u.id, 0),
                      derniere_activite=max((t for t in last[u.id] if t), default=None))
+        dernieres = [(max(o.derniere for o in par_quoi.values()), module) for module, par_quoi in ouv.get(u.id, {}).items()]
+        if dernieres:
+            quand, module = max(dernieres)
+            st.dernier_ouvert = (module, quand)
         weighted = []
         for m in parcours["modules"] if parcours else []:
             ex = exercises.get((u.id, m["id"]))
             mp = ModuleProgress(module=m, tentatives=notes[(u.id, m["id"])], indices=ex.indices if ex else 0,
                                 verifications=(ex.verifications or 0) if ex else 0,
                                 reussi_le=ex.reussi_le if ex else None)
+            par_quoi = ouv.get(u.id, {}).get(m["id"], {})
+            if ouvertures.COURS in par_quoi:
+                mp.cours_ouvert = par_quoi[ouvertures.COURS].derniere
+            if ouvertures.LAB in par_quoi:
+                mp.lab_ouvert = par_quoi[ouvertures.LAB].derniere
             mp.grade = grading.grade_of(m, mp.tentatives, bool(mp.reussi_le), mp.indices)
             st.modules.append(mp)
             if grading.counts(m):
@@ -122,6 +143,7 @@ def module_stats(all_students, parcours):
         done = [r for r in rows if r.reussi_le]
         stats.append(ModuleStats(
             module=m,
+            ouverts=sum(1 for r in rows if r.ouvert),
             commences=len(started),
             reussis=len(done),
             bloques=sum(1 for r in rows if r.bloque),
@@ -168,12 +190,14 @@ def to_csv(all_students, parcours):
     modules = parcours["modules"] if parcours else []
     w.writerow(["id", "email", "nom", "formule", "inscrit le", "dernière activité", "minutes ce mois",
                 "modules terminés", "note finale"] + [f"{m['id']} note" for m in modules]
-               + [f"{m['id']} indices" for m in modules] + [f"{m['id']} vérifications" for m in modules])
+               + [f"{m['id']} indices" for m in modules] + [f"{m['id']} vérifications" for m in modules]
+               + ["dernier module ouvert", "ouvert le"])
     for s in all_students:
         w.writerow([_cell(v) for v in [
             s.user.id, s.user.email, s.user.nom, s.user.formule, s.user.cree_le.strftime("%Y-%m-%d"),
             s.derniere_activite.strftime("%Y-%m-%d %H:%M") if s.derniere_activite else "", s.minutes_mois,
             s.termines, _fr(s.finale)]
             + [_fr(m.grade.note) if m.grade and m.grade.termine else "" for m in s.modules]
-            + [m.indices for m in s.modules] + [m.verifications for m in s.modules]])
+            + [m.indices for m in s.modules] + [m.verifications for m in s.modules]
+            + ([s.dernier_ouvert[0], s.dernier_ouvert[1].strftime("%Y-%m-%d %H:%M")] if s.dernier_ouvert else ["", ""])])
     return buf.getvalue()

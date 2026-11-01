@@ -184,6 +184,19 @@ class Exercise(Base):
     dernier_journal: Mapped[str] = mapped_column(Text, default="", server_default="")
 
 
+class ModuleOpening(Base):
+    """Ouverture d'un module : son cours (la page du module) ou son lab (« Ouvrir le lab » depuis le module).
+    Pour voir où un étudiant décroche, même sans QCM tenté ni exercice vérifié."""
+
+    __tablename__ = "module_openings"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    module: Mapped[str] = mapped_column(String(64), primary_key=True)
+    quoi: Mapped[str] = mapped_column(String(10), primary_key=True)  # « cours » ou « lab »
+    premiere: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    derniere: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    nombre: Mapped[int] = mapped_column(Integer, default=1)
+
+
 class ModuleFeedback(Base):
     """Avis d'un étudiant sur un module (phase de test) : note, difficulté ressentie, commentaire."""
 

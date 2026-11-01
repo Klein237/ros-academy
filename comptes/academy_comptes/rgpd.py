@@ -7,8 +7,8 @@ from collections import Counter
 from sqlalchemy import delete, select
 
 from . import certificats
-from .db import (Access, Answer, Certificate, Exercise, Identity, LoginToken, ModuleFeedback, QcmAttempt, Question,
-                 QuestionVote, TrainerProfile, UsageTick, User)
+from .db import (Access, Answer, Certificate, Exercise, Identity, LoginToken, ModuleFeedback, ModuleOpening,
+                 QcmAttempt, Question, QuestionVote, TrainerProfile, UsageTick, User)
 
 def _iso(d):
     return d.isoformat(timespec="seconds") + "Z" if d else None
@@ -36,6 +36,10 @@ def export_data(db, user):
         "exercices": [{"module": e.module, "indices": e.indices, "verifications": e.verifications,
                        "reussi_le": _iso(e.reussi_le)}
                       for e in db.scalars(select(Exercise).where(Exercise.user_id == user.id).order_by(Exercise.module))],
+        "ouvertures": [{"module": o.module, "quoi": o.quoi, "premiere": _iso(o.premiere), "derniere": _iso(o.derniere),
+                        "nombre": o.nombre}
+                       for o in db.scalars(select(ModuleOpening).where(ModuleOpening.user_id == user.id)
+                                           .order_by(ModuleOpening.module, ModuleOpening.quoi))],
         "avis": [{"module": a.module, "note": a.note, "difficulte": a.difficulte, "commentaire": a.commentaire,
                   "le": _iso(a.modifie_le)}
                  for a in db.scalars(select(ModuleFeedback).where(ModuleFeedback.user_id == user.id)

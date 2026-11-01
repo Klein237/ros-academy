@@ -48,11 +48,12 @@
   <h2>Modules</h2>
   <div class="table-scroll">
   <table class="results trainer-modules">
-    <thead><tr><th>Module</th><th>Commencé</th><th>Exercice réussi</th><th>Bloqués</th><th>Vérifications avant réussite</th><th>Indices 1 / 2 / 3</th><th>QCM moyen</th><th>Note moyenne</th><th>Avis</th></tr></thead>
+    <thead><tr><th>Module</th><th>Ouvert</th><th>Commencé</th><th>Exercice réussi</th><th>Bloqués</th><th>Vérifications avant réussite</th><th>Indices 1 / 2 / 3</th><th>QCM moyen</th><th>Note moyenne</th><th>Avis</th></tr></thead>
     <tbody>
     {% for m in modules %}
       <tr>
         <td><a href="/modules/{{ m.module.id }}/">{{ m.module.titre }}</a></td>
+        <td>{{ m.ouverts }}</td>
         <td>{{ m.commences }}</td>
         {% if m.module.exercice is false %}<td class="muted" colspan="4">sans exercice</td>{% else %}
         <td>{{ rate(m.reussis, m.commences) }}</td>
@@ -65,12 +66,12 @@
         <td>{% if a and a.nombre %}<a href="/compte/formateur/avis?module={{ m.module.id | urlencode }}{{ qs }}">{{ fr(a.moyenne) }} / 5</a> <span class="muted small">({{ a.nombre }} avis{% if a.difficultes.trop_difficile %}, {{ a.difficultes.trop_difficile }} trop difficile{% endif %})</span>{% else %}<span class="muted">—</span>{% endif %}</td>
       </tr>
     {% else %}
-      <tr><td colspan="9" class="muted">Aucun module publié.</td></tr>
+      <tr><td colspan="10" class="muted">Aucun module publié.</td></tr>
     {% endfor %}
     </tbody>
   </table>
   </div>
-  <p class="muted small">« Commencé » : QCM tenté, indice demandé ou exercice vérifié ; « bloqués » : {{ stuck_after }} vérifications ratées ou plus, sans réussite. Les taux sont calculés sur les {{ "membres de l'équipe" if equipe else "étudiants" }} qui ont commencé le module.</p>
+  <p class="muted small">« Ouvert » : cours ou lab ouvert depuis le module, ou module commencé ; « commencé » : QCM tenté, indice demandé ou exercice vérifié ; « bloqués » : {{ stuck_after }} vérifications ratées ou plus, sans réussite. Les taux sont calculés sur les {{ "membres de l'équipe" if equipe else "étudiants" }} qui ont commencé le module.</p>
 </section>
 
 <section class="card">
@@ -87,7 +88,7 @@
   {% if q %}<p class="muted small">{{ students | length }} sur {{ total }} {{ "membres de l'équipe" if equipe else "étudiants" }} pour « {{ q }} ». <a href="?{% if parcours %}parcours={{ parcours.id | urlencode }}{% endif %}{{ qs }}">Tout afficher</a></p>{% endif %}
   <div class="table-scroll">
   <table class="results trainer-students">
-    <thead><tr><th>Étudiant</th><th>Formule</th><th>Dernière activité</th><th>Lab ce mois</th><th>Modules terminés</th><th>Note finale</th></tr></thead>
+    <thead><tr><th>Étudiant</th><th>Formule</th><th>Dernière activité</th><th>Dernier module ouvert</th><th>Lab ce mois</th><th>Modules terminés</th><th>Note finale</th></tr></thead>
     <tbody>
     {% for st in students %}
       <tr>
@@ -95,12 +96,13 @@
           {% if st.modules | selectattr('bloque') | list %}<br><span class="warn small">bloqué sur {{ st.modules | selectattr('bloque') | map(attribute='module.titre') | join(', ') }}</span>{% endif %}</td>
         <td>{{ st.user.formule }}</td>
         <td>{{ st.derniere_activite.strftime('%d/%m/%Y %H:%M') if st.derniere_activite else '—' }}</td>
+        <td>{% if st.dernier_ouvert %}{{ titres.get(st.dernier_ouvert[0], st.dernier_ouvert[0]) }}<br><span class="muted small">le {{ st.dernier_ouvert[1].strftime('%d/%m/%Y') }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
         <td>{{ st.minutes_mois }} min</td>
         <td>{{ rate(st.termines, st.modules | length) }}</td>
         <td>{% if st.finale is not none %}<strong>{{ fr(st.finale, 2) }}</strong> / 20{% else %}<span class="muted">—</span>{% endif %}</td>
       </tr>
     {% else %}
-      <tr><td colspan="6" class="muted">{{ "Aucun compte dans l'équipe." if equipe else "Aucun étudiant." }}</td></tr>
+      <tr><td colspan="7" class="muted">{{ "Aucun compte dans l'équipe." if equipe else "Aucun étudiant." }}</td></tr>
     {% endfor %}
     </tbody>
   </table>
